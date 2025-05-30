@@ -12,6 +12,10 @@ This is a Remix application that is used to manage and show financial charts usi
 
 ## Backlog
 
+TODO next:
+
+- define brand colors and design tokens in CSS
+
 The initial features;
 
 1. Show a chart inside the application
