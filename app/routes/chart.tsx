@@ -1,6 +1,7 @@
 import type { MetaFunction } from "@remix-run/node";
 import { SCChart } from "~/components/SCChart";
 import { useState } from "react";
+import app, { db } from "~/lib/firebase";
 
 export const meta: MetaFunction = () => {
   return [
@@ -11,13 +12,6 @@ export const meta: MetaFunction = () => {
 
 export default function ChartRoute() {
   const [chartError, setChartError] = useState<string | null>(null);
-
-  // Firebase configuration - you'll need to replace these with your actual values
-  const firebaseConfig = {
-    projectId: "spotcanvas-prod",
-    apiKey: "your-api-key",
-    authDomain: "spotcanvas-prod.firebaseapp.com",
-  };
 
   const initialState = {
     symbol: "BTC-USD",
@@ -45,7 +39,7 @@ export default function ChartRoute() {
             {initialState.symbol} Chart
           </h2>
           <p className="text-gray-600 dark:text-gray-300">
-            Interactive financial chart powered by sc-charts
+            Financial charring for crypto and stocks
           </p>
         </div>
 
@@ -84,9 +78,10 @@ export default function ChartRoute() {
             </div>
           ) : (
             <SCChart
-              firebaseConfig={firebaseConfig}
+              firebaseApp={app}
+              firestore={db}
               initialState={initialState}
-              style={{ width: "100%", height: "600px" }}
+              style={{ width: "100%", height: "800px" }}
               className="trading-chart"
             />
           )}

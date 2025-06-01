@@ -1,23 +1,79 @@
 import type { MetaFunction } from "@remix-run/node";
 import { Link } from "@remix-run/react";
+import { useAuth } from "~/lib/auth-context";
+import { logOut } from "~/lib/auth";
 
 export const meta: MetaFunction = () => {
   return [
-    { title: "Spot Canvas App" },
-    { name: "description", content: "Financial charting application with sc-charts" },
+    { title: "Spot" },
+    {
+      name: "description",
+      content: "Financial charting for stocks & crypto",
+    },
   ];
 };
 
 export default function Index() {
+  const { user, loading } = useAuth();
+
+  const handleSignOut = async () => {
+    try {
+      await logOut();
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-lg text-gray-600">Loading...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen items-center justify-center">
       <div className="flex flex-col items-center gap-16">
         <header className="flex flex-col items-center gap-9">
-          <h1 className="leading text-4xl font-bold text-gray-800 dark:text-gray-100">
-            Spot Canvas App
-          </h1>
+          <div className="flex justify-between items-center w-full max-w-4xl">
+            <h1 className="leading text-4xl font-bold text-gray-800 dark:text-gray-100">
+              Spot Canvas App
+            </h1>
+            <div className="flex items-center gap-4">
+              {user ? (
+                <div className="flex items-center gap-4">
+                  <span className="text-gray-600 dark:text-gray-300">
+                    Welcome, {user.email}
+                  </span>
+                  <button
+                    onClick={handleSignOut}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Link
+                    to="/signin"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    to="/signup"
+                    className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    Sign Up
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
           <p className="text-lg text-gray-600 dark:text-gray-300 text-center max-w-2xl">
-            A powerful financial charting application built with Remix and sc-charts
+            A powerful financial charting application built with Remix and
+            sc-charts
           </p>
         </header>
         <nav className="flex flex-col items-center justify-center gap-4 rounded-3xl border border-gray-200 p-6 dark:border-gray-700">

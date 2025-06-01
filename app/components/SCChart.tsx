@@ -1,17 +1,21 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { FirebaseApp } from "firebase/app";
+import { Firestore } from "firebase/firestore";
+import React, { useEffect, useRef, useState } from "react";
 
 interface SCChartProps {
-  firebaseConfig: any;
+  firebaseApp: FirebaseApp;
+  firestore?: Firestore;
   initialState?: any;
   className?: string;
   style?: React.CSSProperties;
 }
 
-export const SCChart: React.FC<SCChartProps> = ({ 
-  firebaseConfig, 
-  initialState, 
-  className, 
-  style 
+export const SCChart: React.FC<SCChartProps> = ({
+  firebaseApp,
+  firestore,
+  initialState,
+  className,
+  style,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<any>(null);
@@ -28,18 +32,22 @@ export const SCChart: React.FC<SCChartProps> = ({
     // Dynamically import the sc-charts library only on client side
     const loadChart = async () => {
       try {
-        const { initChart, createChartContainer } = await import('@anssipiirainen/sc-charts');
-        
+        const { initChart, createChartContainer } = await import(
+          "@anssipiirainen/sc-charts"
+        );
+
         // Create and append chart container
         const chartContainer = createChartContainer();
         chartRef.current = chartContainer;
         containerRef.current!.appendChild(chartContainer);
 
-        // Initialize the chart
-        const chartApp = initChart(chartContainer, firebaseConfig, initialState);
+        // Initialize the chart - pass firestore if available, otherwise use firebaseApp
+        const chartApp = firestore 
+          ? initChart(chartContainer, firebaseApp, initialState, firestore)
+          : initChart(chartContainer, firebaseApp, initialState);
         appRef.current = chartApp;
       } catch (error) {
-        console.error('Failed to load chart:', error);
+        console.error("Failed to load chart:", error);
       }
     };
 
@@ -54,7 +62,7 @@ export const SCChart: React.FC<SCChartProps> = ({
         containerRef.current.removeChild(chartRef.current);
       }
     };
-  }, [isClient, firebaseConfig, initialState]);
+  }, [isClient, firebaseApp, firestore, initialState]);
 
   if (!isClient) {
     return (
