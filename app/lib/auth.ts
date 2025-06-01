@@ -13,26 +13,35 @@ export interface SignInData {
 
 export const signUp = async ({ email, password }: SignUpData): Promise<User> => {
   try {
+    console.log("Attempting to sign up with email:", email);
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    console.log("Sign-up successful:", userCredential.user.email);
     return userCredential.user;
   } catch (error) {
+    console.error("Sign-up failed:", error);
     throw error;
   }
 };
 
 export const signIn = async ({ email, password }: SignInData): Promise<User> => {
   try {
+    console.log("Attempting to sign in with email:", email);
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    console.log("Sign-in successful:", userCredential.user.email);
     return userCredential.user;
   } catch (error) {
+    console.error("Sign-in failed:", error);
     throw error;
   }
 };
 
 export const logOut = async (): Promise<void> => {
   try {
+    console.log("Attempting to sign out");
     await signOut(auth);
+    console.log("Sign-out successful");
   } catch (error) {
+    console.error("Sign-out failed:", error);
     throw error;
   }
 };

@@ -36,7 +36,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     if (!isClient) return;
 
+    console.log("Setting up auth state listener...");
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log("Auth state changed:", user ? `User: ${user.email}` : "No user");
       setUser(user);
       setLoading(false);
     });
@@ -46,8 +48,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const value = {
     user,
-    loading: loading || !isClient,
+    loading: !isClient || loading,
   };
+
+  // Debug logging
+  console.log("AuthProvider render:", { 
+    user: user ? user.email : null, 
+    loading: !isClient || loading,
+    isClient 
+  });
 
   return (
     <AuthContext.Provider value={value}>

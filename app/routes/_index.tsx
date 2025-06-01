@@ -16,6 +16,13 @@ export const meta: MetaFunction = () => {
 export default function Index() {
   const { user, loading } = useAuth();
 
+  // Debug logging
+  console.log("Index page render:", { 
+    user: user ? user.email : null, 
+    loading,
+    userExists: !!user 
+  });
+
   const handleSignOut = async () => {
     try {
       await logOut();

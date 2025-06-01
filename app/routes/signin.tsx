@@ -1,8 +1,8 @@
-import type { ActionFunctionArgs, MetaFunction } from "@remix-run/node";
-import { json, redirect } from "@remix-run/node";
-import { Form, useActionData, useNavigation } from "@remix-run/react";
-import { useState } from "react";
+import type { MetaFunction } from "@remix-run/node";
+import { useNavigate } from "@remix-run/react";
+import { useState, useEffect } from "react";
 import { signIn, getErrorMessage } from "~/lib/auth";
+import { useAuth } from "~/lib/auth-context";
 
 export const meta: MetaFunction = () => {
   return [
@@ -11,38 +11,44 @@ export const meta: MetaFunction = () => {
   ];
 };
 
-export const action = async ({ request }: ActionFunctionArgs) => {
-  const formData = await request.formData();
-  const email = formData.get("email");
-  const password = formData.get("password");
 
-  if (typeof email !== "string" || typeof password !== "string") {
-    return json(
-      { error: "Please fill in all fields." },
-      { status: 400 }
-    );
-  }
-
-  try {
-    await signIn({ email, password });
-    return redirect("/");
-  } catch (error) {
-    return json(
-      { error: getErrorMessage(error) },
-      { status: 400 }
-    );
-  }
-};
 
 export default function SignIn() {
-  const actionData = useActionData<typeof action>();
-  const navigation = useNavigation();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isSubmitting = navigation.state === "submitting";
+  // Redirect if user is signed in
+  useEffect(() => {
+    if (user) {
+      console.log("Redirecting to / - user signed in");
+      navigate("/");
+    }
+  }, [user, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
+
+    console.log("Client-side sign-in attempt with email:", formData.email);
+
+    try {
+      await signIn({ email: formData.email, password: formData.password });
+      console.log("Client-side sign-in successful");
+      // Navigation will happen automatically via useEffect when user state changes
+    } catch (signInError) {
+      console.error("Client-side sign-in failed:", signInError);
+      setError(getErrorMessage(signInError));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -70,13 +76,13 @@ export default function SignIn() {
           </p>
         </div>
         
-        <Form method="post" className="mt-8 space-y-6">
-          {actionData?.error && (
+        <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+          {error && (
             <div className="rounded-md bg-red-50 p-4">
               <div className="flex">
                 <div className="ml-3">
                   <h3 className="text-sm font-medium text-red-800">
-                    {actionData.error}
+                    {error}
                   </h3>
                 </div>
               </div>
@@ -129,7 +135,7 @@ export default function SignIn() {
               {isSubmitting ? "Signing in..." : "Sign in"}
             </button>
           </div>
-        </Form>
+        </form>
       </div>
     </div>
   );
