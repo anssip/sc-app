@@ -1,4 +1,4 @@
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, User } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, User, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth } from './firebase';
 
 export interface SignUpData {
@@ -35,6 +35,19 @@ export const signIn = async ({ email, password }: SignInData): Promise<User> => 
   }
 };
 
+export const signInWithGoogle = async (): Promise<User> => {
+  try {
+    console.log("Attempting to sign in with Google");
+    const provider = new GoogleAuthProvider();
+    const userCredential = await signInWithPopup(auth, provider);
+    console.log("Google sign-in successful:", userCredential.user.email);
+    return userCredential.user;
+  } catch (error) {
+    console.error("Google sign-in failed:", error);
+    throw error;
+  }
+};
+
 export const logOut = async (): Promise<void> => {
   try {
     console.log("Attempting to sign out");
@@ -60,6 +73,12 @@ export const getErrorMessage = (error: any): string => {
       return 'Incorrect password. Please try again.';
     case 'auth/too-many-requests':
       return 'Too many failed attempts. Please try again later.';
+    case 'auth/popup-closed-by-user':
+      return 'Sign-in cancelled. Please try again.';
+    case 'auth/popup-blocked':
+      return 'Pop-up blocked. Please allow pop-ups and try again.';
+    case 'auth/cancelled-popup-request':
+      return 'Sign-in cancelled. Please try again.';
     default:
       return error.message || 'An error occurred. Please try again.';
   }

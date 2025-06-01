@@ -2,6 +2,8 @@ import type { MetaFunction } from "@remix-run/node";
 import { Link } from "@remix-run/react";
 import { useAuth } from "~/lib/auth-context";
 import { logOut } from "~/lib/auth";
+import GoogleSignInButton from "~/components/GoogleSignInButton";
+import { useState } from "react";
 
 export const meta: MetaFunction = () => {
   return [
@@ -15,6 +17,7 @@ export const meta: MetaFunction = () => {
 
 export default function Index() {
   const { user, loading } = useAuth();
+  const [authError, setAuthError] = useState<string | null>(null);
 
   // Debug logging
   console.log("Index page render:", { 
@@ -61,19 +64,30 @@ export default function Index() {
                   </button>
                 </div>
               ) : (
-                <div className="flex items-center gap-2">
-                  <Link
-                    to="/signin"
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                  >
-                    Sign In
-                  </Link>
-                  <Link
-                    to="/signup"
-                    className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                  >
-                    Sign Up
-                  </Link>
+                <div className="flex flex-col items-end gap-3">
+                  {authError && (
+                    <div className="text-sm text-red-600 bg-red-50 px-3 py-1 rounded">
+                      {authError}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <GoogleSignInButton
+                      onError={setAuthError}
+                      className="px-3 py-1.5 text-xs"
+                    />
+                    <Link
+                      to="/signin"
+                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                      Sign In
+                    </Link>
+                    <Link
+                      to="/signup"
+                      className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                      Sign Up
+                    </Link>
+                  </div>
                 </div>
               )}
             </div>

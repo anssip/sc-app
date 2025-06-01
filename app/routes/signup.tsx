@@ -1,8 +1,9 @@
-import type { ActionFunctionArgs, MetaFunction } from "@remix-run/node";
-import { json, redirect } from "@remix-run/node";
-import { Form, useActionData, useNavigation } from "@remix-run/react";
-import { useState } from "react";
+import type { MetaFunction } from "@remix-run/node";
+import { useNavigate } from "@remix-run/react";
+import { useState, useEffect } from "react";
 import { signUp, getErrorMessage } from "~/lib/auth";
+import { useAuth } from "~/lib/auth-context";
+import GoogleSignInButton from "~/components/GoogleSignInButton";
 
 export const meta: MetaFunction = () => {
   return [
@@ -11,54 +12,57 @@ export const meta: MetaFunction = () => {
   ];
 };
 
-export const action = async ({ request }: ActionFunctionArgs) => {
-  const formData = await request.formData();
-  const email = formData.get("email");
-  const password = formData.get("password");
-  const confirmPassword = formData.get("confirmPassword");
 
-  if (typeof email !== "string" || typeof password !== "string" || typeof confirmPassword !== "string") {
-    return json(
-      { error: "Please fill in all fields." },
-      { status: 400 }
-    );
-  }
-
-  if (password !== confirmPassword) {
-    return json(
-      { error: "Passwords do not match." },
-      { status: 400 }
-    );
-  }
-
-  if (password.length < 6) {
-    return json(
-      { error: "Password must be at least 6 characters long." },
-      { status: 400 }
-    );
-  }
-
-  try {
-    await signUp({ email, password });
-    return redirect("/");
-  } catch (error) {
-    return json(
-      { error: getErrorMessage(error) },
-      { status: 400 }
-    );
-  }
-};
 
 export default function SignUp() {
-  const actionData = useActionData<typeof action>();
-  const navigation = useNavigation();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     confirmPassword: "",
   });
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isSubmitting = navigation.state === "submitting";
+  // Redirect if user is signed in
+  useEffect(() => {
+    if (user) {
+      console.log("Redirecting to / - user signed up");
+      navigate("/");
+    }
+  }, [user, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
+
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters long.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    console.log("Client-side sign-up attempt with email:", formData.email);
+
+    try {
+      await signUp({ email: formData.email, password: formData.password });
+      console.log("Client-side sign-up successful");
+      // Navigation will happen automatically via useEffect when user state changes
+    } catch (signUpError) {
+      console.error("Client-side sign-up failed:", signUpError);
+      setError(getErrorMessage(signUpError));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -86,18 +90,34 @@ export default function SignUp() {
           </p>
         </div>
         
-        <Form method="post" className="mt-8 space-y-6">
-          {actionData?.error && (
+        <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+          {error && (
             <div className="rounded-md bg-red-50 p-4">
               <div className="flex">
                 <div className="ml-3">
                   <h3 className="text-sm font-medium text-red-800">
-                    {actionData.error}
+                    {error}
                   </h3>
                 </div>
               </div>
             </div>
           )}
+
+          <div>
+            <GoogleSignInButton
+              onError={setError}
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-gray-50 text-gray-500">Or create account with email</span>
+            </div>
+          </div>
 
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
@@ -162,7 +182,7 @@ export default function SignUp() {
               {isSubmitting ? "Creating account..." : "Sign up"}
             </button>
           </div>
-        </Form>
+        </form>
       </div>
     </div>
   );

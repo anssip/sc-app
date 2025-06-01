@@ -3,6 +3,7 @@ import { useNavigate } from "@remix-run/react";
 import { useState, useEffect } from "react";
 import { signIn, getErrorMessage } from "~/lib/auth";
 import { useAuth } from "~/lib/auth-context";
+import GoogleSignInButton from "~/components/GoogleSignInButton";
 
 export const meta: MetaFunction = () => {
   return [
@@ -88,6 +89,22 @@ export default function SignIn() {
               </div>
             </div>
           )}
+
+          <div>
+            <GoogleSignInButton
+              onError={setError}
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-gray-50 text-gray-500">Or continue with email</span>
+            </div>
+          </div>
 
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
