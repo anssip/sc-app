@@ -41,10 +41,8 @@ export const SCChart: React.FC<SCChartProps> = ({
         chartRef.current = chartContainer;
         containerRef.current!.appendChild(chartContainer);
 
-        // Initialize the chart - pass firestore if available, otherwise use firebaseApp
-        const chartApp = firestore 
-          ? initChart(chartContainer, firebaseApp, initialState, firestore)
-          : initChart(chartContainer, firebaseApp, initialState);
+        // Initialize the chart
+        const chartApp = initChart(chartContainer, firebaseApp, initialState);
         appRef.current = chartApp;
       } catch (error) {
         console.error("Failed to load chart:", error);

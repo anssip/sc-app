@@ -3,7 +3,6 @@ import { Link } from "@remix-run/react";
 import { useAuth } from "~/lib/auth-context";
 import { logOut } from "~/lib/auth";
 import Login from "~/components/Login";
-import { useState } from "react";
 
 export const meta: MetaFunction = () => {
   return [
@@ -17,7 +16,6 @@ export const meta: MetaFunction = () => {
 
 export default function Index() {
   const { user, loading } = useAuth();
-  const [authError, setAuthError] = useState<string | null>(null);
 
   const handleSignOut = async () => {
     try {

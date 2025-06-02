@@ -10,6 +10,34 @@ import { AuthProvider } from "~/lib/auth-context";
 
 import "./tailwind.css";
 
+// Add styles for react-resizable-panels
+const panelStyles = `
+  .react-resizable-panel-group {
+    display: flex;
+  }
+  
+  .react-resizable-panel {
+    overflow: hidden;
+  }
+  
+  .react-resizable-panel-resize-handle {
+    position: relative;
+    z-index: 10;
+  }
+  
+  .react-resizable-panel-resize-handle:hover {
+    background-color: rgba(99, 102, 241, 0.1);
+  }
+  
+  .react-resizable-panel-resize-handle:active {
+    background-color: rgba(99, 102, 241, 0.2);
+  }
+  
+  .react-resizable-panel-resize-handle[data-resize-handle-active] {
+    background-color: rgba(99, 102, 241, 0.3);
+  }
+`;
+
 export const links: LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {
@@ -31,6 +59,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
+        <style dangerouslySetInnerHTML={{ __html: panelStyles }} />
       </head>
       <body>
         {children}
