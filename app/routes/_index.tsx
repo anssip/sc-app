@@ -2,7 +2,7 @@ import type { MetaFunction } from "@remix-run/node";
 import { Link } from "@remix-run/react";
 import { useAuth } from "~/lib/auth-context";
 import { logOut } from "~/lib/auth";
-import GoogleSignInButton from "~/components/GoogleSignInButton";
+import Login from "~/components/Login";
 import { useState } from "react";
 
 export const meta: MetaFunction = () => {
@@ -18,13 +18,6 @@ export const meta: MetaFunction = () => {
 export default function Index() {
   const { user, loading } = useAuth();
   const [authError, setAuthError] = useState<string | null>(null);
-
-  // Debug logging
-  console.log("Index page render:", { 
-    user: user ? user.email : null, 
-    loading,
-    userExists: !!user 
-  });
 
   const handleSignOut = async () => {
     try {
@@ -64,31 +57,7 @@ export default function Index() {
                   </button>
                 </div>
               ) : (
-                <div className="flex flex-col items-end gap-3">
-                  {authError && (
-                    <div className="text-sm text-red-600 bg-red-50 px-3 py-1 rounded">
-                      {authError}
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2">
-                    <GoogleSignInButton
-                      onError={setAuthError}
-                      className="px-3 py-1.5 text-xs"
-                    />
-                    <Link
-                      to="/signin"
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                      Sign In
-                    </Link>
-                    <Link
-                      to="/signup"
-                      className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                      Sign Up
-                    </Link>
-                  </div>
-                </div>
+                <Login layout="horizontal" />
               )}
             </div>
           </div>
@@ -97,49 +66,70 @@ export default function Index() {
             sc-charts
           </p>
         </header>
-        <nav className="flex flex-col items-center justify-center gap-4 rounded-3xl border border-gray-200 p-6 dark:border-gray-700">
-          <p className="leading-6 text-gray-700 dark:text-gray-200">
-            Get started with charting
-          </p>
-          <div className="flex flex-col gap-2">
-            <Link
-              to="/chart"
-              className="group flex items-center gap-3 self-stretch p-3 leading-normal text-blue-700 hover:underline dark:text-blue-500"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="20"
-                viewBox="0 0 20 20"
-                fill="none"
-                className="stroke-gray-600 group-hover:stroke-current dark:stroke-gray-300"
+
+        {/* Conditional navigation based on auth state */}
+        {user ? (
+          // Authenticated user navigation
+          <nav className="flex flex-col items-center justify-center gap-4 rounded-3xl border border-gray-200 p-6 dark:border-gray-700">
+            <p className="leading-6 text-gray-700 dark:text-gray-200">
+              Welcome back! Ready to start trading?
+            </p>
+            <div className="flex flex-col gap-2">
+              <Link
+                to="/chart"
+                className="group flex items-center gap-3 self-stretch p-4 leading-normal text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
               >
-                <path
-                  d="M3 13L6 10L10 14L17 7"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              View Chart
-            </Link>
-            <ul>
-              {resources.map(({ href, text, icon }) => (
-                <li key={href}>
-                  <a
-                    className="group flex items-center gap-3 self-stretch p-3 leading-normal text-blue-700 hover:underline dark:text-blue-500"
-                    href={href}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {icon}
-                    {text}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </nav>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="20"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  className="text-white"
+                >
+                  <path
+                    d="M3 13L6 10L10 14L17 7"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    stroke="currentColor"
+                    fill="none"
+                  />
+                </svg>
+                Open Trading Chart
+              </Link>
+              <ul>
+                {resources.map(({ href, text, icon }) => (
+                  <li key={href}>
+                    <a
+                      className="group flex items-center gap-3 self-stretch p-3 leading-normal text-blue-700 hover:underline dark:text-blue-500"
+                      href={href}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {icon}
+                      {text}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </nav>
+        ) : (
+          // Unauthenticated user navigation
+          <nav className="flex flex-col items-center justify-center gap-4 rounded-3xl border border-gray-200 p-6 dark:border-gray-700">
+            <p className="leading-6 text-gray-700 dark:text-gray-200">
+              Sign in to access professional trading charts
+            </p>
+            <Login
+              title=""
+              description=""
+              showFeatures={true}
+              layout="vertical"
+              className="w-full max-w-sm"
+            />
+          </nav>
+        )}
       </div>
     </div>
   );
