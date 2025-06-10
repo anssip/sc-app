@@ -3,7 +3,7 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 // Firebase configuration - replace these with your actual Firebase project values
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: "AIzaSyDkDBUUnxUqV3YZBm9GOrkcULZjBT4azyc",
   authDomain: "spotcanvas-prod.firebaseapp.com",
   projectId: "spotcanvas-prod",
