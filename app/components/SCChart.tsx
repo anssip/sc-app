@@ -18,6 +18,7 @@ interface SCChartProps {
   style?: React.CSSProperties;
   onReady?: () => void;
   onError?: (error: string) => void;
+  chartId?: string;
 }
 
 export interface SCChartRef {
@@ -29,7 +30,7 @@ export interface SCChartRef {
 }
 
 export const SCChart = forwardRef<SCChartRef, SCChartProps>(
-  ({ firestore, initialState, className, style, onReady, onError }, ref) => {
+  ({ firestore, initialState, className, style, onReady, onError, chartId }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<any>(null);
     const appRef = useRef<any>(null);
@@ -37,6 +38,7 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
     const [isClient, setIsClient] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [initError, setInitError] = useState<string | null>(null);
+    const uniqueChartId = useRef(chartId || `chart-${Math.random().toString(36).substr(2, 9)}`);
 
 
 
@@ -74,34 +76,68 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
         return;
       }
 
-      loadChart();
-    }, [isClient]);
+      console.log(`SCChart [${uniqueChartId.current}]: Starting simple initialization`);
+      
+      const initChart = async () => {
+        try {
+          setIsLoading(true);
+          setInitError(null);
 
-    const loadChart = async () => {
-      try {
-        setIsLoading(true);
-        setInitError(null);
+          // Wait a bit for DOM to be ready, with staggered delay for multiple charts
+          const delay = 100 + (uniqueChartId.current.length * 50); // Stagger by chart ID
+          await new Promise(resolve => setTimeout(resolve, delay));
 
-        // Find the container element directly instead of using ref
-        const containers = document.querySelectorAll('.trading-chart');
-        const container = containers[containers.length - 1] as HTMLElement;
-        
-        if (!container) {
-          throw new Error("Could not find chart container element");
+          // Debug what's in the DOM
+          console.log(`SCChart [${uniqueChartId.current}]: Searching for container`);
+          console.log('All elements with data-chart-id:', document.querySelectorAll('[data-chart-id]'));
+          console.log('All trading-chart elements:', document.querySelectorAll('.trading-chart'));
+          
+          // Find container by ID attribute instead of ref
+          let container = document.querySelector(`[data-chart-id="${uniqueChartId.current}"]`) as HTMLElement;
+          
+          if (!container) {
+            // Try alternative selectors - find containers without data-chart-id
+            const allContainers = document.querySelectorAll('.trading-chart:not([data-chart-id])');
+            console.log(`SCChart [${uniqueChartId.current}]: Found ${allContainers.length} unused containers`);
+            
+            if (allContainers.length > 0) {
+              const altContainer = allContainers[0] as HTMLElement;
+              console.log(`SCChart [${uniqueChartId.current}]: Using unused container`);
+              altContainer.setAttribute('data-chart-id', uniqueChartId.current);
+              container = altContainer;
+            } else {
+              throw new Error(`Container not found: ${uniqueChartId.current}`);
+            }
+          }
+
+          await initializeChart(container);
+
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Unknown error";
+          console.error(`SCChart [${uniqueChartId.current}]: Failed:`, error);
+          
+          setInitError(`Chart initialization failed: ${errorMessage}`);
+          setIsLoading(false);
+          
+          if (onError) {
+            onError(errorMessage);
+          }
         }
+      };
 
+      const initializeChart = async (container: HTMLElement) => {
+        console.log(`SCChart [${uniqueChartId.current}]: Container found, loading library`);
         const { createChartContainer, initChartWithApi } = await import("@anssipiirainen/sc-charts");
         
         if (!initChartWithApi) {
-          throw new Error("initChartWithApi is not available in the sc-charts library");
+          throw new Error("initChartWithApi is not available");
         }
 
-        // Create and append chart container
+        console.log(`SCChart [${uniqueChartId.current}]: Creating chart`);
         const chartContainer = createChartContainer();
         chartRef.current = chartContainer;
         container.appendChild(chartContainer as HTMLElement);
 
-        // Initialize the chart with API using Firebase config (recommended approach)
         const { app, api } = await initChartWithApi(
           chartContainer,
           firebaseConfig,
@@ -109,38 +145,23 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
         );
         
         if (!app || !api) {
-          throw new Error("Chart initialization returned invalid app or api instance");
+          throw new Error("Invalid app or api returned");
         }
 
+        console.log(`SCChart [${uniqueChartId.current}]: Success!`);
         appRef.current = app;
         apiRef.current = api;
         setIsLoading(false);
         
-        // Call onReady callback if provided
         if (onReady) {
           onReady();
         }
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error";
-        console.error("SCChart: Chart initialization failed:", error);
-        
-        // Provide specific error messages based on the new Firebase usage patterns
-        if (errorMessage.includes("Firebase config")) {
-          setInitError("Invalid Firebase configuration - check your config object");
-        } else if (errorMessage.includes("Firestore")) {
-          setInitError("Firestore initialization failed - check Firebase project settings");
-        } else {
-          setInitError(`Chart initialization failed: ${errorMessage}`);
-        }
-        
-        setIsLoading(false);
-        
-        // Call onError callback if provided
-        if (onError) {
-          onError(errorMessage);
-        }
-      }
-    };
+      };
+
+      initChart();
+    }, [isClient, initialState, onReady, onError]);
+
+
 
     useEffect(() => {
       return () => {
@@ -216,7 +237,14 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
       );
     }
 
-    return <div ref={containerRef} className={className} style={style} />;
+    return (
+      <div 
+        ref={containerRef}
+        className={className} 
+        style={style}
+        data-chart-id={uniqueChartId.current}
+      />
+    );
   }
 );
 

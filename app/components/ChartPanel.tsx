@@ -98,6 +98,8 @@ const ChartContainer: React.FC<{
     granularity: config.granularity,
   };
 
+  console.log(`ChartContainer [${config.id}]: Rendering with config`, { config, initialState });
+
 
 
   /**
@@ -284,6 +286,7 @@ const ChartContainer: React.FC<{
             initialState={initialState}
             style={{ width: "100%", height: "100%" }}
             className="trading-chart"
+            chartId={config.id}
             onReady={() => {}}
             onError={(error) => setChartError(error)}
           />
