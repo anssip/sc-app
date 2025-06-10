@@ -299,7 +299,8 @@ const ChartContainer: React.FC<{
 const renderPanelGroup = (
   layout: PanelLayout, 
   onLayoutChange?: (layout: PanelLayout) => void,
-  parentPath: string = ''
+  parentPath: string = '',
+  rootLayout?: PanelLayout
 ): React.ReactNode => {
   const currentPath = parentPath ? `${parentPath}.${layout.id}` : layout.id;
 
@@ -317,12 +318,25 @@ const renderPanelGroup = (
             // This callback can be used for additional symbol change handling if needed
           }}
           onConfigUpdate={(updatedConfig) => {
-            if (onLayoutChange && layout.chart) {
-              const updatedLayout = {
-                ...layout,
-                chart: updatedConfig
+            if (onLayoutChange && rootLayout) {
+              // Update the specific chart within the full layout tree
+              const updateChartInLayout = (currentLayout: PanelLayout): PanelLayout => {
+                if (currentLayout.type === 'chart' && currentLayout.id === layout.id) {
+                  return {
+                    ...currentLayout,
+                    chart: updatedConfig
+                  };
+                } else if (currentLayout.type === 'group' && currentLayout.children) {
+                  return {
+                    ...currentLayout,
+                    children: currentLayout.children.map(updateChartInLayout)
+                  };
+                }
+                return currentLayout;
               };
-              onLayoutChange(updatedLayout);
+              
+              const updatedRootLayout = updateChartInLayout(rootLayout);
+              onLayoutChange(updatedRootLayout);
             }
           }}
         />
@@ -340,7 +354,7 @@ const renderPanelGroup = (
         <PanelGroup direction={layout.direction || 'horizontal'}>
           {layout.children.map((child, index) => (
             <React.Fragment key={child.id}>
-              {renderPanelGroup(child, onLayoutChange, currentPath)}
+              {renderPanelGroup(child, onLayoutChange, currentPath, rootLayout || layout)}
               {index < layout.children!.length - 1 && (
                 <ResizeHandle direction={layout.direction || 'horizontal'} />
               )}
@@ -365,14 +379,14 @@ export const ChartPanel: React.FC<ChartPanelProps> = ({
         {layout.children ? (
           layout.children.map((child, index) => (
             <React.Fragment key={child.id}>
-              {renderPanelGroup(child, onLayoutChange)}
+              {renderPanelGroup(child, onLayoutChange, '', layout)}
               {index < layout.children!.length - 1 && (
                 <ResizeHandle direction={layout.direction || 'horizontal'} />
               )}
             </React.Fragment>
           ))
         ) : (
-          renderPanelGroup(layout, onLayoutChange)
+          renderPanelGroup(layout, onLayoutChange, '', layout)
         )}
       </PanelGroup>
     </div>
