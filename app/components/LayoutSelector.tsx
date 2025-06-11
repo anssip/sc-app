@@ -1,5 +1,5 @@
-import React from 'react';
-import { PanelLayout, LAYOUT_PRESETS } from './ChartPanel';
+import React from "react";
+import { PanelLayout, LAYOUT_PRESETS } from "./ChartPanel";
 
 interface LayoutSelectorProps {
   currentLayout: PanelLayout;
@@ -18,15 +18,15 @@ const LayoutButton: React.FC<{
     onClick={onClick}
     className={`
       flex flex-col items-center gap-2 p-3 rounded-lg border transition-all duration-200
-      ${isActive 
-        ? 'bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-900/20 dark:border-indigo-700 dark:text-indigo-300' 
-        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700'
+      ${
+        isActive
+          ? "bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-900/20 dark:border-indigo-700 dark:text-indigo-300"
+          : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700"
       }
     `}
     title={`Switch to ${name} layout`}
   >
     {icon}
-    <span className="text-xs font-medium">{name}</span>
   </button>
 );
 
@@ -37,16 +37,14 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
 }) => {
   const layoutConfigs = [
     {
-      name: 'Single',
-      key: 'single',
+      name: "Single",
+      key: "single",
       layout: LAYOUT_PRESETS.single,
-      icon: (
-        <div className="w-8 h-6 border border-current rounded-sm" />
-      ),
+      icon: <div className="w-8 h-6 border border-current rounded-sm" />,
     },
     {
-      name: 'Horizontal',
-      key: 'horizontal',
+      name: "Horizontal",
+      key: "horizontal",
       layout: LAYOUT_PRESETS.horizontal,
       icon: (
         <div className="flex gap-1">
@@ -56,8 +54,8 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
       ),
     },
     {
-      name: 'Vertical',
-      key: 'vertical',
+      name: "Vertical",
+      key: "vertical",
       layout: LAYOUT_PRESETS.vertical,
       icon: (
         <div className="flex flex-col gap-1">
@@ -67,8 +65,8 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
       ),
     },
     {
-      name: 'Quad',
-      key: 'quad',
+      name: "Quad",
+      key: "quad",
       layout: LAYOUT_PRESETS.quad,
       icon: (
         <div className="grid grid-cols-2 gap-1">
@@ -80,8 +78,8 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
       ),
     },
     {
-      name: 'Triple',
-      key: 'triple',
+      name: "Triple",
+      key: "triple",
       layout: LAYOUT_PRESETS.triple,
       icon: (
         <div className="flex gap-1">
@@ -100,10 +98,7 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
   };
 
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
-      <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">
-        Layout:
-      </span>
+    <div className={`flex items-center justify-end gap-2 ${className}`}>
       <div className="flex gap-2">
         {layoutConfigs.map((config) => (
           <LayoutButton

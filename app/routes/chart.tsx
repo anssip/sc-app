@@ -5,7 +5,11 @@ import ProtectedRoute from "~/components/ProtectedRoute";
 import { useAuth } from "~/lib/auth-context";
 import { logOut } from "~/lib/auth";
 import Login from "~/components/Login";
-import { ChartPanel, PanelLayout, LAYOUT_PRESETS } from "~/components/ChartPanel";
+import {
+  ChartPanel,
+  PanelLayout,
+  LAYOUT_PRESETS,
+} from "~/components/ChartPanel";
 import { LayoutSelector } from "~/components/LayoutSelector";
 import { saveLayout, loadLayout } from "~/utils/layoutPersistence";
 
@@ -18,7 +22,9 @@ export const meta: MetaFunction = () => {
 
 function ChartContent() {
   const { user } = useAuth();
-  const [currentLayout, setCurrentLayout] = useState<PanelLayout>(LAYOUT_PRESETS.single);
+  const [currentLayout, setCurrentLayout] = useState<PanelLayout>(
+    LAYOUT_PRESETS.single
+  );
 
   // Load saved layout on component mount
   useEffect(() => {
@@ -64,17 +70,10 @@ function ChartContent() {
       <main className="flex-1 p-4">
         <div className="mb-4">
           <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100 mb-2">
-                Multi-Chart Trading View
-              </h2>
-              <p className="text-gray-600 dark:text-gray-300">
-                Professional trading interface with resizable chart panels
-              </p>
-            </div>
             <LayoutSelector
               currentLayout={currentLayout}
               onLayoutChange={handleLayoutChange}
+              className="ml-auto"
             />
           </div>
         </div>
@@ -89,8 +88,8 @@ function ChartContent() {
 
         <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
           <p>
-            Drag the panel dividers to resize charts. Switch layouts using the buttons above.
-            Real-time data updates across all panels.
+            Drag the panel dividers to resize charts. Switch layouts using the
+            buttons above. Real-time data updates across all panels.
           </p>
         </div>
       </main>
