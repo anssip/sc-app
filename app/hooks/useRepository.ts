@@ -1,0 +1,438 @@
+import { useState, useEffect, useRef } from "react";
+import { useAuth } from "~/lib/auth-context";
+import {
+  getRepository,
+  destroyRepository,
+  Repository,
+} from "~/services/repository";
+import type {
+  SavedLayout,
+  ChartConfig,
+  Symbol,
+  UserSettings,
+  RepositoryEvent,
+  RepositoryEventCallback,
+} from "~/types";
+
+interface UseRepositoryReturn {
+  repository: Repository | null;
+  isLoading: boolean;
+  error: string | null;
+  isOnline: boolean;
+}
+
+export function useRepository(): UseRepositoryReturn {
+  const { user } = useAuth();
+  const [repository, setRepository] = useState<Repository | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const initializingRef = useRef(false);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function initializeRepository() {
+      if (!user?.email || initializingRef.current) {
+        return;
+      }
+
+      initializingRef.current = true;
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const userId = user.email;
+        const repo = getRepository(userId);
+
+        await repo.initialize();
+
+        if (mounted) {
+          setRepository(repo);
+          setIsOnline(repo.isOnline());
+        }
+      } catch (err) {
+        console.error("Failed to initialize repository:", err);
+        if (mounted) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Failed to initialize repository"
+          );
+        }
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
+        initializingRef.current = false;
+      }
+    }
+
+    initializeRepository();
+
+    return () => {
+      mounted = false;
+    };
+  }, [user]);
+
+  // Monitor online status
+  useEffect(() => {
+    function handleOnline() {
+      setIsOnline(true);
+      if (repository) {
+        repository.sync().catch(console.error);
+      }
+    }
+
+    function handleOffline() {
+      setIsOnline(false);
+    }
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, [repository]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (!user) {
+        destroyRepository();
+      }
+    };
+  }, [user]);
+
+  return {
+    repository,
+    isLoading,
+    error,
+    isOnline,
+  };
+}
+
+interface UseLayoutsReturn {
+  layouts: SavedLayout[];
+  isLoading: boolean;
+  error: string | null;
+  saveLayout: (
+    layout: Omit<SavedLayout, "id" | "createdAt" | "updatedAt">
+  ) => Promise<SavedLayout>;
+  updateLayout: (
+    layoutId: string,
+    updates: Partial<SavedLayout>
+  ) => Promise<SavedLayout>;
+  deleteLayout: (layoutId: string) => Promise<void>;
+  getLayout: (layoutId: string) => SavedLayout | null;
+}
+
+export function useLayouts(): UseLayoutsReturn {
+  const {
+    repository,
+    isLoading: repoLoading,
+    error: repoError,
+  } = useRepository();
+  const [layouts, setLayouts] = useState<SavedLayout[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!repository || repoLoading) return;
+
+    async function loadLayouts() {
+      if (!repository) return;
+
+      try {
+        setIsLoading(true);
+        setError(null);
+        const layouts = await repository.getLayouts();
+        setLayouts(layouts);
+      } catch (err) {
+        console.error("Failed to load layouts:", err);
+        setError(err instanceof Error ? err.message : "Failed to load layouts");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadLayouts();
+
+    // Listen for layout changes
+    const unsubscribe = repository?.addEventListener(
+      (event: RepositoryEvent) => {
+        if (event.type === "layout_saved" || event.type === "layout_updated") {
+          setLayouts((prev) => {
+            const updated = [...prev];
+            const index = updated.findIndex((l) => l.id === event.data.id);
+            if (index >= 0) {
+              updated[index] = event.data;
+            } else {
+              updated.push(event.data);
+            }
+            return updated;
+          });
+        } else if (event.type === "layout_deleted") {
+          setLayouts((prev) =>
+            prev.filter((l) => l.id !== event.data.layoutId)
+          );
+        }
+      }
+    );
+
+    return unsubscribe || (() => {});
+  }, [repository, repoLoading]);
+
+  const saveLayout = async (
+    layoutData: Omit<SavedLayout, "id" | "createdAt" | "updatedAt">
+  ): Promise<SavedLayout> => {
+    if (!repository) {
+      throw new Error("Repository not available");
+    }
+    return await repository.saveLayout(layoutData);
+  };
+
+  const updateLayout = async (
+    layoutId: string,
+    updates: Partial<SavedLayout>
+  ): Promise<SavedLayout> => {
+    if (!repository) {
+      throw new Error("Repository not available");
+    }
+    return await repository.updateLayout(layoutId, updates);
+  };
+
+  const deleteLayout = async (layoutId: string): Promise<void> => {
+    if (!repository) {
+      throw new Error("Repository not available");
+    }
+    await repository.deleteLayout(layoutId);
+  };
+
+  const getLayout = (layoutId: string): SavedLayout | null => {
+    return layouts.find((l) => l.id === layoutId) || null;
+  };
+
+  return {
+    layouts,
+    isLoading: isLoading || repoLoading,
+    error: error || repoError,
+    saveLayout,
+    updateLayout,
+    deleteLayout,
+    getLayout,
+  };
+}
+
+interface UseChartsReturn {
+  charts: ChartConfig[];
+  isLoading: boolean;
+  error: string | null;
+  saveChart: (chart: Omit<ChartConfig, "id">) => Promise<ChartConfig>;
+  updateChart: (
+    chartId: string,
+    updates: Partial<ChartConfig>
+  ) => Promise<ChartConfig>;
+  deleteChart: (chartId: string) => Promise<void>;
+  getChart: (chartId: string) => ChartConfig | null;
+}
+
+export function useCharts(): UseChartsReturn {
+  const {
+    repository,
+    isLoading: repoLoading,
+    error: repoError,
+  } = useRepository();
+  const [charts, setCharts] = useState<ChartConfig[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!repository || repoLoading) return;
+
+    // For now, we'll track charts through the repository events
+    // In the future, we might want to load all charts if needed
+    setCharts([]);
+    setIsLoading(false);
+
+    // Listen for chart changes
+    const unsubscribe = repository?.addEventListener(
+      (event: RepositoryEvent) => {
+        if (event.type === "chart_updated") {
+          setCharts((prev) => {
+            const updated = [...prev];
+            const index = updated.findIndex((c) => c.id === event.data.id);
+            if (index >= 0) {
+              updated[index] = event.data;
+            } else {
+              updated.push(event.data);
+            }
+            return updated;
+          });
+        }
+      }
+    );
+
+    return unsubscribe || (() => {});
+  }, [repository, repoLoading]);
+
+  const saveChart = async (
+    chartData: Omit<ChartConfig, "id">
+  ): Promise<ChartConfig> => {
+    if (!repository) {
+      throw new Error("Repository not available");
+    }
+    return await repository.saveChart(chartData);
+  };
+
+  const updateChart = async (
+    chartId: string,
+    updates: Partial<ChartConfig>
+  ): Promise<ChartConfig> => {
+    if (!repository) {
+      throw new Error("Repository not available");
+    }
+    return await repository.updateChart(chartId, updates);
+  };
+
+  const deleteChart = async (chartId: string): Promise<void> => {
+    if (!repository) {
+      throw new Error("Repository not available");
+    }
+    await repository.deleteChart(chartId);
+  };
+
+  const getChart = (chartId: string): ChartConfig | null => {
+    return charts.find((c) => c.id === chartId) || null;
+  };
+
+  return {
+    charts,
+    isLoading: isLoading || repoLoading,
+    error: error || repoError,
+    saveChart,
+    updateChart,
+    deleteChart,
+    getChart,
+  };
+}
+
+interface UseSymbolsReturn {
+  symbols: Symbol[];
+  activeSymbols: Symbol[];
+  isLoading: boolean;
+  error: string | null;
+  getSymbol: (exchangeId: string, symbol: string) => Symbol | null;
+}
+
+export function useSymbols(): UseSymbolsReturn {
+  const {
+    repository,
+    isLoading: repoLoading,
+    error: repoError,
+  } = useRepository();
+  const [symbols, setSymbols] = useState<Symbol[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!repository || repoLoading) return;
+
+    async function loadSymbols() {
+      if (!repository) return;
+
+      try {
+        setIsLoading(true);
+        setError(null);
+        const symbols = await repository.getSymbols();
+        setSymbols(symbols);
+      } catch (err) {
+        console.error("Failed to load symbols:", err);
+        setError(err instanceof Error ? err.message : "Failed to load symbols");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadSymbols();
+  }, [repository, repoLoading]);
+
+  const activeSymbols = symbols.filter((symbol) => symbol.active);
+
+  const getSymbol = (exchangeId: string, symbol: string): Symbol | null => {
+    return (
+      symbols.find((s) => s.exchangeId === exchangeId && s.symbol === symbol) ||
+      null
+    );
+  };
+
+  return {
+    symbols,
+    activeSymbols,
+    isLoading: isLoading || repoLoading,
+    error: error || repoError,
+    getSymbol,
+  };
+}
+
+interface UseUserSettingsReturn {
+  settings: UserSettings | null;
+  isLoading: boolean;
+  error: string | null;
+  updateSettings: (updates: Partial<UserSettings>) => Promise<UserSettings>;
+}
+
+export function useUserSettings(): UseUserSettingsReturn {
+  const {
+    repository,
+    isLoading: repoLoading,
+    error: repoError,
+  } = useRepository();
+  const [settings, setSettings] = useState<UserSettings | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!repository || repoLoading) return;
+
+    async function loadSettings() {
+      if (!repository) return;
+
+      try {
+        setIsLoading(true);
+        setError(null);
+        const settings = await repository.getSettings();
+        setSettings(settings);
+      } catch (err) {
+        console.error("Failed to load user settings:", err);
+        setError(
+          err instanceof Error ? err.message : "Failed to load user settings"
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadSettings();
+  }, [repository, repoLoading]);
+
+  const updateSettings = async (
+    updates: Partial<UserSettings>
+  ): Promise<UserSettings> => {
+    if (!repository) {
+      throw new Error("Repository not available");
+    }
+    const updated = await repository.updateSettings(updates);
+    setSettings(updated);
+    return updated;
+  };
+
+  return {
+    settings,
+    isLoading: isLoading || repoLoading,
+    error: error || repoError,
+    updateSettings,
+  };
+}
