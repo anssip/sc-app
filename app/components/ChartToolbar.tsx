@@ -1,4 +1,5 @@
 import React from "react";
+import { useSymbols } from "~/hooks/useRepository";
 import type { Granularity } from "@anssipiirainen/sc-charts";
 
 interface ChartToolbarProps {
@@ -13,6 +14,18 @@ interface ChartToolbarProps {
   onSplitVertical?: () => void;
 }
 
+// Granularity options with proper labels
+const GRANULARITY_OPTIONS: { value: Granularity; label: string }[] = [
+  { value: "ONE_MINUTE", label: "1m" },
+  { value: "FIVE_MINUTE", label: "5m" },
+  { value: "FIFTEEN_MINUTE", label: "15m" },
+  { value: "THIRTY_MINUTE", label: "30m" },
+  { value: "ONE_HOUR", label: "1h" },
+  { value: "TWO_HOUR", label: "2h" },
+  { value: "SIX_HOUR", label: "6h" },
+  { value: "ONE_DAY", label: "1d" },
+];
+
 export const ChartToolbar: React.FC<ChartToolbarProps> = ({
   symbol,
   granularity,
@@ -24,6 +37,132 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
   onSplitHorizontal,
   onSplitVertical,
 }) => {
+  const {
+    activeSymbols,
+    isLoading: symbolsLoading,
+    error: symbolsError,
+  } = useSymbols();
+
+  // Debug logging
+  console.log("ChartToolbar: Symbol state", {
+    activeSymbolsCount: activeSymbols.length,
+    symbolsLoading,
+    symbolsError,
+    currentSymbol: symbol,
+    currentGranularity: granularity,
+  });
+
+  // Fallback symbols if repository fails to load
+  const fallbackSymbols = [
+    {
+      id: "BTC-USD",
+      symbol: "BTC-USD",
+      baseAsset: "BTC",
+      quoteAsset: "USD",
+      exchangeId: "coinbase",
+      active: true,
+    },
+    {
+      id: "ETH-USD",
+      symbol: "ETH-USD",
+      baseAsset: "ETH",
+      quoteAsset: "USD",
+      exchangeId: "coinbase",
+      active: true,
+    },
+    {
+      id: "ADA-USD",
+      symbol: "ADA-USD",
+      baseAsset: "ADA",
+      quoteAsset: "USD",
+      exchangeId: "coinbase",
+      active: true,
+    },
+    {
+      id: "DOGE-USD",
+      symbol: "DOGE-USD",
+      baseAsset: "DOGE",
+      quoteAsset: "USD",
+      exchangeId: "coinbase",
+      active: true,
+    },
+    {
+      id: "SOL-USD",
+      symbol: "SOL-USD",
+      baseAsset: "SOL",
+      quoteAsset: "USD",
+      exchangeId: "coinbase",
+      active: true,
+    },
+    {
+      id: "AVAX-USD",
+      symbol: "AVAX-USD",
+      baseAsset: "AVAX",
+      quoteAsset: "USD",
+      exchangeId: "coinbase",
+      active: true,
+    },
+    {
+      id: "MATIC-USD",
+      symbol: "MATIC-USD",
+      baseAsset: "MATIC",
+      quoteAsset: "USD",
+      exchangeId: "coinbase",
+      active: true,
+    },
+    {
+      id: "DOT-USD",
+      symbol: "DOT-USD",
+      baseAsset: "DOT",
+      quoteAsset: "USD",
+      exchangeId: "coinbase",
+      active: true,
+    },
+    {
+      id: "LINK-USD",
+      symbol: "LINK-USD",
+      baseAsset: "LINK",
+      quoteAsset: "USD",
+      exchangeId: "coinbase",
+      active: true,
+    },
+    {
+      id: "UNI-USD",
+      symbol: "UNI-USD",
+      baseAsset: "UNI",
+      quoteAsset: "USD",
+      exchangeId: "coinbase",
+      active: true,
+    },
+  ];
+
+  // Filter symbols to get most popular trading pairs
+  const popularSymbols =
+    activeSymbols.length > 0
+      ? activeSymbols
+          .filter((s) => s.exchangeId === "coinbase")
+          .filter((s) => s.quoteAsset === "USD")
+          .sort((a, b) => {
+            // Sort by popularity (BTC, ETH first, then alphabetically)
+            const popularOrder = [
+              "BTC-USD",
+              "ETH-USD",
+              "ADA-USD",
+              "DOGE-USD",
+              "SOL-USD",
+            ];
+            const aIndex = popularOrder.indexOf(a.symbol);
+            const bIndex = popularOrder.indexOf(b.symbol);
+
+            if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+            if (aIndex !== -1) return -1;
+            if (bIndex !== -1) return 1;
+
+            return a.symbol.localeCompare(b.symbol);
+          })
+          .slice(0, 50) // Limit to top 50 symbols for performance
+      : fallbackSymbols; // Use fallback if no symbols loaded
+
   return (
     <div className="flex items-center justify-between">
       {/* Left side - Symbol and Granularity selectors */}
@@ -31,18 +170,36 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
         <select
           value={symbol}
           onChange={(e) => onSymbolChange(e.target.value)}
-          disabled={isChangingSymbol}
+          disabled={isChangingSymbol || symbolsLoading}
           className={`text-sm font-bold bg-transparent border-none outline-none cursor-pointer text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${
-            isChangingSymbol ? "opacity-50 cursor-not-allowed" : ""
+            isChangingSymbol || symbolsLoading
+              ? "opacity-50 cursor-not-allowed"
+              : ""
           }`}
         >
-          <option value="BTC-USD">BTC-USD</option>
-          <option value="ETH-USD">ETH-USD</option>
-          <option value="ADA-USD">ADA-USD</option>
-          <option value="DOGE-USD">DOGE-USD</option>
-          <option value="SOL-USD">SOL-USD</option>
+          {symbolsLoading ? (
+            <option value={symbol}>Loading symbols...</option>
+          ) : symbolsError ? (
+            <option value={symbol}>Error loading symbols</option>
+          ) : (
+            <>
+              {/* Current symbol if not in popular list */}
+              {!popularSymbols.find((s) => s.symbol === symbol) && (
+                <option value={symbol}>{symbol}</option>
+              )}
+
+              {/* Popular symbols */}
+              {popularSymbols.map((s, index) => (
+                <option key={s.id} value={s.symbol}>
+                  {s.symbol}
+                </option>
+              ))}
+            </>
+          )}
         </select>
+
         <span className="text-gray-300 dark:text-gray-600">|</span>
+
         <select
           value={granularity}
           onChange={(e) => onGranularityChange(e.target.value as Granularity)}
@@ -51,16 +208,34 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
             isChangingGranularity ? "opacity-50 cursor-not-allowed" : ""
           }`}
         >
-          <option value="ONE_MINUTE">1m</option>
-          <option value="FIVE_MINUTE">5m</option>
-          <option value="FIFTEEN_MINUTE">15m</option>
-          <option value="THIRTY_MINUTE">30m</option>
-          <option value="ONE_HOUR">1h</option>
-          <option value="TWO_HOUR">2h</option>
-          <option value="SIX_HOUR">6h</option>
-          <option value="ONE_DAY">1d</option>
+          {GRANULARITY_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
         </select>
-        {(isChangingSymbol || isChangingGranularity) && (
+
+        {/* Status indicators */}
+        {symbolsError && (
+          <div
+            className="text-red-500 text-xs"
+            title={`Symbol loading error: ${symbolsError}`}
+          >
+            ⚠️
+          </div>
+        )}
+
+        {/* Debug info - shows symbol count */}
+        <div
+          className="text-xs text-gray-500 dark:text-gray-400 px-2"
+          title={`Symbols loaded: ${activeSymbols.length} active, ${
+            symbolsLoading ? "Loading..." : "Ready"
+          }`}
+        >
+          {activeSymbols.length}
+        </div>
+
+        {(isChangingSymbol || isChangingGranularity || symbolsLoading) && (
           <div className="animate-spin rounded-full h-3 w-3 border-b border-blue-600"></div>
         )}
       </div>

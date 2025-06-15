@@ -3,11 +3,15 @@ import ProtectedRoute from "~/components/ProtectedRoute";
 import { useAuth } from "~/lib/auth-context";
 import Login from "~/components/Login";
 import { ChartAppExample } from "~/components/ChartAppExample";
+import { SymbolDebugger } from "~/components/SymbolDebugger";
 
 export const meta: MetaFunction = () => {
   return [
     { title: "Test Chart - Spot Canvas App" },
-    { name: "description", content: "Test the repository-integrated chart system" },
+    {
+      name: "description",
+      content: "Test the repository-integrated chart system",
+    },
   ];
 };
 
@@ -26,9 +30,7 @@ function TestChartContent() {
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-blue-100">
-              Testing as: {user?.email}
-            </span>
+            <span className="text-blue-100">Testing as: {user?.email}</span>
             <a href="/" className="text-blue-200 hover:text-white underline">
               ← Back to Home
             </a>
@@ -39,9 +41,7 @@ function TestChartContent() {
       {/* Test Instructions */}
       <div className="bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800 p-4">
         <div className="flex items-start gap-3">
-          <div className="text-yellow-600 dark:text-yellow-400 text-xl">
-            ⚠️
-          </div>
+          <div className="text-yellow-600 dark:text-yellow-400 text-xl">⚠️</div>
           <div>
             <h2 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-1">
               Test Instructions
@@ -58,6 +58,11 @@ function TestChartContent() {
         </div>
       </div>
 
+      {/* Symbol Debugger */}
+      <div className="border-b border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800">
+        <SymbolDebugger />
+      </div>
+
       {/* Chart App Example */}
       <div className="flex-1">
         <ChartAppExample className="h-full" />
@@ -72,9 +77,7 @@ function TestChartContent() {
             </span>
             <div className="flex items-center gap-2">
               <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-              <span className="text-green-600 dark:text-green-400">
-                Active
-              </span>
+              <span className="text-green-600 dark:text-green-400">Active</span>
             </div>
           </div>
           <div className="text-gray-500 dark:text-gray-400">

@@ -1,4 +1,5 @@
 import {
+  getFirestore,
   collection,
   doc,
   getDocs,
@@ -10,8 +11,7 @@ import {
   query,
   where,
   orderBy,
-  Timestamp,
-  type Unsubscribe,
+  limit,
 } from "firebase/firestore";
 import { db } from "~/lib/firebase";
 import type {
@@ -51,10 +51,16 @@ export class Repository implements IRepository {
   }
 
   async initialize(): Promise<void> {
-    if (this.isInitialized) return;
+    if (this.isInitialized) {
+      console.log("Repository already initialized, skipping");
+      return;
+    }
+
+    console.log("Repository: Starting initialization for user:", this.userId);
 
     try {
       // Load initial data from Firestore
+      console.log("Repository: Loading initial data...");
       await Promise.all([
         this.loadLayouts(),
         this.loadCharts(),
@@ -63,10 +69,14 @@ export class Repository implements IRepository {
       ]);
 
       // Set up real-time listeners
+      console.log("Repository: Setting up real-time listeners...");
       this.setupRealtimeListeners();
 
       this.isInitialized = true;
       console.log("Repository initialized successfully");
+      console.log(
+        `Repository stats: ${this.layoutsCache.size} layouts, ${this.chartsCache.size} charts, ${this.symbolsCache.size} symbols`
+      );
     } catch (error) {
       console.error("Failed to initialize repository:", error);
       throw new RepositoryError(
@@ -184,7 +194,35 @@ export class Repository implements IRepository {
   // Chart Management
   async getChart(chartId: string): Promise<ChartConfig | null> {
     this.ensureInitialized();
-    return this.chartsCache.get(chartId) || null;
+
+    // First check cache
+    const cachedChart = this.chartsCache.get(chartId);
+    if (cachedChart) {
+      return cachedChart;
+    }
+
+    // If not in cache, try to load from Firestore
+    try {
+      const chartRef = doc(db, "settings", this.userId, "charts", chartId);
+      const chartSnap = await getDoc(chartRef);
+
+      if (chartSnap.exists()) {
+        const chartData = chartSnap.data() as ChartConfig;
+        const chart: ChartConfig = {
+          ...chartData,
+          id: chartId, // Ensure ID is set correctly
+        };
+
+        // Store in cache for future use
+        this.chartsCache.set(chartId, chart);
+        console.log(`Loaded chart ${chartId} from Firestore:`, chart.symbol);
+        return chart;
+      }
+    } catch (error) {
+      console.error(`Failed to load chart ${chartId} from Firestore:`, error);
+    }
+
+    return null;
   }
 
   async saveChart(chartData: Omit<ChartConfig, "id">): Promise<ChartConfig> {
@@ -443,15 +481,21 @@ export class Repository implements IRepository {
   }
 
   private async loadSymbols(): Promise<void> {
+    console.log("Repository.loadSymbols: Starting symbol loading process...");
+
     try {
-      console.log("Starting to load symbols from Firestore...");
+      console.log(
+        "Repository.loadSymbols: Starting to load symbols from Firestore..."
+      );
 
       // Direct approach: Load products from known exchanges
       // Since we know coinbase has products, load them directly
       const knownExchanges = ["coinbase"]; // Add more exchanges as needed
 
       for (const exchangeId of knownExchanges) {
-        console.log(`Loading products for exchange: ${exchangeId}`);
+        console.log(
+          `Repository.loadSymbols: Loading products for exchange: ${exchangeId}`
+        );
 
         try {
           const productsRef = collection(
@@ -460,16 +504,25 @@ export class Repository implements IRepository {
             exchangeId,
             "products"
           );
+          console.log(
+            `Repository.loadSymbols: Fetching documents from path: exchanges/${exchangeId}/products`
+          );
+
           const productsSnapshot = await getDocs(productsRef);
 
           console.log(
-            `Found ${productsSnapshot.docs.length} products in ${exchangeId}`
+            `Repository.loadSymbols: Found ${productsSnapshot.docs.length} products in ${exchangeId}`
           );
 
           if (productsSnapshot.empty) {
-            console.warn(`No products found for exchange: ${exchangeId}`);
+            console.warn(
+              `Repository.loadSymbols: No products found for exchange: ${exchangeId}`
+            );
             continue;
           }
+
+          let activeCount = 0;
+          let usdCount = 0;
 
           productsSnapshot.forEach((productDoc) => {
             try {
@@ -487,31 +540,60 @@ export class Repository implements IRepository {
 
               const key = `${exchangeId}:${productDoc.id}`;
               this.symbolsCache.set(key, symbol);
+
+              if (symbol.active) activeCount++;
+              if (symbol.quoteAsset === "USD") usdCount++;
             } catch (productError) {
               console.error(
-                `Error processing product ${productDoc.id}:`,
+                `Repository.loadSymbols: Error processing product ${productDoc.id}:`,
                 productError
               );
             }
           });
+
+          console.log(
+            `Repository.loadSymbols: Exchange ${exchangeId}: ${activeCount} active symbols, ${usdCount} USD pairs`
+          );
         } catch (exchangeError) {
           console.error(
-            `Error loading products for exchange ${exchangeId}:`,
+            `Repository.loadSymbols: Error loading products for exchange ${exchangeId}:`,
             exchangeError
           );
         }
       }
 
+      const totalSymbols = this.symbolsCache.size;
+      const activeSymbols = Array.from(this.symbolsCache.values()).filter(
+        (s) => s.active
+      ).length;
+      const usdSymbols = Array.from(this.symbolsCache.values()).filter(
+        (s) => s.quoteAsset === "USD"
+      ).length;
+      const activeUsdSymbols = Array.from(this.symbolsCache.values()).filter(
+        (s) => s.active && s.quoteAsset === "USD"
+      ).length;
+
       console.log(
-        `Successfully loaded ${this.symbolsCache.size} symbols into cache`
+        `Repository.loadSymbols: Successfully loaded ${totalSymbols} symbols into cache`
       );
-      console.log("Symbol cache keys:", Array.from(this.symbolsCache.keys()));
+      console.log(`Repository.loadSymbols: Active symbols: ${activeSymbols}`);
+      console.log(`Repository.loadSymbols: USD symbols: ${usdSymbols}`);
+      console.log(
+        `Repository.loadSymbols: Active USD symbols: ${activeUsdSymbols}`
+      );
+
+      // Show some sample symbols for debugging
+      const sampleSymbols = Array.from(this.symbolsCache.values()).slice(0, 5);
+      console.log(
+        "Repository.loadSymbols: Sample symbols:",
+        sampleSymbols.map((s) => `${s.symbol} (active: ${s.active})`)
+      );
     } catch (error) {
-      console.error("Failed to load symbols:", error);
+      console.error("Repository.loadSymbols: Failed to load symbols:", error);
       // Log the specific error details
       if (error instanceof Error) {
-        console.error("Error message:", error.message);
-        console.error("Error stack:", error.stack);
+        console.error("Repository.loadSymbols: Error message:", error.message);
+        console.error("Repository.loadSymbols: Error stack:", error.stack);
       }
     }
   }
@@ -659,12 +741,14 @@ export class Repository implements IRepository {
   }
 
   private isSymbolActive(lastUpdate?: any): boolean {
-    if (!lastUpdate) return false;
+    // For now, be more lenient with symbol activity
+    // In production, you might want to check if lastUpdate is recent
+    if (!lastUpdate) return true; // Default to active if no lastUpdate
 
     const updateTime = lastUpdate.toDate ? lastUpdate.toDate() : lastUpdate;
-    const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // 7 days instead of 1 hour
 
-    return updateTime > hourAgo;
+    return updateTime > weekAgo;
   }
 
   private generateId(): string {

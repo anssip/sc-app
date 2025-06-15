@@ -383,21 +383,34 @@ export function useSymbols(): UseSymbolsReturn {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!repository || repoLoading) return;
+    console.log("useSymbols: Effect triggered", {
+      hasRepository: !!repository,
+      repoLoading,
+      repoError,
+    });
+
+    if (!repository || repoLoading) {
+      console.log("useSymbols: Repository not ready, skipping symbol loading");
+      return;
+    }
 
     async function loadSymbols() {
       if (!repository) return;
 
+      console.log("useSymbols: Starting to load symbols...");
       try {
         setIsLoading(true);
         setError(null);
+        console.log("useSymbols: Calling repository.getSymbols()");
         const symbols = await repository.getSymbols();
+        console.log("useSymbols: Got symbols from repository:", symbols.length);
         setSymbols(symbols);
       } catch (err) {
-        console.error("Failed to load symbols:", err);
+        console.error("useSymbols: Failed to load symbols:", err);
         setError(err instanceof Error ? err.message : "Failed to load symbols");
       } finally {
         setIsLoading(false);
+        console.log("useSymbols: Loading complete");
       }
     }
 

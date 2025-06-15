@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { PanelLayout, LAYOUT_PRESETS } from "./ChartPanel";
-import { useLayouts } from "~/hooks/useRepository";
+import { useLayouts, useRepository } from "~/hooks/useRepository";
 import { SaveLayoutDialog } from "./SaveLayoutDialog";
 import {
   convertFromChartPanelLayout,
   convertToChartPanelLayout,
+  extractChartsFromRepositoryLayout,
 } from "~/utils/layoutConverter";
 import type { ChartConfig } from "~/types";
 
@@ -43,6 +44,7 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
   className = "",
 }) => {
   const { layouts, saveLayout, isLoading, error } = useLayouts();
+  const { repository } = useRepository();
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const layoutConfigs = [
     {
@@ -119,13 +121,96 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
     await saveLayout(layoutData);
   };
 
-  const handleLoadSavedLayout = (layoutId: string) => {
+  const handleLoadSavedLayout = async (layoutId: string) => {
     const savedLayout = layouts.find((l) => l.id === layoutId);
-    if (!savedLayout) return;
+    if (!savedLayout || !repository) {
+      console.warn("Layout not found or repository not available:", {
+        layoutId,
+        hasRepository: !!repository,
+      });
+      return;
+    }
 
-    const charts = new Map<string, ChartConfig>();
-    const panelLayout = convertToChartPanelLayout(savedLayout.layout, charts);
-    onLayoutChange(panelLayout);
+    console.log(`Loading saved layout: ${savedLayout.name} (${layoutId})`);
+
+    try {
+      // Extract chart IDs from the saved layout
+      const chartIds = extractChartsFromRepositoryLayout(savedLayout.layout);
+      console.log(`Layout contains ${chartIds.length} charts:`, chartIds);
+
+      // Load chart configurations from repository
+      const charts = new Map<string, ChartConfig>();
+      let chartsFound = 0;
+      let chartsCreated = 0;
+
+      for (const chartId of chartIds) {
+        try {
+          const chartConfig = await repository.getChart(chartId);
+          if (chartConfig) {
+            charts.set(chartId, chartConfig);
+            chartsFound++;
+            console.log(
+              `✅ Chart ${chartId} loaded:`,
+              chartConfig.symbol,
+              chartConfig.granularity
+            );
+          } else {
+            console.warn(
+              `⚠️ Chart ${chartId} not found in repository, creating default`
+            );
+
+            // Create a default chart config with a unique ID
+            const defaultChart: ChartConfig = {
+              id: chartId,
+              symbol: "BTC-USD",
+              granularity: "ONE_HOUR",
+              indicators: [],
+            };
+            charts.set(chartId, defaultChart);
+
+            // Save the default chart to repository to avoid future issues
+            try {
+              const newChart = await repository.saveChart({
+                symbol: defaultChart.symbol,
+                granularity: defaultChart.granularity,
+                indicators: defaultChart.indicators || [],
+              });
+              console.log(`✅ Created new chart in repository:`, newChart.id);
+              chartsCreated++;
+            } catch (saveError) {
+              console.error(`Failed to save new chart ${chartId}:`, saveError);
+            }
+          }
+        } catch (error) {
+          console.error(`❌ Failed to load chart ${chartId}:`, error);
+          // Use fallback chart config
+          const fallbackChart: ChartConfig = {
+            id: chartId,
+            symbol: "BTC-USD",
+            granularity: "ONE_HOUR",
+            indicators: [],
+          };
+          charts.set(chartId, fallbackChart);
+        }
+      }
+
+      console.log(
+        `Chart loading summary: ${chartsFound} found, ${chartsCreated} created, ${charts.size} total`
+      );
+
+      // Convert to panel layout with loaded chart configurations
+      const panelLayout = convertToChartPanelLayout(savedLayout.layout, charts);
+      onLayoutChange(panelLayout);
+
+      console.log(`✅ Successfully loaded layout: ${savedLayout.name}`);
+    } catch (error) {
+      console.error("❌ Failed to load saved layout:", error);
+      // Fallback to loading without chart configs (will use defaults)
+      const charts = new Map<string, ChartConfig>();
+      const panelLayout = convertToChartPanelLayout(savedLayout.layout, charts);
+      onLayoutChange(panelLayout);
+      console.log("🔄 Loaded layout with default chart configurations");
+    }
   };
 
   return (
@@ -138,9 +223,13 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
               Saved:
             </label>
             <select
-              onChange={(e) =>
-                e.target.value && handleLoadSavedLayout(e.target.value)
-              }
+              onChange={async (e) => {
+                if (e.target.value) {
+                  await handleLoadSavedLayout(e.target.value);
+                  // Reset the select to default after loading
+                  e.target.value = "";
+                }
+              }}
               className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               value=""
             >

@@ -30,7 +30,10 @@ export interface SCChartRef {
 }
 
 export const SCChart = forwardRef<SCChartRef, SCChartProps>(
-  ({ firestore, initialState, className, style, onReady, onError, chartId }, ref) => {
+  (
+    { firestore, initialState, className, style, onReady, onError, chartId },
+    ref
+  ) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<any>(null);
     const appRef = useRef<any>(null);
@@ -38,9 +41,9 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
     const [isClient, setIsClient] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [initError, setInitError] = useState<string | null>(null);
-    const uniqueChartId = useRef(chartId || `chart-${Math.random().toString(36).substr(2, 9)}`);
-
-
+    const uniqueChartId = useRef(
+      chartId || `chart-${Math.random().toString(36).substr(2, 9)}`
+    );
 
     useEffect(() => {
       setIsClient(true);
@@ -48,13 +51,141 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
 
     useImperativeHandle(ref, () => ({
       setSymbol: async (symbol: string) => {
+        console.log(
+          `SCChart [${uniqueChartId.current}]: setSymbol called with ${symbol}`
+        );
         if (apiRef.current) {
-          await apiRef.current.setSymbol(symbol);
+          const currentSymbol = apiRef.current.state?.symbol?.toString() || "";
+          if (currentSymbol === symbol) {
+            console.log(
+              `SCChart [${uniqueChartId.current}]: Symbol already set to ${symbol}, skipping`
+            );
+            return;
+          }
+
+          // Try the standard setSymbol method first
+          if (apiRef.current.setSymbol) {
+            console.log(
+              `SCChart [${uniqueChartId.current}]: Calling api.setSymbol(${symbol})`
+            );
+
+            try {
+              await apiRef.current.setSymbol(symbol);
+
+              // Wait a moment and check if the symbol actually changed
+              await new Promise((resolve) => setTimeout(resolve, 100));
+              const newSymbol = apiRef.current.state?.symbol?.toString() || "";
+
+              if (newSymbol === symbol) {
+                console.log(
+                  `SCChart [${uniqueChartId.current}]: setSymbol successful - symbol is now ${newSymbol}`
+                );
+                return;
+              } else {
+                console.warn(
+                  `SCChart [${uniqueChartId.current}]: setSymbol didn't update symbol (still ${newSymbol}), trying re-initialization`
+                );
+
+                // Force chart re-initialization with new symbol
+                await reinitializeChart(
+                  symbol,
+                  apiRef.current.state?.granularity?.toString() || "ONE_HOUR"
+                );
+              }
+            } catch (error) {
+              console.error(
+                `SCChart [${uniqueChartId.current}]: setSymbol failed:`,
+                error
+              );
+              // Fall back to re-initialization
+              await reinitializeChart(
+                symbol,
+                apiRef.current.state?.granularity?.toString() || "ONE_HOUR"
+              );
+            }
+          } else {
+            console.warn(
+              `SCChart [${uniqueChartId.current}]: No setSymbol method found, trying re-initialization`
+            );
+            await reinitializeChart(
+              symbol,
+              apiRef.current.state?.granularity?.toString() || "ONE_HOUR"
+            );
+          }
+        } else {
+          console.warn(
+            `SCChart [${uniqueChartId.current}]: No API available for setSymbol`
+          );
         }
       },
       setGranularity: async (granularity: Granularity) => {
+        console.log(
+          `SCChart [${uniqueChartId.current}]: setGranularity called with ${granularity}`
+        );
         if (apiRef.current) {
-          await apiRef.current.setGranularity(granularity);
+          const currentGranularity =
+            apiRef.current.state?.granularity?.toString() || "";
+          if (currentGranularity === granularity) {
+            console.log(
+              `SCChart [${uniqueChartId.current}]: Granularity already set to ${granularity}, skipping`
+            );
+            return;
+          }
+
+          // Try the standard setGranularity method first
+          if (apiRef.current.setGranularity) {
+            console.log(
+              `SCChart [${uniqueChartId.current}]: Calling api.setGranularity(${granularity})`
+            );
+
+            try {
+              await apiRef.current.setGranularity(granularity);
+
+              // Wait a moment and check if the granularity actually changed
+              await new Promise((resolve) => setTimeout(resolve, 100));
+              const newGranularity =
+                apiRef.current.state?.granularity?.toString() || "";
+
+              if (newGranularity === granularity) {
+                console.log(
+                  `SCChart [${uniqueChartId.current}]: setGranularity successful - granularity is now ${newGranularity}`
+                );
+                return;
+              } else {
+                console.warn(
+                  `SCChart [${uniqueChartId.current}]: setGranularity didn't update granularity (still ${newGranularity}), trying re-initialization`
+                );
+
+                // Force chart re-initialization with new granularity
+                await reinitializeChart(
+                  apiRef.current.state?.symbol?.toString() || "BTC-USD",
+                  granularity
+                );
+              }
+            } catch (error) {
+              console.error(
+                `SCChart [${uniqueChartId.current}]: setGranularity failed:`,
+                error
+              );
+              // Fall back to re-initialization
+              await reinitializeChart(
+                apiRef.current.state?.symbol?.toString() || "BTC-USD",
+                granularity
+              );
+            }
+          } else {
+            console.warn(
+              `SCChart [${uniqueChartId.current}]: No setGranularity method found, trying re-initialization`
+            );
+            await reinitializeChart(
+              apiRef.current.state?.symbol?.toString() || "BTC-USD",
+              granularity
+            );
+          }
+        } else {
+          console.warn(
+            `SCChart [${uniqueChartId.current}]: No API available for setGranularity`
+          );
         }
       },
       getSymbol: () => {
@@ -66,6 +197,89 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
       api: apiRef.current,
     }));
 
+    // Function to reinitialize the chart with new parameters
+    const reinitializeChart = useCallback(
+      async (newSymbol: string, newGranularity: string) => {
+        console.log(
+          `SCChart [${uniqueChartId.current}]: Reinitializing chart with symbol=${newSymbol}, granularity=${newGranularity}`
+        );
+
+        try {
+          // Clean up existing chart
+          if (apiRef.current && apiRef.current.dispose) {
+            apiRef.current.dispose();
+          }
+          if (appRef.current && appRef.current.cleanup) {
+            appRef.current.cleanup();
+          }
+          if (chartRef.current && chartRef.current.parentElement) {
+            chartRef.current.parentElement.removeChild(chartRef.current);
+          }
+
+          // Reset refs
+          apiRef.current = null;
+          appRef.current = null;
+          chartRef.current = null;
+
+          // Set new initial state
+          const newInitialState = {
+            symbol: newSymbol,
+            granularity: newGranularity,
+          };
+
+          // Find the container
+          const container = document.querySelector(
+            `[data-chart-id="${uniqueChartId.current}"]`
+          ) as HTMLElement;
+
+          if (!container) {
+            throw new Error(`Container not found: ${uniqueChartId.current}`);
+          }
+
+          // Reinitialize the chart
+          console.log(
+            `SCChart [${uniqueChartId.current}]: Loading chart library for reinitialization`
+          );
+          const { createChartContainer, initChartWithApi } = await import(
+            "@anssipiirainen/sc-charts"
+          );
+
+          const chartContainer = createChartContainer();
+          chartRef.current = chartContainer;
+          container.appendChild(chartContainer as HTMLElement);
+
+          const { app, api } = await initChartWithApi(
+            chartContainer,
+            firebaseConfig,
+            newInitialState
+          );
+
+          if (!app || !api) {
+            throw new Error(
+              "Invalid app or api returned during reinitialization"
+            );
+          }
+
+          console.log(
+            `SCChart [${uniqueChartId.current}]: Reinitialization successful!`
+          );
+          appRef.current = app;
+          apiRef.current = api;
+        } catch (error) {
+          console.error(
+            `SCChart [${uniqueChartId.current}]: Reinitialization failed:`,
+            error
+          );
+          setInitError(
+            `Chart reinitialization failed: ${
+              error instanceof Error ? error.message : "Unknown error"
+            }`
+          );
+        }
+      },
+      [firebaseConfig]
+    );
+
     useEffect(() => {
       console.log("SCChart: Setting isClient to true");
       setIsClient(true);
@@ -76,34 +290,52 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
         return;
       }
 
-      console.log(`SCChart [${uniqueChartId.current}]: Starting simple initialization`);
-      
+      console.log(
+        `SCChart [${uniqueChartId.current}]: Starting simple initialization`
+      );
+
       const initChart = async () => {
         try {
           setIsLoading(true);
           setInitError(null);
 
           // Wait a bit for DOM to be ready, with staggered delay for multiple charts
-          const delay = 100 + (uniqueChartId.current.length * 50); // Stagger by chart ID
-          await new Promise(resolve => setTimeout(resolve, delay));
+          const delay = 100 + uniqueChartId.current.length * 50; // Stagger by chart ID
+          await new Promise((resolve) => setTimeout(resolve, delay));
 
           // Debug what's in the DOM
-          console.log(`SCChart [${uniqueChartId.current}]: Searching for container`);
-          console.log('All elements with data-chart-id:', document.querySelectorAll('[data-chart-id]'));
-          console.log('All trading-chart elements:', document.querySelectorAll('.trading-chart'));
-          
+          console.log(
+            `SCChart [${uniqueChartId.current}]: Searching for container`
+          );
+          console.log(
+            "All elements with data-chart-id:",
+            document.querySelectorAll("[data-chart-id]")
+          );
+          console.log(
+            "All trading-chart elements:",
+            document.querySelectorAll(".trading-chart")
+          );
+
           // Find container by ID attribute instead of ref
-          let container = document.querySelector(`[data-chart-id="${uniqueChartId.current}"]`) as HTMLElement;
-          
+          let container = document.querySelector(
+            `[data-chart-id="${uniqueChartId.current}"]`
+          ) as HTMLElement;
+
           if (!container) {
             // Try alternative selectors - find containers without data-chart-id
-            const allContainers = document.querySelectorAll('.trading-chart:not([data-chart-id])');
-            console.log(`SCChart [${uniqueChartId.current}]: Found ${allContainers.length} unused containers`);
-            
+            const allContainers = document.querySelectorAll(
+              ".trading-chart:not([data-chart-id])"
+            );
+            console.log(
+              `SCChart [${uniqueChartId.current}]: Found ${allContainers.length} unused containers`
+            );
+
             if (allContainers.length > 0) {
               const altContainer = allContainers[0] as HTMLElement;
-              console.log(`SCChart [${uniqueChartId.current}]: Using unused container`);
-              altContainer.setAttribute('data-chart-id', uniqueChartId.current);
+              console.log(
+                `SCChart [${uniqueChartId.current}]: Using unused container`
+              );
+              altContainer.setAttribute("data-chart-id", uniqueChartId.current);
               container = altContainer;
             } else {
               throw new Error(`Container not found: ${uniqueChartId.current}`);
@@ -111,14 +343,14 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
           }
 
           await initializeChart(container);
-
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : "Unknown error";
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error";
           console.error(`SCChart [${uniqueChartId.current}]: Failed:`, error);
-          
+
           setInitError(`Chart initialization failed: ${errorMessage}`);
           setIsLoading(false);
-          
+
           if (onError) {
             onError(errorMessage);
           }
@@ -126,9 +358,13 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
       };
 
       const initializeChart = async (container: HTMLElement) => {
-        console.log(`SCChart [${uniqueChartId.current}]: Container found, loading library`);
-        const { createChartContainer, initChartWithApi } = await import("@anssipiirainen/sc-charts");
-        
+        console.log(
+          `SCChart [${uniqueChartId.current}]: Container found, loading library`
+        );
+        const { createChartContainer, initChartWithApi } = await import(
+          "@anssipiirainen/sc-charts"
+        );
+
         if (!initChartWithApi) {
           throw new Error("initChartWithApi is not available");
         }
@@ -143,7 +379,7 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
           firebaseConfig,
           initialState
         );
-        
+
         if (!app || !api) {
           throw new Error("Invalid app or api returned");
         }
@@ -151,17 +387,64 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
         console.log(`SCChart [${uniqueChartId.current}]: Success!`);
         appRef.current = app;
         apiRef.current = api;
+
+        // Debug: Log available API methods
+        console.log(
+          `SCChart [${uniqueChartId.current}]: Available API methods:`,
+          Object.keys(api)
+        );
+        console.log(`SCChart [${uniqueChartId.current}]: API object:`, api);
+
+        // Debug: Explore the app object for chart control methods
+        if (api.app) {
+          console.log(
+            `SCChart [${uniqueChartId.current}]: App object methods:`,
+            Object.keys(api.app)
+          );
+          console.log(
+            `SCChart [${uniqueChartId.current}]: App object:`,
+            api.app
+          );
+        }
+
+        // Debug: Explore the state object
+        if (api.state) {
+          console.log(
+            `SCChart [${uniqueChartId.current}]: State object:`,
+            api.state
+          );
+
+          // Try to access state properties
+          try {
+            console.log(
+              `SCChart [${uniqueChartId.current}]: State keys:`,
+              Object.keys(api.state)
+            );
+            console.log(
+              `SCChart [${uniqueChartId.current}]: Current state.symbol:`,
+              api.state.symbol
+            );
+            console.log(
+              `SCChart [${uniqueChartId.current}]: Current state.granularity:`,
+              api.state.granularity
+            );
+          } catch (e) {
+            console.log(
+              `SCChart [${uniqueChartId.current}]: Could not access state properties:`,
+              e
+            );
+          }
+        }
+
         setIsLoading(false);
-        
+
         if (onReady) {
           onReady();
         }
       };
 
       initChart();
-    }, [isClient, initialState, onReady, onError]);
-
-
+    }, [isClient]);
 
     useEffect(() => {
       return () => {
@@ -238,9 +521,9 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
     }
 
     return (
-      <div 
+      <div
         ref={containerRef}
-        className={className} 
+        className={className}
         style={style}
         data-chart-id={uniqueChartId.current}
       />

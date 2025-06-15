@@ -34,7 +34,7 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
   onSymbolChange,
   onConfigUpdate,
 }) => {
-  const { updateChart } = useCharts();
+  const { updateChart, saveChart } = useCharts();
   const [chartError, setChartError] = useState<string | null>(null);
   const [currentSymbol, setCurrentSymbol] = useState(config.symbol);
   const [currentGranularity, setCurrentGranularity] = useState(
@@ -52,6 +52,7 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
   console.log(`ChartContainer [${config.id}]: Rendering with config`, {
     config,
     initialState,
+    renderCount: Math.random().toString(36).substr(2, 5),
   });
 
   /**
@@ -105,7 +106,23 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
 
         // Persist to repository
         try {
-          await updateChart(config.id, { symbol });
+          // Try to update first, if it fails (chart not found), create it
+          try {
+            await updateChart(config.id, { symbol });
+          } catch (updateError: any) {
+            if (updateError?.code === "NOT_FOUND") {
+              console.log("Chart not found in repository, creating it...");
+              // Create the chart with the correct ID and updated symbol
+              const newChart = await saveChart({
+                symbol: symbol, // Use the new symbol
+                granularity: currentGranularity,
+                indicators: config.indicators || [],
+              });
+              console.log("Chart created with ID:", newChart.id);
+            } else {
+              throw updateError;
+            }
+          }
         } catch (error) {
           console.error(
             "Failed to persist symbol change to repository:",
@@ -166,7 +183,23 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
 
         // Persist to repository
         try {
-          await updateChart(config.id, { granularity });
+          // Try to update first, if it fails (chart not found), create it
+          try {
+            await updateChart(config.id, { granularity });
+          } catch (updateError: any) {
+            if (updateError?.code === "NOT_FOUND") {
+              console.log("Chart not found in repository, creating it...");
+              // Create the chart with the correct ID and updated granularity
+              const newChart = await saveChart({
+                symbol: currentSymbol,
+                granularity: granularity, // Use the new granularity
+                indicators: config.indicators || [],
+              });
+              console.log("Chart created with ID:", newChart.id);
+            } else {
+              throw updateError;
+            }
+          }
         } catch (error) {
           console.error(
             "Failed to persist granularity change to repository:",
