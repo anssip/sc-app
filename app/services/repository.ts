@@ -444,39 +444,75 @@ export class Repository implements IRepository {
 
   private async loadSymbols(): Promise<void> {
     try {
-      // Load symbols from all exchanges
-      const exchangesRef = collection(db, "exchanges");
-      const exchangesSnapshot = await getDocs(exchangesRef);
+      console.log("Starting to load symbols from Firestore...");
 
-      for (const exchangeDoc of exchangesSnapshot.docs) {
-        const productsRef = collection(
-          db,
-          "exchanges",
-          exchangeDoc.id,
-          "products"
-        );
-        const productsSnapshot = await getDocs(productsRef);
+      // Direct approach: Load products from known exchanges
+      // Since we know coinbase has products, load them directly
+      const knownExchanges = ["coinbase"]; // Add more exchanges as needed
 
-        productsSnapshot.forEach((productDoc) => {
-          const data = productDoc.data();
-          const symbol: Symbol = {
-            id: productDoc.id,
-            exchangeId: exchangeDoc.id,
-            symbol: productDoc.id,
-            baseAsset: data.baseAsset || "",
-            quoteAsset: data.quoteAsset || "",
-            active: this.isSymbolActive(data.lastUpdate),
-            lastUpdate: data.lastUpdate?.toDate(),
-          };
+      for (const exchangeId of knownExchanges) {
+        console.log(`Loading products for exchange: ${exchangeId}`);
 
-          const key = `${exchangeDoc.id}:${productDoc.id}`;
-          this.symbolsCache.set(key, symbol);
-        });
+        try {
+          const productsRef = collection(
+            db,
+            "exchanges",
+            exchangeId,
+            "products"
+          );
+          const productsSnapshot = await getDocs(productsRef);
+
+          console.log(
+            `Found ${productsSnapshot.docs.length} products in ${exchangeId}`
+          );
+
+          if (productsSnapshot.empty) {
+            console.warn(`No products found for exchange: ${exchangeId}`);
+            continue;
+          }
+
+          productsSnapshot.forEach((productDoc) => {
+            try {
+              const data = productDoc.data();
+
+              const symbol: Symbol = {
+                id: productDoc.id,
+                exchangeId: exchangeId,
+                symbol: productDoc.id,
+                baseAsset: data.baseAsset || "",
+                quoteAsset: data.quoteAsset || "",
+                active: this.isSymbolActive(data.lastUpdate),
+                lastUpdate: data.lastUpdate?.toDate(),
+              };
+
+              const key = `${exchangeId}:${productDoc.id}`;
+              this.symbolsCache.set(key, symbol);
+            } catch (productError) {
+              console.error(
+                `Error processing product ${productDoc.id}:`,
+                productError
+              );
+            }
+          });
+        } catch (exchangeError) {
+          console.error(
+            `Error loading products for exchange ${exchangeId}:`,
+            exchangeError
+          );
+        }
       }
 
-      console.log(`Loaded ${this.symbolsCache.size} symbols`);
+      console.log(
+        `Successfully loaded ${this.symbolsCache.size} symbols into cache`
+      );
+      console.log("Symbol cache keys:", Array.from(this.symbolsCache.keys()));
     } catch (error) {
       console.error("Failed to load symbols:", error);
+      // Log the specific error details
+      if (error instanceof Error) {
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+      }
     }
   }
 

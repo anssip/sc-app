@@ -60,8 +60,8 @@ export default function Index() {
             </div>
           </div>
           <p className="text-lg text-gray-600 dark:text-gray-300 text-center max-w-2xl">
-            A powerful financial charting application built with Remix and
-            sc-charts
+            A powerful financial charting application with cloud-based layout
+            persistence, real-time synchronization, and offline support
           </p>
         </header>
 
@@ -70,7 +70,8 @@ export default function Index() {
           // Authenticated user navigation
           <nav className="flex flex-col items-center justify-center gap-4 rounded-3xl border border-gray-200 p-6 dark:border-gray-700">
             <p className="leading-6 text-gray-700 dark:text-gray-200">
-              Welcome back! Ready to start trading?
+              Welcome back! Your saved layouts and preferences are synced and
+              ready.
             </p>
             <div className="flex flex-col gap-2">
               <Link
@@ -94,7 +95,7 @@ export default function Index() {
                     fill="none"
                   />
                 </svg>
-                Open Trading Chart
+                Open Chart Dashboard
               </Link>
               <ul>
                 {resources.map(({ href, text, icon }) => (
@@ -116,9 +117,34 @@ export default function Index() {
         ) : (
           // Unauthenticated user navigation
           <nav className="flex flex-col items-center justify-center gap-4 rounded-3xl border border-gray-200 p-6 dark:border-gray-700">
-            <p className="leading-6 text-gray-700 dark:text-gray-200">
-              Sign in to access professional trading charts
-            </p>
+            <div className="text-center mb-4">
+              <p className="leading-6 text-gray-700 dark:text-gray-200 mb-3">
+                Sign in to access professional trading charts with cloud sync
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-gray-600 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="text-center">
+                  <div className="text-blue-600 dark:text-blue-400 mb-1">
+                    💾
+                  </div>
+                  <div className="font-medium">Save Layouts</div>
+                  <div>Create and save custom chart arrangements</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-blue-600 dark:text-blue-400 mb-1">
+                    🔄
+                  </div>
+                  <div className="font-medium">Real-time Sync</div>
+                  <div>Access your layouts from any device</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-blue-600 dark:text-blue-400 mb-1">
+                    📱
+                  </div>
+                  <div className="font-medium">Offline Support</div>
+                  <div>Works without internet connection</div>
+                </div>
+              </div>
+            </div>
             <Login
               title=""
               description=""

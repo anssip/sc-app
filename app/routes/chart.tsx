@@ -1,17 +1,9 @@
 import type { MetaFunction } from "@remix-run/node";
-import { useState, useEffect } from "react";
-import app, { db } from "~/lib/firebase";
 import ProtectedRoute from "~/components/ProtectedRoute";
 import { useAuth } from "~/lib/auth-context";
 import { logOut } from "~/lib/auth";
 import Login from "~/components/Login";
-import {
-  ChartPanel,
-  PanelLayout,
-  LAYOUT_PRESETS,
-} from "~/components/ChartPanel";
-import { LayoutSelector } from "~/components/LayoutSelector";
-import { saveLayout, loadLayout } from "~/utils/layoutPersistence";
+import { ChartApp } from "~/components/ChartApp";
 
 export const meta: MetaFunction = () => {
   return [
@@ -22,17 +14,6 @@ export const meta: MetaFunction = () => {
 
 function ChartContent() {
   const { user } = useAuth();
-  const [currentLayout, setCurrentLayout] = useState<PanelLayout>(
-    LAYOUT_PRESETS.single
-  );
-
-  // Load saved layout on component mount
-  useEffect(() => {
-    const savedLayout = loadLayout();
-    if (savedLayout) {
-      setCurrentLayout(savedLayout);
-    }
-  }, []);
 
   const handleSignOut = async () => {
     try {
@@ -42,16 +23,11 @@ function ChartContent() {
     }
   };
 
-  const handleLayoutChange = (newLayout: PanelLayout) => {
-    setCurrentLayout(newLayout);
-    saveLayout(newLayout); // Persist layout changes
-  };
-
   return (
     <div className="h-screen flex flex-col">
       <header className="bg-gray-900 text-white p-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold">Spot Canvas - charts</h1>
+          <h1 className="text-xl font-bold">Spot Canvas - Charts</h1>
           <a href="/" className="text-blue-400 hover:text-blue-300 underline">
             ← Back to Home
           </a>
@@ -67,31 +43,8 @@ function ChartContent() {
         </div>
       </header>
 
-      <main className="flex-1 p-4">
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-4">
-            <LayoutSelector
-              currentLayout={currentLayout}
-              onLayoutChange={handleLayoutChange}
-              className="ml-auto"
-            />
-          </div>
-        </div>
-
-        <div className="h-[calc(100vh-200px)] min-h-[600px] border border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden">
-          <ChartPanel
-            layout={currentLayout}
-            onLayoutChange={handleLayoutChange}
-            className="h-full"
-          />
-        </div>
-
-        <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-          <p>
-            Drag the panel dividers to resize charts. Switch layouts using the
-            buttons above. Real-time data updates across all panels.
-          </p>
-        </div>
+      <main className="flex-1">
+        <ChartApp className="h-full" />
       </main>
     </div>
   );

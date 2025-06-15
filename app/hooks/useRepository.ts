@@ -28,52 +28,89 @@ export function useRepository(): UseRepositoryReturn {
   const [error, setError] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const initializingRef = useRef(false);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    let mounted = true;
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
+  useEffect(() => {
     async function initializeRepository() {
-      if (!user?.email || initializingRef.current) {
+      console.log("useRepository: initializeRepository called", {
+        userEmail: user?.email,
+        isInitializing: initializingRef.current,
+        mounted: mountedRef.current,
+      });
+
+      if (!user?.email) {
+        console.log("useRepository: No user email, setting isLoading to false");
+        if (mountedRef.current) {
+          setIsLoading(false);
+        }
         return;
       }
 
+      if (initializingRef.current) {
+        console.log("useRepository: Already initializing, skipping");
+        return;
+      }
+
+      console.log("useRepository: Starting repository initialization");
       initializingRef.current = true;
-      setIsLoading(true);
-      setError(null);
+
+      if (mountedRef.current) {
+        setIsLoading(true);
+        setError(null);
+      }
 
       try {
         const userId = user.email;
         const repo = getRepository(userId);
 
+        console.log("useRepository: Calling repo.initialize()");
         await repo.initialize();
+        console.log("useRepository: Repository initialized successfully");
 
-        if (mounted) {
+        console.log(
+          "useRepository: Checking mounted state:",
+          mountedRef.current
+        );
+        if (mountedRef.current) {
+          console.log("useRepository: Setting repository and isOnline");
           setRepository(repo);
           setIsOnline(repo.isOnline());
+          setIsLoading(false);
+          console.log("useRepository: Repository state updated successfully");
+        } else {
+          console.log(
+            "useRepository: Component unmounted, skipping state update"
+          );
         }
       } catch (err) {
         console.error("Failed to initialize repository:", err);
-        if (mounted) {
+        if (mountedRef.current) {
           setError(
             err instanceof Error
               ? err.message
               : "Failed to initialize repository"
           );
-        }
-      } finally {
-        if (mounted) {
           setIsLoading(false);
         }
+      } finally {
         initializingRef.current = false;
+        console.log("useRepository: Initialization completed");
       }
     }
 
-    initializeRepository();
-
-    return () => {
-      mounted = false;
-    };
-  }, [user]);
+    if (user?.email) {
+      initializeRepository();
+    } else {
+      setIsLoading(false);
+    }
+  }, [user?.email]);
 
   // Monitor online status
   useEffect(() => {
@@ -105,6 +142,14 @@ export function useRepository(): UseRepositoryReturn {
       }
     };
   }, [user]);
+
+  console.log("useRepository: Returning state", {
+    hasRepository: !!repository,
+    isLoading,
+    error,
+    isOnline,
+    userEmail: user?.email,
+  });
 
   return {
     repository,

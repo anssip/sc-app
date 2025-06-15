@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import { SCChart, SCChartRef } from "./SCChart";
 import { ChartHeader } from "./ChartHeader";
 import { db } from "~/lib/firebase";
+import { useCharts } from "~/hooks/useRepository";
 import type { Granularity } from "@anssipiirainen/sc-charts";
 
 export interface ChartConfig {
@@ -33,6 +34,7 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
   onSymbolChange,
   onConfigUpdate,
 }) => {
+  const { updateChart } = useCharts();
   const [chartError, setChartError] = useState<string | null>(null);
   const [currentSymbol, setCurrentSymbol] = useState(config.symbol);
   const [currentGranularity, setCurrentGranularity] = useState(
@@ -91,12 +93,24 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
         onSymbolChange?.(symbol);
 
         // Update the config through the callback
+        const updatedConfig = {
+          ...config,
+          symbol,
+          granularity: currentGranularity,
+        };
+
         if (onConfigUpdate) {
-          onConfigUpdate({
-            ...config,
-            symbol,
-            granularity: currentGranularity,
-          });
+          onConfigUpdate(updatedConfig);
+        }
+
+        // Persist to repository
+        try {
+          await updateChart(config.id, { symbol });
+        } catch (error) {
+          console.error(
+            "Failed to persist symbol change to repository:",
+            error
+          );
         }
       } else {
         console.warn(
@@ -140,12 +154,24 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
         setCurrentGranularity(granularity);
 
         // Update the config through the callback
+        const updatedConfig = {
+          ...config,
+          symbol: currentSymbol,
+          granularity,
+        };
+
         if (onConfigUpdate) {
-          onConfigUpdate({
-            ...config,
-            symbol: currentSymbol,
-            granularity,
-          });
+          onConfigUpdate(updatedConfig);
+        }
+
+        // Persist to repository
+        try {
+          await updateChart(config.id, { granularity });
+        } catch (error) {
+          console.error(
+            "Failed to persist granularity change to repository:",
+            error
+          );
         }
       } else {
         console.warn(

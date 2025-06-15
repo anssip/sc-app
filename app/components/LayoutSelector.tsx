@@ -1,5 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import { PanelLayout, LAYOUT_PRESETS } from "./ChartPanel";
+import { useLayouts } from "~/hooks/useRepository";
+import { SaveLayoutDialog } from "./SaveLayoutDialog";
+import {
+  convertFromChartPanelLayout,
+  convertToChartPanelLayout,
+} from "~/utils/layoutConverter";
+import type { ChartConfig } from "~/types";
 
 interface LayoutSelectorProps {
   currentLayout: PanelLayout;
@@ -35,6 +42,8 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
   onLayoutChange,
   className = "",
 }) => {
+  const { layouts, saveLayout, isLoading, error } = useLayouts();
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const layoutConfigs = [
     {
       name: "Single",
@@ -97,20 +106,89 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
     return JSON.stringify(currentLayout) === JSON.stringify(presetLayout);
   };
 
+  const handleSaveLayout = async (name: string) => {
+    const charts = new Map<string, ChartConfig>();
+    const repositoryLayout = convertFromChartPanelLayout(currentLayout, charts);
+
+    const layoutData = {
+      name,
+      userId: "", // Will be set by repository
+      layout: repositoryLayout,
+    };
+
+    await saveLayout(layoutData);
+  };
+
+  const handleLoadSavedLayout = (layoutId: string) => {
+    const savedLayout = layouts.find((l) => l.id === layoutId);
+    if (!savedLayout) return;
+
+    const charts = new Map<string, ChartConfig>();
+    const panelLayout = convertToChartPanelLayout(savedLayout.layout, charts);
+    onLayoutChange(panelLayout);
+  };
+
   return (
-    <div className={`flex items-center justify-end gap-2 ${className}`}>
-      <div className="flex gap-2">
-        {layoutConfigs.map((config) => (
-          <LayoutButton
-            key={config.key}
-            name={config.name}
-            layout={config.layout}
-            isActive={isLayoutActive(config.layout)}
-            onClick={() => onLayoutChange(config.layout)}
-            icon={config.icon}
-          />
-        ))}
+    <>
+      <div className={`flex items-center gap-3 ${className}`}>
+        {/* Saved Layouts Dropdown */}
+        {layouts.length > 0 && (
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Saved:
+            </label>
+            <select
+              onChange={(e) =>
+                e.target.value && handleLoadSavedLayout(e.target.value)
+              }
+              className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              value=""
+            >
+              <option value="">Select layout...</option>
+              {layouts.map((layout) => (
+                <option key={layout.id} value={layout.id}>
+                  {layout.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Save Button */}
+        <button
+          onClick={() => setSaveDialogOpen(true)}
+          className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+          title="Save current layout"
+        >
+          Save
+        </button>
+
+        {/* Preset Layouts */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Presets:
+          </span>
+          <div className="flex gap-2">
+            {layoutConfigs.map((config) => (
+              <LayoutButton
+                key={config.key}
+                name={config.name}
+                layout={config.layout}
+                isActive={isLayoutActive(config.layout)}
+                onClick={() => onLayoutChange(config.layout)}
+                icon={config.icon}
+              />
+            ))}
+          </div>
+        </div>
       </div>
-    </div>
+
+      <SaveLayoutDialog
+        isOpen={saveDialogOpen}
+        onClose={() => setSaveDialogOpen(false)}
+        onSave={handleSaveLayout}
+        loading={isLoading}
+      />
+    </>
   );
 };

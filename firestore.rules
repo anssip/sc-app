@@ -1,0 +1,60 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow reading and subscribing to the trading_pairs collection and all nested paths
+    match /trading_pairs/{document=**} {
+      allow read: if true;
+    }
+
+    // Allow reading and listing the exchanges collection
+    match /exchanges/{exchange} {
+      allow read, list: if true;
+
+      // Allow reading and listing all nested products
+      match /products/{productId=**} {
+        allow read, list: if true;
+      }
+    }
+
+    // Allow reading live candles
+    match /live_candles/{candleId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Allow reading historical candles
+    match /historical_candles/{candleId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Collection group rules for better querying
+    match /{path=**}/products/{productId} {
+      allow read: if true;
+    }
+
+    match /{path=**}/intervals/{interval} {
+      allow read: if true;
+    }
+
+    // User settings - allow authenticated users to manage their own settings
+    match /settings/{userId} {
+      allow read, write: if request.auth != null && request.auth.token.email == userId;
+
+      // Allow users to manage their own layouts
+      match /layouts/{layoutId} {
+        allow read, write: if request.auth != null && request.auth.token.email == userId;
+      }
+
+      // Allow users to manage their own charts
+      match /charts/{chartId} {
+        allow read, write: if request.auth != null && request.auth.token.email == userId;
+      }
+    }
+
+    // Default deny for everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -8,7 +8,10 @@
     "dev": "remix vite:dev",
     "lint": "eslint --ignore-path .gitignore --cache --cache-location ./node_modules/.cache/eslint .",
     "start": "remix-serve ./build/server/index.js",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "test:firestore": "bun run scripts/test-firestore-simple.ts",
+    "test:firestore:full": "bun run scripts/test-firestore.ts",
+    "test:firestore:noauth": "bun run scripts/test-firestore-noauth.ts"
   },
   "dependencies": {
     "@remix-run/node": "^2.16.8",
