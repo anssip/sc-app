@@ -524,32 +524,59 @@ export class Repository implements IRepository {
           let activeCount = 0;
           let usdCount = 0;
 
-          productsSnapshot.forEach((productDoc) => {
-            try {
-              const data = productDoc.data();
+          // Process products in parallel with activity checks
+          const symbolPromises = productsSnapshot.docs.map(
+            async (productDoc) => {
+              try {
+                const data = productDoc.data();
 
-              const symbol: Symbol = {
-                id: productDoc.id,
-                exchangeId: exchangeId,
-                symbol: productDoc.id,
-                baseAsset: data.baseAsset || "",
-                quoteAsset: data.quoteAsset || "",
-                active: this.isSymbolActive(data.lastUpdate),
-                lastUpdate: data.lastUpdate?.toDate(),
-              };
+                // Check if symbol is active by looking for recent candle data
+                const isActive = this.checkSymbolActivityFromCandles(
+                  exchangeId,
+                  productDoc.id
+                );
 
-              const key = `${exchangeId}:${productDoc.id}`;
-              this.symbolsCache.set(key, symbol);
+                const symbolParts = productDoc.id.split("-");
+                const baseAsset = symbolParts[0];
+                const quoteAsset = symbolParts[1];
 
-              if (symbol.active) activeCount++;
-              if (symbol.quoteAsset === "USD") usdCount++;
-            } catch (productError) {
-              console.error(
-                `Repository.loadSymbols: Error processing product ${productDoc.id}:`,
-                productError
-              );
+                console.log(
+                  `Repository.loadSymbols: ${
+                    productDoc.id
+                  } - baseAsset: "${baseAsset}", quoteAsset: "${quoteAsset}" (from ${
+                    data.baseAsset ? "data" : "parsed"
+                  })`
+                );
+
+                const symbol: Symbol = {
+                  id: productDoc.id,
+                  exchangeId: exchangeId,
+                  symbol: productDoc.id,
+                  baseAsset,
+                  quoteAsset,
+                  active: isActive,
+                  lastUpdate: data.lastUpdate?.toDate(),
+                };
+
+                const key = `${exchangeId}:${productDoc.id}`;
+                this.symbolsCache.set(key, symbol);
+
+                if (symbol.active) activeCount++;
+                if (symbol.quoteAsset === "USD") usdCount++;
+
+                return symbol;
+              } catch (productError) {
+                console.error(
+                  `Repository.loadSymbols: Error processing product ${productDoc.id}:`,
+                  productError
+                );
+                return null;
+              }
             }
-          });
+          );
+
+          // Wait for all symbol processing to complete
+          await Promise.all(symbolPromises);
 
           console.log(
             `Repository.loadSymbols: Exchange ${exchangeId}: ${activeCount} active symbols, ${usdCount} USD pairs`
@@ -749,6 +776,67 @@ export class Repository implements IRepository {
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // 7 days instead of 1 hour
 
     return updateTime > weekAgo;
+  }
+
+  private async checkSymbolActivityFromCandles(
+    exchangeId: string,
+    productId: string
+  ): boolean {
+    try {
+      // Check for recent candle data in the ONE_HOUR interval
+      const candleRef = doc(
+        db,
+        "exchanges",
+        exchangeId,
+        "products",
+        productId,
+        "intervals",
+        "ONE_HOUR"
+      );
+
+      const candleSnap = await getDoc(candleRef);
+
+      if (!candleSnap.exists()) {
+        console.log(
+          `Repository.loadSymbols: ${productId} - No candle data (inactive)`
+        );
+        return false; // No candle data means inactive
+      }
+
+      const candleData = candleSnap.data();
+
+      // Check if lastUpdate is recent (within last 24 hours)
+      if (candleData.lastUpdate) {
+        const lastUpdate = candleData.lastUpdate.toDate();
+        const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const isRecent = lastUpdate > dayAgo;
+
+        console.log(
+          `Repository.loadSymbols: ${productId} - Last update: ${lastUpdate.toISOString()}, Active: ${isRecent}`
+        );
+        return isRecent;
+      }
+
+      // Fallback: if no lastUpdate, check if candle has valid data
+      const hasValidData = !!(
+        candleData.close &&
+        candleData.open &&
+        candleData.high &&
+        candleData.low
+      );
+
+      console.log(
+        `Repository.loadSymbols: ${productId} - No lastUpdate, valid data: ${hasValidData}`
+      );
+      return hasValidData;
+    } catch (error) {
+      console.warn(
+        `Repository.loadSymbols: Could not check activity for ${exchangeId}:${productId}:`,
+        error
+      );
+      // Default to inactive if we can't check
+      return false;
+    }
   }
 
   private generateId(): string {
