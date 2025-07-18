@@ -7,7 +7,7 @@ import {
   convertToChartPanelLayout,
   extractChartsFromRepositoryLayout,
 } from "~/utils/layoutConverter";
-import type { ChartConfig } from "~/types";
+import type { ChartConfig, LayoutNode } from "~/types";
 
 interface LayoutSelectorProps {
   currentLayout: PanelLayout;
@@ -110,7 +110,10 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
 
   const handleSaveLayout = async (name: string) => {
     const charts = new Map<string, ChartConfig>();
-    const repositoryLayout = convertFromChartPanelLayout(currentLayout, charts);
+    const repositoryLayout: LayoutNode = convertFromChartPanelLayout(
+      currentLayout,
+      charts
+    );
 
     const layoutData = {
       name,
