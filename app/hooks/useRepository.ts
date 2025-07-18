@@ -275,13 +275,17 @@ interface UseChartsReturn {
   charts: ChartConfig[];
   isLoading: boolean;
   error: string | null;
-  saveChart: (chart: Omit<ChartConfig, "id">) => Promise<ChartConfig>;
+  saveChart: (
+    chart: Omit<ChartConfig, "id">,
+    layoutId?: string
+  ) => Promise<ChartConfig>;
   updateChart: (
     chartId: string,
-    updates: Partial<ChartConfig>
+    updates: Partial<ChartConfig>,
+    layoutId?: string
   ) => Promise<ChartConfig>;
-  deleteChart: (chartId: string) => Promise<void>;
-  getChart: (chartId: string) => ChartConfig | null;
+  deleteChart: (chartId: string, layoutId?: string) => Promise<void>;
+  getChart: (chartId: string, layoutId?: string) => ChartConfig | null;
 }
 
 export function useCharts(): UseChartsReturn {
@@ -324,33 +328,48 @@ export function useCharts(): UseChartsReturn {
   }, [repository, repoLoading]);
 
   const saveChart = async (
-    chartData: Omit<ChartConfig, "id">
+    chartData: Omit<ChartConfig, "id">,
+    layoutId?: string
   ): Promise<ChartConfig> => {
     if (!repository) {
       throw new Error("Repository not available");
     }
-    return await repository.saveChart(chartData);
+    return await repository.saveChart(chartData, layoutId || "default");
   };
 
   const updateChart = async (
     chartId: string,
-    updates: Partial<ChartConfig>
+    updates: Partial<ChartConfig>,
+    layoutId?: string
   ): Promise<ChartConfig> => {
     if (!repository) {
       throw new Error("Repository not available");
     }
-    return await repository.updateChart(chartId, updates);
+    return await repository.updateChart(
+      chartId,
+      updates,
+      layoutId || "default"
+    );
   };
 
-  const deleteChart = async (chartId: string): Promise<void> => {
+  const deleteChart = async (
+    chartId: string,
+    layoutId?: string
+  ): Promise<void> => {
     if (!repository) {
       throw new Error("Repository not available");
     }
-    await repository.deleteChart(chartId);
+    await repository.deleteChart(chartId, layoutId || "default");
   };
 
-  const getChart = (chartId: string): ChartConfig | null => {
-    return charts.find((c) => c.id === chartId) || null;
+  const getChart = (chartId: string, layoutId?: string): ChartConfig | null => {
+    // First check local cache
+    const cachedChart = charts.find((c) => c.id === chartId);
+    if (cachedChart) return cachedChart;
+
+    // Note: Since repository.getChart is async, we can't use it in a sync function
+    // The chart should be loaded through layouts or cached already
+    return null;
   };
 
   return {

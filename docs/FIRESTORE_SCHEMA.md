@@ -1,6 +1,6 @@
 # Settings collection
 
-The `settings` collection is used to store user preferences and settings. Each user has a document in this  collection. The document ID is the user's email address.
+The `settings` collection is used to store user preferences and settings. Each user has a document in this collection. The document ID is the user's email address.
 
 ## Chart layouts
 
@@ -9,6 +9,7 @@ Users chart layouts are stored inside the settings collection. The document path
 ```
 /settings/{userId}/layouts/{layoutId}
 ```
+
 The document structure is as follows:
 
 ```json
@@ -22,7 +23,7 @@ The document structure is as follows:
       "children": [
         {
           "type": "chart",
-          "id": 1,
+          "id": 1
         },
         {
           "type": "split",
@@ -31,11 +32,11 @@ The document structure is as follows:
           "children": [
             {
               "type": "chart",
-              "id": 2,
+              "id": 2
             },
             {
               "type": "chart",
-              "id": 3,
+              "id": 3
             }
           ]
         }
@@ -50,6 +51,18 @@ The document structure is as follows:
 - ratio: Split position (0.0 to 1.0)
 - children: Array of child nodes (for splits)
 - id/content: Chart identifier (for leaves)
+
+Each chart is stored in the charts collection and look like so:
+
+```json
+{
+  "title": "ETC to the moon!",
+  "id": 1,
+  "symbol": "ETH-USD",
+  "granularity": "1d",
+  "indicators": ["RSI", "MACD"]
+}
+```
 
 ### Restoration algorithm:
 
@@ -69,14 +82,14 @@ The chart settings are stored inside the settings collection in the following pa
 /settings/{userId}/charts/{chartId}
 ```
 
- An example chart document:
+An example chart document:
 
 ```json
 {
   "title": "ETC to the moon!",
   "id": 1,
-  "symbol": 'ETH-USD',
-  "granularity": '1d',
+  "symbol": "ETH-USD",
+  "granularity": "1d",
   "indicators": ["RSI", "MACD"]
 }
 ```
@@ -91,7 +104,6 @@ Trading pairs (symbols) are in Firestore in the following path:
 
 Each symbol is a document with the following structure:
 
-
 The live candles for the active symbols are the ones that our backend is currently processing and fetching live prices for. The live prices are stored in path:
 
 ```
@@ -102,13 +114,13 @@ The document in this path look like so:
 
 ```json
 {
-"close": 1.2121,
-"high": 1.2123,
-"lastUpdate": "December 8, 2024 at 1:24:41.658 PM UTC+2",
-"low": 1.2043,
-"open": 1.2056,
-"timestamp": 1733656800,
-"volume": 138295.41579799
+  "close": 1.2121,
+  "high": 1.2123,
+  "lastUpdate": "December 8, 2024 at 1:24:41.658 PM UTC+2",
+  "low": 1.2043,
+  "open": 1.2056,
+  "timestamp": 1733656800,
+  "volume": 138295.41579799
 }
 ```
 

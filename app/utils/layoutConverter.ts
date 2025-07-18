@@ -16,7 +16,9 @@ export function convertToChartPanelLayout(
 ): PanelLayout {
   if (layoutNode.type === "chart") {
     const chartNode = layoutNode as ChartLayoutNode;
-    const chartConfig = charts.get(chartNode.chartId || chartNode.id);
+    // First check for embedded chart, then fall back to chartId lookup
+    const chartConfig =
+      chartNode.chart || charts.get(chartNode.chartId || chartNode.id);
 
     return {
       id: chartNode.id,
@@ -54,13 +56,13 @@ export function convertFromChartPanelLayout(
   charts: Map<string, ChartConfig> = new Map()
 ): LayoutNode {
   if (panelLayout.type === "chart" && panelLayout.chart) {
-    // Store the chart configuration
+    // Store the chart configuration for reference
     charts.set(panelLayout.chart.id, panelLayout.chart);
 
     return {
       type: "chart",
       id: panelLayout.id,
-      chartId: panelLayout.chart.id,
+      chart: panelLayout.chart, // Embed the chart directly
     };
   } else if (panelLayout.type === "group" && panelLayout.children) {
     return {
@@ -107,7 +109,14 @@ export function extractChartsFromRepositoryLayout(
   function traverse(node: LayoutNode) {
     if (node.type === "chart") {
       const chartNode = node as ChartLayoutNode;
-      chartIds.push(chartNode.chartId || chartNode.id);
+      // Extract from embedded chart first, then fall back to chartId
+      if (chartNode.chart) {
+        chartIds.push(chartNode.chart.id);
+      } else if (chartNode.chartId) {
+        chartIds.push(chartNode.chartId);
+      } else {
+        chartIds.push(chartNode.id);
+      }
     } else if (node.type === "split") {
       const splitNode = node as SplitLayoutNode;
       splitNode.children.forEach(traverse);
@@ -197,11 +206,13 @@ export function validateChartPanelLayout(panelLayout: PanelLayout): void {
 /**
  * Creates a simple single chart layout in repository format
  */
-export function createSingleChartRepositoryLayout(chartId: string): LayoutNode {
+export function createSingleChartRepositoryLayout(
+  chart: ChartConfig
+): LayoutNode {
   return {
     type: "chart",
     id: generateId(),
-    chartId,
+    chart,
   };
 }
 
@@ -209,8 +220,8 @@ export function createSingleChartRepositoryLayout(chartId: string): LayoutNode {
  * Creates a simple horizontal split layout in repository format
  */
 export function createHorizontalSplitRepositoryLayout(
-  leftChartId: string,
-  rightChartId: string,
+  leftChart: ChartConfig,
+  rightChart: ChartConfig,
   ratio: number = 0.5
 ): LayoutNode {
   return {
@@ -221,12 +232,12 @@ export function createHorizontalSplitRepositoryLayout(
       {
         type: "chart",
         id: generateId(),
-        chartId: leftChartId,
+        chart: leftChart,
       },
       {
         type: "chart",
         id: generateId(),
-        chartId: rightChartId,
+        chart: rightChart,
       },
     ],
   };
@@ -236,8 +247,8 @@ export function createHorizontalSplitRepositoryLayout(
  * Creates a simple vertical split layout in repository format
  */
 export function createVerticalSplitRepositoryLayout(
-  topChartId: string,
-  bottomChartId: string,
+  topChart: ChartConfig,
+  bottomChart: ChartConfig,
   ratio: number = 0.5
 ): LayoutNode {
   return {
@@ -248,12 +259,12 @@ export function createVerticalSplitRepositoryLayout(
       {
         type: "chart",
         id: generateId(),
-        chartId: topChartId,
+        chart: topChart,
       },
       {
         type: "chart",
         id: generateId(),
-        chartId: bottomChartId,
+        chart: bottomChart,
       },
     ],
   };
@@ -268,11 +279,22 @@ export function updateChartReferencesInLayout(
 ): LayoutNode {
   if (layoutNode.type === "chart") {
     const chartNode = { ...layoutNode } as ChartLayoutNode;
-    const oldChartId = chartNode.chartId || chartNode.id;
-    const newChartId = chartIdMapping.get(oldChartId);
 
-    if (newChartId) {
-      chartNode.chartId = newChartId;
+    // Update embedded chart ID if present
+    if (chartNode.chart) {
+      const oldChartId = chartNode.chart.id;
+      const newChartId = chartIdMapping.get(oldChartId);
+      if (newChartId) {
+        chartNode.chart = { ...chartNode.chart, id: newChartId };
+      }
+    }
+
+    // Handle legacy chartId field
+    if (chartNode.chartId) {
+      const newChartId = chartIdMapping.get(chartNode.chartId);
+      if (newChartId) {
+        chartNode.chartId = newChartId;
+      }
     }
 
     return chartNode;

@@ -30,6 +30,7 @@ export interface PanelLayout {
 
 interface ChartPanelProps {
   layout: PanelLayout;
+  layoutId?: string;
   onLayoutChange?: (layout: PanelLayout) => void;
   className?: string;
 }
@@ -71,9 +72,10 @@ const ResizeHandle: React.FC<{ direction: "horizontal" | "vertical" }> = ({
 
 const renderPanelGroup = (
   layout: PanelLayout,
+  layoutId?: string,
   onLayoutChange?: (layout: PanelLayout) => void,
-  parentPath: string = "",
-  rootLayout?: PanelLayout
+  rootLayout?: PanelLayout,
+  parentPath: string = ""
 ): React.ReactNode => {
   const currentPath = parentPath ? `${parentPath}.${layout.id}` : layout.id;
 
@@ -87,6 +89,7 @@ const renderPanelGroup = (
       >
         <ChartContainer
           config={layout.chart}
+          layoutId={layoutId}
           onSymbolChange={(symbol) => {
             // This callback can be used for additional symbol change handling if needed
           }}
@@ -137,9 +140,10 @@ const renderPanelGroup = (
             <React.Fragment key={child.id}>
               {renderPanelGroup(
                 child,
+                layoutId,
                 onLayoutChange,
-                currentPath,
-                rootLayout || layout
+                rootLayout || layout,
+                currentPath
               )}
               {index < layout.children!.length - 1 && (
                 <ResizeHandle direction={layout.direction || "horizontal"} />
@@ -156,6 +160,7 @@ const renderPanelGroup = (
 
 export const ChartPanel: React.FC<ChartPanelProps> = ({
   layout,
+  layoutId,
   onLayoutChange,
   className = "",
 }) => {
@@ -165,13 +170,13 @@ export const ChartPanel: React.FC<ChartPanelProps> = ({
         {layout.children
           ? layout.children.map((child, index) => (
               <React.Fragment key={child.id}>
-                {renderPanelGroup(child, onLayoutChange, "", layout)}
+                {renderPanelGroup(child, layoutId, onLayoutChange, layout, "")}
                 {index < layout.children!.length - 1 && (
                   <ResizeHandle direction={layout.direction || "horizontal"} />
                 )}
               </React.Fragment>
             ))
-          : renderPanelGroup(layout, onLayoutChange, "", layout)}
+          : renderPanelGroup(layout, layoutId, onLayoutChange, layout, "")}
       </PanelGroup>
     </div>
   );

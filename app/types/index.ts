@@ -21,7 +21,8 @@ export interface BaseLayoutNode {
 export interface ChartLayoutNode extends BaseLayoutNode {
   type: "chart";
   id: string;
-  chartId?: string; // References a chart in the charts collection
+  chartId?: string; // DEPRECATED: Used for backward compatibility
+  chart?: ChartConfig; // Embedded chart configuration
 }
 
 // Split layout node (container node)
@@ -88,15 +89,27 @@ export interface ILayoutRepository {
   // Layout management
   getLayouts(): Promise<SavedLayout[]>;
   getLayout(layoutId: string): Promise<SavedLayout | null>;
-  saveLayout(layout: Omit<SavedLayout, 'id' | 'createdAt' | 'updatedAt'>): Promise<SavedLayout>;
-  updateLayout(layoutId: string, updates: Partial<SavedLayout>): Promise<SavedLayout>;
+  saveLayout(
+    layout: Omit<SavedLayout, "id" | "createdAt" | "updatedAt">
+  ): Promise<SavedLayout>;
+  updateLayout(
+    layoutId: string,
+    updates: Partial<SavedLayout>
+  ): Promise<SavedLayout>;
   deleteLayout(layoutId: string): Promise<void>;
 
-  // Chart management
-  getChart(chartId: string): Promise<ChartConfig | null>;
-  saveChart(chart: Omit<ChartConfig, 'id'>): Promise<ChartConfig>;
-  updateChart(chartId: string, updates: Partial<ChartConfig>): Promise<ChartConfig>;
-  deleteChart(chartId: string): Promise<void>;
+  // Chart management (DEPRECATED: Charts are now embedded in layouts)
+  getChart(chartId: string, layoutId?: string): Promise<ChartConfig | null>;
+  saveChart(
+    chart: Omit<ChartConfig, "id">,
+    layoutId: string
+  ): Promise<ChartConfig>;
+  updateChart(
+    chartId: string,
+    updates: Partial<ChartConfig>,
+    layoutId: string
+  ): Promise<ChartConfig>;
+  deleteChart(chartId: string, layoutId: string): Promise<void>;
 }
 
 export interface ISymbolRepository {
@@ -106,8 +119,17 @@ export interface ISymbolRepository {
   getSymbol(exchangeId: string, symbol: string): Promise<Symbol | null>;
 
   // Live price data
-  getCandle(exchangeId: string, symbol: string, granularity: Granularity): Promise<Candle | null>;
-  subscribeToCandle(exchangeId: string, symbol: string, granularity: Granularity, callback: (candle: Candle) => void): () => void;
+  getCandle(
+    exchangeId: string,
+    symbol: string,
+    granularity: Granularity
+  ): Promise<Candle | null>;
+  subscribeToCandle(
+    exchangeId: string,
+    symbol: string,
+    granularity: Granularity,
+    callback: (candle: Candle) => void
+  ): () => void;
 }
 
 export interface IUserRepository {
@@ -117,7 +139,10 @@ export interface IUserRepository {
 }
 
 // Main repository interface
-export interface IRepository extends ILayoutRepository, ISymbolRepository, IUserRepository {
+export interface IRepository
+  extends ILayoutRepository,
+    ISymbolRepository,
+    IUserRepository {
   // General repository methods
   initialize(): Promise<void>;
   sync(): Promise<void>;
@@ -129,12 +154,17 @@ export type { Granularity } from "@anssipiirainen/sc-charts";
 
 // Common utility types
 export type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
-export type CreateInput<T> = Omit<T, 'id' | 'createdAt' | 'updatedAt'>;
-export type UpdateInput<T> = Partial<Omit<T, 'id' | 'createdAt' | 'updatedAt'>>;
+export type CreateInput<T> = Omit<T, "id" | "createdAt" | "updatedAt">;
+export type UpdateInput<T> = Partial<Omit<T, "id" | "createdAt" | "updatedAt">>;
 
 // Event types for repository notifications
 export interface RepositoryEvent {
-  type: 'layout_saved' | 'layout_updated' | 'layout_deleted' | 'chart_updated' | 'symbol_updated';
+  type:
+    | "layout_saved"
+    | "layout_updated"
+    | "layout_deleted"
+    | "chart_updated"
+    | "symbol_updated";
   data: any;
   timestamp: Date;
 }
@@ -145,20 +175,20 @@ export type RepositoryEventCallback = (event: RepositoryEvent) => void;
 export class RepositoryError extends Error {
   constructor(message: string, public code: string, public details?: any) {
     super(message);
-    this.name = 'RepositoryError';
+    this.name = "RepositoryError";
   }
 }
 
 export class NetworkError extends RepositoryError {
   constructor(message: string, details?: any) {
-    super(message, 'NETWORK_ERROR', details);
-    this.name = 'NetworkError';
+    super(message, "NETWORK_ERROR", details);
+    this.name = "NetworkError";
   }
 }
 
 export class ValidationError extends RepositoryError {
   constructor(message: string, details?: any) {
-    super(message, 'VALIDATION_ERROR', details);
-    this.name = 'ValidationError';
+    super(message, "VALIDATION_ERROR", details);
+    this.name = "ValidationError";
   }
 }

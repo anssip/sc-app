@@ -26,6 +26,9 @@ import type {
   Granularity,
   RepositoryEvent,
   RepositoryEventCallback,
+  LayoutNode,
+  ChartLayoutNode,
+  SplitLayoutNode,
 } from "~/types";
 import { RepositoryError, NetworkError, ValidationError } from "~/types";
 
@@ -193,8 +196,11 @@ export class Repository implements IRepository {
     this.emitEvent("layout_deleted", { layoutId });
   }
 
-  // Chart Management
-  async getChart(chartId: string): Promise<ChartConfig | null> {
+  // Chart Management (Charts are now embedded in layouts)
+  async getChart(
+    chartId: string,
+    layoutId?: string
+  ): Promise<ChartConfig | null> {
     this.ensureInitialized();
 
     // First check cache
@@ -203,33 +209,40 @@ export class Repository implements IRepository {
       return cachedChart;
     }
 
-    // If not in cache, try to load from Firestore
-    try {
-      const chartRef = doc(db, "settings", this.userId, "charts", chartId);
-      const chartSnap = await getDoc(chartRef);
+    // If layoutId is provided, look for the chart in that specific layout
+    if (layoutId) {
+      const layout = await this.getLayout(layoutId);
+      if (layout) {
+        const chart = this.findChartInLayout(layout.layout, chartId);
+        if (chart) {
+          this.chartsCache.set(chartId, chart);
+          return chart;
+        }
+      }
+    }
 
-      if (chartSnap.exists()) {
-        const chartData = chartSnap.data() as ChartConfig;
-        const chart: ChartConfig = {
-          ...chartData,
-          id: chartId, // Ensure ID is set correctly
-        };
-
-        // Store in cache for future use
+    // Otherwise, search through all layouts
+    const layouts = await this.getLayouts();
+    for (const layout of layouts) {
+      const chart = this.findChartInLayout(layout.layout, chartId);
+      if (chart) {
         this.chartsCache.set(chartId, chart);
-        console.log(`Loaded chart ${chartId} from Firestore:`, chart.symbol);
         return chart;
       }
-    } catch (error) {
-      console.error(`Failed to load chart ${chartId} from Firestore:`, error);
     }
 
     return null;
   }
 
-  async saveChart(chartData: Omit<ChartConfig, "id">): Promise<ChartConfig> {
+  async saveChart(
+    chartData: Omit<ChartConfig, "id">,
+    layoutId: string
+  ): Promise<ChartConfig> {
     this.ensureInitialized();
 
+    // For embedded charts, we need to find the layout that contains the chart
+    // This is a simplified implementation - in practice, charts are created
+    // as part of layout creation/modification
     const chartId = this.generateId();
     const chart: ChartConfig = {
       ...chartData,
@@ -239,14 +252,8 @@ export class Repository implements IRepository {
     // Validate chart
     this.validateChart(chart);
 
-    // Store in cache immediately
+    // Store in cache
     this.chartsCache.set(chartId, chart);
-
-    // Queue for async sync
-    this.queueSync(async () => {
-      const chartRef = doc(db, "settings", this.userId, "charts", chartId);
-      await setDoc(chartRef, chart);
-    });
 
     this.emitEvent("chart_updated", chart);
     return chart;
@@ -254,13 +261,44 @@ export class Repository implements IRepository {
 
   async updateChart(
     chartId: string,
-    updates: Partial<ChartConfig>
+    updates: Partial<ChartConfig>,
+    layoutId: string
   ): Promise<ChartConfig> {
     this.ensureInitialized();
 
-    const existingChart = this.chartsCache.get(chartId);
-    if (!existingChart) {
-      throw new RepositoryError("Chart not found", "NOT_FOUND", { chartId });
+    // Find all layouts and search for the chart
+    let targetLayout: SavedLayout | null = null;
+    let existingChart: ChartConfig | null = null;
+
+    // If layoutId is provided, check that layout first
+    if (layoutId) {
+      const layout = await this.getLayout(layoutId);
+      if (layout) {
+        existingChart = this.findChartInLayout(layout.layout, chartId);
+        if (existingChart) {
+          targetLayout = layout;
+        }
+      }
+    }
+
+    // If not found in the specified layout, search all layouts
+    if (!existingChart || !targetLayout) {
+      const layouts = await this.getLayouts();
+      for (const layout of layouts) {
+        const chart = this.findChartInLayout(layout.layout, chartId);
+        if (chart) {
+          existingChart = chart;
+          targetLayout = layout;
+          break;
+        }
+      }
+    }
+
+    if (!existingChart || !targetLayout) {
+      throw new RepositoryError("Chart not found", "NOT_FOUND", {
+        chartId,
+        layoutId,
+      });
     }
 
     const updatedChart: ChartConfig = {
@@ -272,34 +310,69 @@ export class Repository implements IRepository {
     // Validate updated chart
     this.validateChart(updatedChart);
 
-    // Store in cache immediately
-    this.chartsCache.set(chartId, updatedChart);
+    // Update the chart in the layout
+    const updatedLayoutNode = this.updateChartInLayout(
+      targetLayout.layout,
+      chartId,
+      updatedChart
+    );
 
-    // Queue for async sync
-    this.queueSync(async () => {
-      const chartRef = doc(db, "settings", this.userId, "charts", chartId);
-      await updateDoc(chartRef, updates);
-    });
+    // Save the updated layout
+    await this.updateLayout(targetLayout.id, { layout: updatedLayoutNode });
+
+    // Store in cache
+    this.chartsCache.set(chartId, updatedChart);
 
     this.emitEvent("chart_updated", updatedChart);
     return updatedChart;
   }
 
-  async deleteChart(chartId: string): Promise<void> {
+  async deleteChart(chartId: string, layoutId: string): Promise<void> {
     this.ensureInitialized();
 
-    if (!this.chartsCache.has(chartId)) {
-      throw new RepositoryError("Chart not found", "NOT_FOUND", { chartId });
+    // Find the layout containing the chart
+    let targetLayout: SavedLayout | null = null;
+
+    if (layoutId) {
+      const layout = await this.getLayout(layoutId);
+      if (layout) {
+        const chart = this.findChartInLayout(layout.layout, chartId);
+        if (chart) {
+          targetLayout = layout;
+        }
+      }
     }
 
-    // Remove from cache immediately
-    this.chartsCache.delete(chartId);
+    // If not found, search all layouts
+    if (!targetLayout) {
+      const layouts = await this.getLayouts();
+      for (const layout of layouts) {
+        const chart = this.findChartInLayout(layout.layout, chartId);
+        if (chart) {
+          targetLayout = layout;
+          break;
+        }
+      }
+    }
 
-    // Queue for async sync
-    this.queueSync(async () => {
-      const chartRef = doc(db, "settings", this.userId, "charts", chartId);
-      await deleteDoc(chartRef);
-    });
+    if (!targetLayout) {
+      throw new RepositoryError("Chart not found", "NOT_FOUND", {
+        chartId,
+        layoutId,
+      });
+    }
+
+    // Remove the chart from the layout
+    const updatedLayout = this.removeChartFromLayout(
+      targetLayout.layout,
+      chartId
+    );
+
+    // Save the updated layout
+    await this.updateLayout(targetLayout.id, { layout: updatedLayout });
+
+    // Remove from cache
+    this.chartsCache.delete(chartId);
   }
 
   // Symbol Management
@@ -458,28 +531,22 @@ export class Repository implements IRepository {
           updatedAt: data.updatedAt.toDate(),
         };
         this.layoutsCache.set(doc.id, layout);
+
+        // Extract and cache charts from the layout
+        this.extractAndCacheCharts(layout.layout);
       });
 
       console.log(`Loaded ${this.layoutsCache.size} layouts`);
+      console.log(`Extracted ${this.chartsCache.size} charts from layouts`);
     } catch (error) {
       console.error("Failed to load layouts:", error);
     }
   }
 
   private async loadCharts(): Promise<void> {
-    try {
-      const chartsRef = collection(db, "settings", this.userId, "charts");
-      const chartsSnapshot = await getDocs(chartsRef);
-
-      chartsSnapshot.forEach((doc) => {
-        const chart = doc.data() as ChartConfig;
-        this.chartsCache.set(doc.id, chart);
-      });
-
-      console.log(`Loaded ${this.chartsCache.size} charts`);
-    } catch (error) {
-      console.error("Failed to load charts:", error);
-    }
+    // Charts are now loaded as part of layouts
+    // This method is kept for backward compatibility but does nothing
+    console.log("Repository.loadCharts: Charts are now embedded in layouts");
   }
 
   private async loadSymbols(): Promise<void> {
@@ -533,7 +600,7 @@ export class Repository implements IRepository {
                 const data = productDoc.data();
 
                 // Check if symbol is active by looking for recent candle data
-                const isActive = this.checkSymbolActivityFromCandles(
+                const isActive = await this.checkSymbolActivityFromCandles(
                   exchangeId,
                   productDoc.id
                 );
@@ -783,7 +850,7 @@ export class Repository implements IRepository {
   private async checkSymbolActivityFromCandles(
     exchangeId: string,
     productId: string
-  ): boolean {
+  ): Promise<boolean> {
     try {
       // Check for recent candle data in the ONE_HOUR interval
       const candleRef = doc(
@@ -838,6 +905,134 @@ export class Repository implements IRepository {
       );
       // Default to inactive if we can't check
       return false;
+    }
+  }
+
+  // Helper methods for manipulating charts within layouts
+  private findChartInLayout(
+    node: LayoutNode,
+    chartId: string
+  ): ChartConfig | null {
+    if (node.type === "chart") {
+      const chartNode = node as ChartLayoutNode;
+      if (chartNode.chart && chartNode.chart.id === chartId) {
+        return chartNode.chart;
+      }
+      // Check deprecated chartId field for backward compatibility
+      if (chartNode.chartId === chartId && chartNode.chart) {
+        return chartNode.chart;
+      }
+    } else if (node.type === "split") {
+      const splitNode = node as SplitLayoutNode;
+      for (const child of splitNode.children) {
+        const found = this.findChartInLayout(child, chartId);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+
+  private updateChartInLayout(
+    node: LayoutNode,
+    chartId: string,
+    updatedChart: ChartConfig
+  ): LayoutNode {
+    if (node.type === "chart") {
+      const chartNode = node as ChartLayoutNode;
+      if (
+        chartNode.chart &&
+        (chartNode.chart.id === chartId || chartNode.chartId === chartId)
+      ) {
+        return {
+          ...chartNode,
+          chart: updatedChart,
+          chartId: undefined, // Remove deprecated field
+        };
+      }
+      return node;
+    } else if (node.type === "split") {
+      const splitNode = node as SplitLayoutNode;
+      return {
+        ...splitNode,
+        children: splitNode.children.map((child: LayoutNode) =>
+          this.updateChartInLayout(child, chartId, updatedChart)
+        ),
+      };
+    }
+    return node;
+  }
+
+  private removeChartFromLayout(node: LayoutNode, chartId: string): LayoutNode {
+    if (node.type === "split") {
+      const splitNode = node as SplitLayoutNode;
+      const filteredChildren = splitNode.children.filter(
+        (child: LayoutNode) => {
+          if (child.type === "chart") {
+            const chartNode = child as ChartLayoutNode;
+            return !(
+              (chartNode.chart && chartNode.chart.id === chartId) ||
+              chartNode.chartId === chartId
+            );
+          }
+          return true;
+        }
+      );
+
+      // If only one child remains after filtering, return that child
+      if (filteredChildren.length === 1) {
+        return filteredChildren[0];
+      }
+
+      // If no children remain, this shouldn't happen in a valid layout
+      if (filteredChildren.length === 0) {
+        // Return a default empty chart node
+        return {
+          type: "chart",
+          id: this.generateId(),
+          chart: {
+            id: this.generateId(),
+            symbol: "BTC-USD",
+            granularity: "ONE_HOUR",
+            indicators: [],
+          },
+        };
+      }
+
+      return {
+        ...splitNode,
+        children: filteredChildren.map((child: LayoutNode) =>
+          this.removeChartFromLayout(child, chartId)
+        ),
+      };
+    }
+    return node;
+  }
+
+  private addChartToLayout(
+    node: LayoutNode,
+    chartNode: ChartLayoutNode
+  ): LayoutNode {
+    // For now, we'll replace the entire layout with a split containing the old layout and new chart
+    // This is a simple implementation - in practice, you might want more sophisticated placement
+    return {
+      type: "split",
+      direction: "horizontal",
+      ratio: 0.5,
+      children: [node, chartNode],
+    };
+  }
+
+  private extractAndCacheCharts(node: LayoutNode): void {
+    if (node.type === "chart") {
+      const chartNode = node as ChartLayoutNode;
+      if (chartNode.chart) {
+        this.chartsCache.set(chartNode.chart.id, chartNode.chart);
+      }
+    } else if (node.type === "split") {
+      const splitNode = node as SplitLayoutNode;
+      splitNode.children.forEach((child: LayoutNode) =>
+        this.extractAndCacheCharts(child)
+      );
     }
   }
 

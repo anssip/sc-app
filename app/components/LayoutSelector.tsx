@@ -137,82 +137,29 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
     console.log(`Loading saved layout: ${savedLayout.name} (${layoutId})`);
 
     try {
-      // Extract chart IDs from the saved layout
-      const chartIds = extractChartsFromRepositoryLayout(savedLayout.layout);
-      console.log(`Layout contains ${chartIds.length} charts:`, chartIds);
-
-      // Load chart configurations from repository
+      // Charts are now embedded in layouts, so we just need to convert
+      // The charts Map parameter is now optional and used for backward compatibility
       const charts = new Map<string, ChartConfig>();
-      let chartsFound = 0;
-      let chartsCreated = 0;
 
-      for (const chartId of chartIds) {
-        try {
-          const chartConfig = await repository.getChart(chartId);
-          if (chartConfig) {
-            charts.set(chartId, chartConfig);
-            chartsFound++;
-            console.log(
-              `✅ Chart ${chartId} loaded:`,
-              chartConfig.symbol,
-              chartConfig.granularity
-            );
-          } else {
-            console.warn(
-              `⚠️ Chart ${chartId} not found in repository, creating default`
-            );
-
-            // Create a default chart config with a unique ID
-            const defaultChart: ChartConfig = {
-              id: chartId,
-              symbol: "BTC-USD",
-              granularity: "ONE_HOUR",
-              indicators: [],
-            };
-            charts.set(chartId, defaultChart);
-
-            // Save the default chart to repository to avoid future issues
-            try {
-              const newChart = await repository.saveChart({
-                symbol: defaultChart.symbol,
-                granularity: defaultChart.granularity,
-                indicators: defaultChart.indicators || [],
-              });
-              console.log(`✅ Created new chart in repository:`, newChart.id);
-              chartsCreated++;
-            } catch (saveError) {
-              console.error(`Failed to save new chart ${chartId}:`, saveError);
-            }
-          }
-        } catch (error) {
-          console.error(`❌ Failed to load chart ${chartId}:`, error);
-          // Use fallback chart config
-          const fallbackChart: ChartConfig = {
-            id: chartId,
-            symbol: "BTC-USD",
-            granularity: "ONE_HOUR",
-            indicators: [],
-          };
-          charts.set(chartId, fallbackChart);
-        }
-      }
-
-      console.log(
-        `Chart loading summary: ${chartsFound} found, ${chartsCreated} created, ${charts.size} total`
-      );
-
-      // Convert to panel layout with loaded chart configurations
+      // Convert to panel layout - embedded charts will be handled automatically
       const panelLayout = convertToChartPanelLayout(savedLayout.layout, charts);
       onLayoutChange(panelLayout);
 
       console.log(`✅ Successfully loaded layout: ${savedLayout.name}`);
     } catch (error) {
       console.error("❌ Failed to load saved layout:", error);
-      // Fallback to loading without chart configs (will use defaults)
-      const charts = new Map<string, ChartConfig>();
-      const panelLayout = convertToChartPanelLayout(savedLayout.layout, charts);
-      onLayoutChange(panelLayout);
-      console.log("🔄 Loaded layout with default chart configurations");
+      // Try to load with empty charts map as fallback
+      try {
+        const charts = new Map<string, ChartConfig>();
+        const panelLayout = convertToChartPanelLayout(
+          savedLayout.layout,
+          charts
+        );
+        onLayoutChange(panelLayout);
+        console.log("🔄 Loaded layout with embedded chart configurations");
+      } catch (conversionError) {
+        console.error("Failed to convert layout:", conversionError);
+      }
     }
   };
 

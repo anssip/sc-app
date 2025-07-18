@@ -14,6 +14,7 @@ export interface ChartConfig {
 
 interface ChartContainerProps {
   config: ChartConfig;
+  layoutId?: string;
   onRemove?: () => void;
   onSymbolChange?: (symbol: string) => void;
   onConfigUpdate?: (config: ChartConfig) => void;
@@ -30,6 +31,7 @@ interface ChartContainerProps {
  */
 export const ChartContainer: React.FC<ChartContainerProps> = ({
   config,
+  layoutId,
   onRemove,
   onSymbolChange,
   onConfigUpdate,
@@ -108,16 +110,19 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
         try {
           // Try to update first, if it fails (chart not found), create it
           try {
-            await updateChart(config.id, { symbol });
+            await updateChart(config.id, { symbol }, layoutId);
           } catch (updateError: any) {
             if (updateError?.code === "NOT_FOUND") {
               console.log("Chart not found in repository, creating it...");
               // Create the chart with the correct ID and updated symbol
-              const newChart = await saveChart({
-                symbol: symbol, // Use the new symbol
-                granularity: currentGranularity,
-                indicators: config.indicators || [],
-              });
+              const newChart = await saveChart(
+                {
+                  symbol: symbol, // Use the new symbol
+                  granularity: currentGranularity,
+                  indicators: config.indicators || [],
+                },
+                layoutId
+              );
               console.log("Chart created with ID:", newChart.id);
             } else {
               throw updateError;
@@ -185,16 +190,19 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
         try {
           // Try to update first, if it fails (chart not found), create it
           try {
-            await updateChart(config.id, { granularity });
+            await updateChart(config.id, { granularity }, layoutId);
           } catch (updateError: any) {
             if (updateError?.code === "NOT_FOUND") {
               console.log("Chart not found in repository, creating it...");
               // Create the chart with the correct ID and updated granularity
-              const newChart = await saveChart({
-                symbol: currentSymbol,
-                granularity: granularity, // Use the new granularity
-                indicators: config.indicators || [],
-              });
+              const newChart = await saveChart(
+                {
+                  symbol: currentSymbol,
+                  granularity: granularity, // Use the new granularity
+                  indicators: config.indicators || [],
+                },
+                layoutId
+              );
               console.log("Chart created with ID:", newChart.id);
             } else {
               throw updateError;
