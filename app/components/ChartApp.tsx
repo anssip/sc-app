@@ -208,6 +208,7 @@ export const ChartApp: React.FC<ChartAppProps> = ({
 
           <LayoutSelector
             currentLayout={currentLayout}
+            currentLayoutId={currentLayoutId}
             onLayoutChange={handleLayoutSelection}
             className="flex-shrink-0"
           />

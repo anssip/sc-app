@@ -224,17 +224,6 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
             ⚠️
           </div>
         )}
-
-        {/* Debug info - shows symbol count */}
-        <div
-          className="text-xs text-gray-500 dark:text-gray-400 px-2"
-          title={`Symbols loaded: ${activeSymbols.length} active, ${
-            symbolsLoading ? "Loading..." : "Ready"
-          }`}
-        >
-          {activeSymbols.length}
-        </div>
-
         {(isChangingSymbol || isChangingGranularity || symbolsLoading) && (
           <div className="animate-spin rounded-full h-3 w-3 border-b border-blue-600"></div>
         )}

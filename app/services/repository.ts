@@ -68,7 +68,6 @@ export class Repository implements IRepository {
       console.log("Repository: Loading initial data...");
       await Promise.all([
         this.loadLayouts(),
-        this.loadCharts(),
         this.loadSymbols(),
         this.loadUserSettings(),
       ]);
@@ -166,7 +165,12 @@ export class Repository implements IRepository {
 
     // Queue for async sync
     this.queueSync(async () => {
+      console.log("Requesting draw:", updates);
       const layoutRef = doc(db, "settings", this.userId, "layouts", layoutId);
+      console.log(
+        `DEBUG: Updating layout ${layoutId} with data:`,
+        JSON.parse(JSON.stringify(updates))
+      );
       await updateDoc(layoutRef, {
         ...updates,
         updatedAt: Timestamp.fromDate(updatedLayout.updatedAt),
@@ -543,29 +547,13 @@ export class Repository implements IRepository {
     }
   }
 
-  private async loadCharts(): Promise<void> {
-    // Charts are now loaded as part of layouts
-    // This method is kept for backward compatibility but does nothing
-    console.log("Repository.loadCharts: Charts are now embedded in layouts");
-  }
-
   private async loadSymbols(): Promise<void> {
-    console.log("Repository.loadSymbols: Starting symbol loading process...");
-
     try {
-      console.log(
-        "Repository.loadSymbols: Starting to load symbols from Firestore..."
-      );
-
       // Direct approach: Load products from known exchanges
       // Since we know coinbase has products, load them directly
       const knownExchanges = ["coinbase"]; // Add more exchanges as needed
 
       for (const exchangeId of knownExchanges) {
-        console.log(
-          `Repository.loadSymbols: Loading products for exchange: ${exchangeId}`
-        );
-
         try {
           const productsRef = collection(
             db,
@@ -573,15 +561,7 @@ export class Repository implements IRepository {
             exchangeId,
             "products"
           );
-          console.log(
-            `Repository.loadSymbols: Fetching documents from path: exchanges/${exchangeId}/products`
-          );
-
           const productsSnapshot = await getDocs(productsRef);
-
-          console.log(
-            `Repository.loadSymbols: Found ${productsSnapshot.docs.length} products in ${exchangeId}`
-          );
 
           if (productsSnapshot.empty) {
             console.warn(
@@ -608,14 +588,6 @@ export class Repository implements IRepository {
                 const symbolParts = productDoc.id.split("-");
                 const baseAsset = symbolParts[0];
                 const quoteAsset = symbolParts[1];
-
-                console.log(
-                  `Repository.loadSymbols: ${
-                    productDoc.id
-                  } - baseAsset: "${baseAsset}", quoteAsset: "${quoteAsset}" (from ${
-                    data.baseAsset ? "data" : "parsed"
-                  })`
-                );
 
                 const symbol: Symbol = {
                   id: productDoc.id,
@@ -879,10 +851,6 @@ export class Repository implements IRepository {
         const lastUpdate = candleData.lastUpdate.toDate();
         const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
         const isRecent = lastUpdate > dayAgo;
-
-        console.log(
-          `Repository.loadSymbols: ${productId} - Last update: ${lastUpdate.toISOString()}, Active: ${isRecent}`
-        );
         return isRecent;
       }
 

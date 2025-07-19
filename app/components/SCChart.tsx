@@ -38,6 +38,7 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
     const chartRef = useRef<any>(null);
     const appRef = useRef<any>(null);
     const apiRef = useRef<ChartApi | null>(null);
+    const symbolChangeHandlerRef = useRef<((event: any) => void) | null>(null);
     const [isClient, setIsClient] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [initError, setInitError] = useState<string | null>(null);
@@ -205,9 +206,19 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
         );
 
         try {
-          // Clean up existing chart
-          if (apiRef.current && apiRef.current.dispose) {
-            apiRef.current.dispose();
+          // Clean up existing chart and event listeners
+          if (apiRef.current) {
+            // Remove event listener if it exists
+            if (symbolChangeHandlerRef.current && apiRef.current.off) {
+              apiRef.current.off(
+                "symbolChange",
+                symbolChangeHandlerRef.current
+              );
+              symbolChangeHandlerRef.current = null;
+            }
+            if (apiRef.current.dispose) {
+              apiRef.current.dispose();
+            }
           }
           if (appRef.current && appRef.current.cleanup) {
             appRef.current.cleanup();
@@ -248,7 +259,7 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
           chartRef.current = chartContainer;
           container.appendChild(chartContainer as HTMLElement);
 
-          const { app, api } = await initChartWithApi(
+          const { app, api } = initChartWithApi(
             chartContainer,
             firebaseConfig,
             newInitialState
@@ -388,6 +399,29 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
         appRef.current = app;
         apiRef.current = api;
 
+        // Add symbolChange event listener
+        if (api.on) {
+          // Store the handler reference for cleanup
+          symbolChangeHandlerRef.current = (event: any) => {
+            console.log(
+              `SCChart [${uniqueChartId.current}]: symbolChange event received:`,
+              event
+            );
+            console.log(`  Old symbol: ${event.oldSymbol}`);
+            console.log(`  New symbol: ${event.newSymbol}`);
+            console.log(`  Refetch: ${event.refetch}`);
+          };
+
+          api.on("symbolChange", symbolChangeHandlerRef.current);
+          console.log(
+            `SCChart [${uniqueChartId.current}]: Added symbolChange event listener`
+          );
+        } else {
+          console.warn(
+            `SCChart [${uniqueChartId.current}]: API.on method not available`
+          );
+        }
+
         // Debug: Log available API methods
         console.log(
           `SCChart [${uniqueChartId.current}]: Available API methods:`,
@@ -449,8 +483,15 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
     useEffect(() => {
       return () => {
         // Cleanup on unmount
-        if (apiRef.current && apiRef.current.dispose) {
-          apiRef.current.dispose();
+        if (apiRef.current) {
+          // Remove event listener if it exists
+          if (symbolChangeHandlerRef.current && apiRef.current.off) {
+            apiRef.current.off("symbolChange", symbolChangeHandlerRef.current);
+            symbolChangeHandlerRef.current = null;
+          }
+          if (apiRef.current.dispose) {
+            apiRef.current.dispose();
+          }
         }
         if (appRef.current && appRef.current.cleanup) {
           appRef.current.cleanup();

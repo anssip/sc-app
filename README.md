@@ -14,7 +14,13 @@ This is a Remix application that is used to manage and show financial charts usi
 
 TODO next:
 
-- define brand colors and design tokens in CSS
+- [ ] auto-save granularity and symbol selection
+- [ ] layout selector
+  - shows only a button with ... in the toolbar
+  - quick layout buttons to be removed from toolbar
+  - button opens a modal that lists saved layouts
+  - modal has a way to add a new layout using the quick layout buttons (number of charts), a field for title also
+- [ ] auto-save granularity and symbol selection
 
 The initial features;
 

@@ -110,7 +110,15 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
         try {
           // Try to update first, if it fails (chart not found), create it
           try {
-            await updateChart(config.id, { symbol }, layoutId);
+            await updateChart(
+              config.id,
+              {
+                symbol,
+                granularity: currentGranularity,
+                indicators: config.indicators || [],
+              },
+              layoutId
+            );
           } catch (updateError: any) {
             if (updateError?.code === "NOT_FOUND") {
               console.log("Chart not found in repository, creating it...");
@@ -190,7 +198,15 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
         try {
           // Try to update first, if it fails (chart not found), create it
           try {
-            await updateChart(config.id, { granularity }, layoutId);
+            await updateChart(
+              config.id,
+              {
+                symbol: currentSymbol,
+                granularity,
+                indicators: config.indicators || [],
+              },
+              layoutId
+            );
           } catch (updateError: any) {
             if (updateError?.code === "NOT_FOUND") {
               console.log("Chart not found in repository, creating it...");

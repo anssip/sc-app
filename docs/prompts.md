@@ -41,3 +41,15 @@ Notes for the implementation:
 - When loading a layout from Firestore, it should load the dimensions and then apply those so that the layout is rendered using the stored dimensions.
 
 Please add this functionality to this app.
+
+# Layout selector changes
+
+Let's change the layout selector like so:
+
+- In the App it should only show the title of the currently active layout, and a button to open the Layout Selector Modal (new modal)
+- The Layout Presets should be removed from the LayoutSelector
+- The ... button opens the new Layout Selector Modal
+- The Layout Selector Modal has two functions: to activate one of the existing layouts and to create a new layout (and then select it or some other layout as the next active layout)
+- modal has a way to add a new layout: For the new layout, it should allow a way to select a layout preset like with the current Layout Presets, and it should ask a title for the new layout. The title field and the presets could be behind and accordion component that is opened when adding a new layout.
+
+Implement this new functionality.
