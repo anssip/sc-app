@@ -83,6 +83,7 @@ export interface UserSettings {
   theme?: "light" | "dark";
   defaultGranularity?: Granularity;
   defaultSymbol?: string;
+  activeLayoutId?: string | null;
   preferences?: Record<string, any>;
 }
 

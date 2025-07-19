@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { LayoutSelectorModal } from "./LayoutSelectorModal";
-import { useLayouts } from "~/hooks/useRepository";
+import { useLayouts, useUserSettings } from "~/hooks/useRepository";
 import type { PanelLayout } from "./ChartPanel";
 import {
   convertFromChartPanelLayout,
@@ -92,6 +92,7 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
   className = "",
 }) => {
   const { layouts, saveLayout, isLoading } = useLayouts();
+  const { setActiveLayout } = useUserSettings();
   const [modalOpen, setModalOpen] = useState(false);
 
   const handleSaveLayout = async (name: string, presetLayout: PanelLayout) => {
@@ -131,6 +132,9 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
       const savedLayout = await saveLayout(layoutData);
       console.log("Layout saved successfully:", savedLayout.id);
 
+      // Set as active layout in user settings
+      await setActiveLayout(savedLayout.id);
+
       // Small delay to ensure React has time to unmount old components
       setTimeout(() => {
         onLayoutChange(finalLayout, savedLayout.id);
@@ -142,7 +146,7 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
     }
   };
 
-  const handleLoadSavedLayout = (layoutId: string) => {
+  const handleLoadSavedLayout = async (layoutId: string) => {
     const savedLayout = layouts.find((l) => l.id === layoutId);
     if (!savedLayout) {
       console.warn(`Layout with id ${layoutId} not found.`);
@@ -153,6 +157,13 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
 
     const charts = new Map<string, ChartConfig>();
     const panelLayout = convertToChartPanelLayout(savedLayout.layout, charts);
+
+    // Set as active layout in user settings
+    try {
+      await setActiveLayout(savedLayout.id);
+    } catch (error) {
+      console.error("Failed to set active layout:", error);
+    }
 
     // Small delay to ensure React has time to unmount old components
     setTimeout(() => {

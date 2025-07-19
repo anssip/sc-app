@@ -479,6 +479,16 @@ export class Repository implements IRepository {
     return updatedSettings;
   }
 
+  async setActiveLayout(layoutId: string | null): Promise<void> {
+    this.ensureInitialized();
+
+    await this.updateSettings({
+      activeLayoutId: layoutId,
+    });
+
+    console.log("Active layout set to:", layoutId);
+  }
+
   // General repository methods
   async sync(): Promise<void> {
     if (this.isSyncing) return;

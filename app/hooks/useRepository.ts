@@ -459,6 +459,7 @@ interface UseUserSettingsReturn {
   isLoading: boolean;
   error: string | null;
   updateSettings: (updates: Partial<UserSettings>) => Promise<UserSettings>;
+  setActiveLayout: (layoutId: string | null) => Promise<void>;
 }
 
 export function useUserSettings(): UseUserSettingsReturn {
@@ -506,10 +507,22 @@ export function useUserSettings(): UseUserSettingsReturn {
     return updated;
   };
 
+  const setActiveLayout = async (layoutId: string | null): Promise<void> => {
+    if (!repository) {
+      throw new Error("Repository not available");
+    }
+    await repository.setActiveLayout(layoutId);
+    // Update local state immediately
+    setSettings((prev) =>
+      prev ? { ...prev, activeLayoutId: layoutId } : null
+    );
+  };
+
   return {
     settings,
     isLoading: isLoading || repoLoading,
     error: error || repoError,
     updateSettings,
+    setActiveLayout,
   };
 }
