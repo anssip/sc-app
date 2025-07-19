@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useCallback } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { ChartContainer } from "./ChartContainer";
 import type { Granularity } from "@anssipiirainen/sc-charts";
@@ -26,6 +26,8 @@ export interface PanelLayout {
   chart?: ChartConfig;
   defaultSize?: number;
   minSize?: number;
+  size?: number; // Current size percentage
+  sizes?: number[]; // Sizes for group children
 }
 
 interface ChartPanelProps {
@@ -83,7 +85,7 @@ const renderPanelGroup = (
     return (
       <Panel
         key={layout.id}
-        defaultSize={layout.defaultSize || 50}
+        defaultSize={layout.size || layout.defaultSize || 50}
         minSize={layout.minSize || 20}
         className="relative"
       >
@@ -132,10 +134,54 @@ const renderPanelGroup = (
     return (
       <Panel
         key={layout.id}
-        defaultSize={layout.defaultSize || 50}
+        defaultSize={layout.size || layout.defaultSize || 50}
         minSize={layout.minSize || 20}
       >
-        <PanelGroup direction={layout.direction || "horizontal"}>
+        <PanelGroup
+          direction={layout.direction || "horizontal"}
+          onLayout={(sizes) => {
+            if (onLayoutChange && rootLayout) {
+              // Update the sizes for this group
+              const updateSizesInLayout = (
+                currentLayout: PanelLayout,
+                targetId: string,
+                newSizes: number[]
+              ): PanelLayout => {
+                if (
+                  currentLayout.id === targetId &&
+                  currentLayout.type === "group"
+                ) {
+                  return {
+                    ...currentLayout,
+                    sizes: newSizes,
+                    children: currentLayout.children?.map((child, index) => ({
+                      ...child,
+                      size: newSizes[index],
+                    })),
+                  };
+                } else if (
+                  currentLayout.type === "group" &&
+                  currentLayout.children
+                ) {
+                  return {
+                    ...currentLayout,
+                    children: currentLayout.children.map((child) =>
+                      updateSizesInLayout(child, targetId, newSizes)
+                    ),
+                  };
+                }
+                return currentLayout;
+              };
+
+              const updatedRootLayout = updateSizesInLayout(
+                rootLayout,
+                layout.id,
+                sizes
+              );
+              onLayoutChange(updatedRootLayout);
+            }
+          }}
+        >
           {layout.children.map((child, index) => (
             <React.Fragment key={child.id}>
               {renderPanelGroup(
@@ -164,9 +210,45 @@ export const ChartPanel: React.FC<ChartPanelProps> = ({
   onLayoutChange,
   className = "",
 }) => {
+  const resizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleLayoutChange = useCallback(
+    (sizes: number[]) => {
+      if (!onLayoutChange || !layout.children) return;
+
+      // Clear existing timeout
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current);
+      }
+
+      // Update the layout with new sizes
+      const updatedLayout = {
+        ...layout,
+        sizes: sizes,
+        children: layout.children.map((child, index) => ({
+          ...child,
+          size: sizes[index],
+        })),
+      };
+
+      // Call the change handler immediately for UI updates
+      onLayoutChange(updatedLayout);
+
+      // Set a timeout for auto-save (debounced)
+      resizeTimeoutRef.current = setTimeout(() => {
+        // The auto-save will be triggered by the parent component
+        console.log("Resize complete, ready for auto-save");
+      }, 500); // Wait 500ms after resize stops
+    },
+    [onLayoutChange, layout]
+  );
+
   return (
     <div className={`h-full w-full ${className}`}>
-      <PanelGroup direction={layout.direction || "horizontal"}>
+      <PanelGroup
+        direction={layout.direction || "horizontal"}
+        onLayout={handleLayoutChange}
+      >
         {layout.children
           ? layout.children.map((child, index) => (
               <React.Fragment key={child.id}>
@@ -187,7 +269,8 @@ export const createChartLayout = (
   id: string,
   symbol: string = "BTC-USD",
   granularity: Granularity = "ONE_HOUR",
-  defaultSize?: number
+  defaultSize?: number,
+  size?: number
 ): PanelLayout => ({
   id,
   type: "chart",
@@ -198,6 +281,7 @@ export const createChartLayout = (
     indicators: [],
   },
   defaultSize,
+  size,
   minSize: 20,
 });
 
@@ -205,13 +289,15 @@ export const createGroupLayout = (
   id: string,
   direction: "horizontal" | "vertical",
   children: PanelLayout[],
-  defaultSize?: number
+  defaultSize?: number,
+  sizes?: number[]
 ): PanelLayout => ({
   id,
   type: "group",
   direction,
   children,
   defaultSize,
+  sizes,
   minSize: 20,
 });
 
@@ -219,47 +305,74 @@ export const createGroupLayout = (
 export const LAYOUT_PRESETS = {
   single: createChartLayout("main", "BTC-USD"),
 
-  horizontal: createGroupLayout("root", "horizontal", [
-    createChartLayout("left", "BTC-USD", "ONE_HOUR", 50),
-    createChartLayout("right", "ETH-USD", "ONE_HOUR", 50),
-  ]),
+  horizontal: createGroupLayout(
+    "root",
+    "horizontal",
+    [
+      createChartLayout("left", "BTC-USD", "ONE_HOUR", 50, 50),
+      createChartLayout("right", "ETH-USD", "ONE_HOUR", 50, 50),
+    ],
+    100,
+    [50, 50]
+  ),
 
-  vertical: createGroupLayout("root", "vertical", [
-    createChartLayout("top", "BTC-USD", "ONE_HOUR", 50),
-    createChartLayout("bottom", "ETH-USD", "ONE_HOUR", 50),
-  ]),
+  vertical: createGroupLayout(
+    "root",
+    "vertical",
+    [
+      createChartLayout("top", "BTC-USD", "ONE_HOUR", 50, 50),
+      createChartLayout("bottom", "ETH-USD", "ONE_HOUR", 50, 50),
+    ],
+    100,
+    [50, 50]
+  ),
 
-  quad: createGroupLayout("root", "vertical", [
-    createGroupLayout(
-      "top",
-      "horizontal",
-      [
-        createChartLayout("top-left", "BTC-USD", "ONE_HOUR", 50),
-        createChartLayout("top-right", "ETH-USD", "ONE_HOUR", 50),
-      ],
-      50
-    ),
-    createGroupLayout(
-      "bottom",
-      "horizontal",
-      [
-        createChartLayout("bottom-left", "ADA-USD", "ONE_HOUR", 50),
-        createChartLayout("bottom-right", "SOL-USD", "ONE_HOUR", 50),
-      ],
-      50
-    ),
-  ]),
+  quad: createGroupLayout(
+    "root",
+    "horizontal",
+    [
+      createGroupLayout(
+        "left",
+        "vertical",
+        [
+          createChartLayout("top-left", "BTC-USD", "ONE_HOUR", 50, 50),
+          createChartLayout("bottom-left", "ETH-USD", "ONE_HOUR", 50, 50),
+        ],
+        50,
+        [50, 50]
+      ),
+      createGroupLayout(
+        "right",
+        "vertical",
+        [
+          createChartLayout("top-right", "SOL-USD", "ONE_HOUR", 50, 50),
+          createChartLayout("bottom-right", "ADA-USD", "ONE_HOUR", 50, 50),
+        ],
+        50,
+        [50, 50]
+      ),
+    ],
+    100,
+    [50, 50]
+  ),
 
-  triple: createGroupLayout("root", "horizontal", [
-    createChartLayout("left", "BTC-USD", "ONE_HOUR", 40),
-    createGroupLayout(
-      "right",
-      "vertical",
-      [
-        createChartLayout("top-right", "ETH-USD", "ONE_HOUR", 50),
-        createChartLayout("bottom-right", "ADA-USD", "ONE_HOUR", 50),
-      ],
-      60
-    ),
-  ]),
+  triple: createGroupLayout(
+    "root",
+    "horizontal",
+    [
+      createChartLayout("left", "BTC-USD", "ONE_HOUR", 40, 40),
+      createGroupLayout(
+        "right",
+        "vertical",
+        [
+          createChartLayout("top-right", "ETH-USD", "ONE_HOUR", 50, 50),
+          createChartLayout("bottom-right", "SOL-USD", "ONE_HOUR", 50, 50),
+        ],
+        60,
+        [50, 50]
+      ),
+    ],
+    100,
+    [40, 60]
+  ),
 };

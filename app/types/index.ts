@@ -23,14 +23,16 @@ export interface ChartLayoutNode extends BaseLayoutNode {
   id: string;
   chartId?: string; // DEPRECATED: Used for backward compatibility
   chart?: ChartConfig; // Embedded chart configuration
+  size?: number; // Size percentage (0-100) for the panel
 }
 
 // Split layout node (container node)
 export interface SplitLayoutNode extends BaseLayoutNode {
   type: "split";
   direction: "horizontal" | "vertical";
-  ratio: number; // 0.0 to 1.0
+  ratio: number; // DEPRECATED: Use sizes instead
   children: LayoutNode[];
+  sizes?: number[]; // Size percentages for each child panel
 }
 
 // Union type for all layout nodes

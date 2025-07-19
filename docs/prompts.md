@@ -29,3 +29,15 @@ Please refactor the Repository module to reflect this:
 There is a useRepository hook that is used to access the repository function. All components should be updated to reflect this change.
 
 [@index.ts](@file:sc-app/app/types/index.ts)
+
+# Save chart dimensions
+
+Next, I want the dimensions of the different panels to be saved in Firestore. The users are now able to resize the panels. We should make the app auto-save to Firestore when resizing is complete.
+
+Notes for the implementation:
+
+- Add a small timeout that is waited after resize is complete, and then save using the repository methods.
+- Add necessary fields to the TypeScript types for the size related fields.
+- When loading a layout from Firestore, it should load the dimensions and then apply those so that the layout is rendered using the stored dimensions.
+
+Please add this functionality to this app.

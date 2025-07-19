@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ChartPanel } from "./ChartPanel";
 import { LayoutSelector } from "./LayoutSelector";
-import { useRepository } from "~/hooks/useRepository";
+import { useRepository, useLayouts } from "~/hooks/useRepository";
 import { useAuth } from "~/lib/auth-context";
 import {
   autoMigrateLegacyLayout,
   hasLayoutToMigrate,
 } from "~/utils/layoutMigration";
+import { convertFromChartPanelLayout } from "~/utils/layoutConverter";
 import type { PanelLayout } from "./ChartPanel";
-import type { ChartConfig } from "~/types";
+import type { ChartConfig, SavedLayout } from "~/types";
 
 interface ChartAppProps {
   className?: string;
@@ -20,11 +21,14 @@ export const ChartApp: React.FC<ChartAppProps> = ({
   initialLayout,
 }) => {
   const { repository, isLoading, error } = useRepository();
+  const { updateLayout } = useLayouts();
   const { user } = useAuth();
   const [currentLayout, setCurrentLayout] = useState<PanelLayout | null>(
     initialLayout || null
   );
+  const [currentLayoutId, setCurrentLayoutId] = useState<string | null>(null);
   const [migrationStatus, setMigrationStatus] = useState<string | null>(null);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Create default layout if none exists
   const createDefaultLayout = (): PanelLayout => ({
@@ -55,15 +59,66 @@ export const ChartApp: React.FC<ChartAppProps> = ({
     }
   }, [currentLayout, repository, user?.email, isLoading]);
 
-  // Handle layout changes from ChartPanel
-  const handleLayoutChange = (layout: PanelLayout) => {
-    setCurrentLayout(layout);
-  };
+  // Auto-save function
+  const autoSaveLayout = useCallback(async () => {
+    if (!currentLayout || !currentLayoutId || !repository) return;
+
+    try {
+      console.log("Auto-saving layout...");
+      const charts = new Map<string, ChartConfig>();
+      const repositoryLayout = convertFromChartPanelLayout(
+        currentLayout,
+        charts
+      );
+
+      await updateLayout(currentLayoutId, {
+        layout: repositoryLayout,
+        updatedAt: new Date(),
+      });
+
+      console.log("Layout auto-saved successfully");
+    } catch (error) {
+      console.error("Failed to auto-save layout:", error);
+    }
+  }, [currentLayout, currentLayoutId, repository, updateLayout]);
+
+  // Handle layout changes from ChartPanel with auto-save
+  const handleLayoutChange = useCallback(
+    (layout: PanelLayout) => {
+      setCurrentLayout(layout);
+
+      // Clear existing timeout
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+
+      // Set new timeout for auto-save
+      if (currentLayoutId) {
+        autoSaveTimeoutRef.current = setTimeout(() => {
+          autoSaveLayout();
+        }, 1000); // Auto-save 1 second after resize stops
+      }
+    },
+    [currentLayoutId, autoSaveLayout]
+  );
 
   // Handle layout selection from LayoutSelector
-  const handleLayoutSelection = (layout: PanelLayout) => {
-    setCurrentLayout(layout);
-  };
+  const handleLayoutSelection = useCallback(
+    (layout: PanelLayout, layoutId?: string) => {
+      setCurrentLayout(layout);
+      setCurrentLayoutId(layoutId || null);
+    },
+    []
+  );
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   if (isLoading) {
     return (
@@ -163,6 +218,7 @@ export const ChartApp: React.FC<ChartAppProps> = ({
       <div className="flex-1 relative">
         <ChartPanel
           layout={currentLayout}
+          layoutId={currentLayoutId || undefined}
           onLayoutChange={handleLayoutChange}
           className="h-full"
         />

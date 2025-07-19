@@ -29,7 +29,8 @@ export function convertToChartPanelLayout(
         granularity: "ONE_HOUR" as Granularity,
         indicators: [],
       },
-      defaultSize: 50,
+      defaultSize: chartNode.size || 50,
+      size: chartNode.size,
       minSize: 20,
     };
   } else {
@@ -39,10 +40,22 @@ export function convertToChartPanelLayout(
       id: generateId(),
       type: "group",
       direction: splitNode.direction,
-      children: splitNode.children.map((child) =>
-        convertToChartPanelLayout(child, charts)
-      ),
-      defaultSize: Math.round(splitNode.ratio * 100),
+      children: splitNode.children.map((child, index) => {
+        const childLayout = convertToChartPanelLayout(child, charts);
+        // Apply size from parent's sizes array if available
+        if (splitNode.sizes && splitNode.sizes[index] !== undefined) {
+          return {
+            ...childLayout,
+            size: splitNode.sizes[index],
+            defaultSize: splitNode.sizes[index],
+          };
+        }
+        return childLayout;
+      }),
+      defaultSize: splitNode.sizes
+        ? splitNode.sizes[0]
+        : Math.round(splitNode.ratio * 100),
+      sizes: splitNode.sizes,
       minSize: 20,
     };
   }
@@ -63,12 +76,18 @@ export function convertFromChartPanelLayout(
       type: "chart",
       id: panelLayout.id,
       chart: panelLayout.chart, // Embed the chart directly
+      size: panelLayout.size,
     };
   } else if (panelLayout.type === "group" && panelLayout.children) {
     return {
       type: "split",
       direction: panelLayout.direction || "horizontal",
       ratio: (panelLayout.defaultSize || 50) / 100,
+      sizes:
+        panelLayout.sizes ||
+        panelLayout.children.map(
+          (child) => child.size || child.defaultSize || 50
+        ),
       children: panelLayout.children.map((child) =>
         convertFromChartPanelLayout(child, charts)
       ),
@@ -228,6 +247,7 @@ export function createHorizontalSplitRepositoryLayout(
     type: "split",
     direction: "horizontal",
     ratio,
+    sizes: [50, 50],
     children: [
       {
         type: "chart",
@@ -255,6 +275,7 @@ export function createVerticalSplitRepositoryLayout(
     type: "split",
     direction: "vertical",
     ratio,
+    sizes: [50, 50],
     children: [
       {
         type: "chart",

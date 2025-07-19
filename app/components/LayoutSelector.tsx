@@ -11,7 +11,7 @@ import type { ChartConfig, LayoutNode } from "~/types";
 
 interface LayoutSelectorProps {
   currentLayout: PanelLayout;
-  onLayoutChange: (layout: PanelLayout) => void;
+  onLayoutChange: (layout: PanelLayout, layoutId?: string) => void;
   className?: string;
 }
 
@@ -143,7 +143,7 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
 
       // Convert to panel layout - embedded charts will be handled automatically
       const panelLayout = convertToChartPanelLayout(savedLayout.layout, charts);
-      onLayoutChange(panelLayout);
+      onLayoutChange(panelLayout, layoutId);
 
       console.log(`✅ Successfully loaded layout: ${savedLayout.name}`);
     } catch (error) {
@@ -155,7 +155,7 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
           savedLayout.layout,
           charts
         );
-        onLayoutChange(panelLayout);
+        onLayoutChange(panelLayout, layoutId);
         console.log("🔄 Loaded layout with embedded chart configurations");
       } catch (conversionError) {
         console.error("Failed to convert layout:", conversionError);
