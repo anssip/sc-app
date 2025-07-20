@@ -72,26 +72,40 @@ export function convertFromChartPanelLayout(
     // Store the chart configuration for reference
     charts.set(panelLayout.chart.id, panelLayout.chart);
 
-    return {
+    const chartNode: any = {
       type: "chart",
       id: panelLayout.id,
       chart: panelLayout.chart, // Embed the chart directly
-      size: panelLayout.size,
     };
+
+    // Only include size if it's defined
+    if (panelLayout.size !== undefined) {
+      chartNode.size = panelLayout.size;
+    }
+
+    return chartNode;
   } else if (panelLayout.type === "group" && panelLayout.children) {
-    return {
+    const splitNode: any = {
       type: "split",
       direction: panelLayout.direction || "horizontal",
       ratio: (panelLayout.defaultSize || 50) / 100,
-      sizes:
-        panelLayout.sizes ||
-        panelLayout.children.map(
-          (child) => child.size || child.defaultSize || 50
-        ),
       children: panelLayout.children.map((child) =>
         convertFromChartPanelLayout(child, charts)
       ),
     };
+
+    // Only include sizes if they're defined and don't contain undefined values
+    const sizes =
+      panelLayout.sizes ||
+      panelLayout.children.map(
+        (child) => child.size || child.defaultSize || 50
+      );
+
+    if (sizes && sizes.every((size) => size !== undefined)) {
+      splitNode.sizes = sizes;
+    }
+
+    return splitNode;
   } else {
     throw new Error("Invalid panel layout structure");
   }

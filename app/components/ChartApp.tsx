@@ -18,6 +18,8 @@ import {
 import type { PanelLayout } from "./ChartPanel";
 import type { ChartConfig, SavedLayout } from "~/types";
 
+type LayoutChangeType = "chart-data" | "structure" | "unknown";
+
 interface ChartAppProps {
   className?: string;
   initialLayout?: PanelLayout;
@@ -42,6 +44,8 @@ export const ChartApp: React.FC<ChartAppProps> = ({
   const [migrationStatus, setMigrationStatus] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastChangeTypeRef = useRef<LayoutChangeType>("unknown");
+  const isChartDataUpdateRef = useRef(false);
 
   // Create default single chart layout for unsaved/new users
   // Users must create and save a layout to access multi-panel layouts
@@ -62,20 +66,6 @@ export const ChartApp: React.FC<ChartAppProps> = ({
   useEffect(() => {
     const isLoading = repoLoading || layoutsLoading || settingsLoading;
 
-    console.log("ChartApp: Layout initialization check", {
-      isLoading,
-      repoLoading,
-      layoutsLoading,
-      settingsLoading,
-      hasRepository: !!repository,
-      hasSettings: !!settings,
-      layoutsCount: layouts.length,
-      activeLayoutId: settings?.activeLayoutId,
-      hasCurrentLayout: !!currentLayout,
-      isInitialized,
-      userEmail: user?.email,
-    });
-
     // Don't initialize if still loading or already initialized
     if (isLoading || !repository || isInitialized) {
       return;
@@ -83,31 +73,17 @@ export const ChartApp: React.FC<ChartAppProps> = ({
 
     // If we already have a layout from props, mark as initialized
     if (currentLayout && initialLayout) {
-      console.log("ChartApp: Using initial layout from props");
       setIsInitialized(true);
       return;
     }
 
     // Try to load active layout from user settings
     if (settings?.activeLayoutId) {
-      console.log(
-        "ChartApp: Found activeLayoutId in settings:",
-        settings.activeLayoutId
-      );
-      console.log(
-        "ChartApp: Available layouts:",
-        layouts.map((l) => ({ id: l.id, name: l.name }))
-      );
-
       const activeLayout = layouts.find(
         (l) => l.id === settings.activeLayoutId
       );
 
       if (activeLayout) {
-        console.log(
-          "ChartApp: Loading saved active layout:",
-          activeLayout.name
-        );
         try {
           const charts = new Map<string, ChartConfig>();
           const panelLayout = convertToChartPanelLayout(
@@ -117,30 +93,26 @@ export const ChartApp: React.FC<ChartAppProps> = ({
           setCurrentLayout(panelLayout);
           setCurrentLayoutId(activeLayout.id);
           setIsInitialized(true);
-          console.log("ChartApp: Successfully loaded active layout");
+
           return;
         } catch (error) {
-          console.error("Failed to load active layout:", error);
           // Clear the invalid active layout ID
           setActiveLayout(null).catch(console.error);
         }
       } else if (layouts.length > 0) {
         // We have layouts loaded but the active one isn't found
-        console.warn(
-          "Active layout not found in available layouts:",
-          settings.activeLayoutId
-        );
+
         // Clear the invalid active layout ID
         setActiveLayout(null).catch(console.error);
       } else {
         // No layouts loaded yet, but we have an activeLayoutId - wait for layouts
-        console.log("ChartApp: Waiting for layouts to load...");
+
         return;
       }
     }
 
     // Fallback to default single chart layout
-    console.log("ChartApp: Creating default single chart layout (unsaved)");
+
     setCurrentLayout(createDefaultLayout());
     setCurrentLayoutId(null);
     setIsInitialized(true);
@@ -163,7 +135,6 @@ export const ChartApp: React.FC<ChartAppProps> = ({
     if (!currentLayout || !currentLayoutId || !repository) return;
 
     try {
-      console.log("Auto-saving layout...");
       const charts = new Map<string, ChartConfig>();
       const repositoryLayout = convertFromChartPanelLayout(
         currentLayout,
@@ -172,18 +143,13 @@ export const ChartApp: React.FC<ChartAppProps> = ({
 
       await updateLayout(currentLayoutId, {
         layout: repositoryLayout,
-        updatedAt: new Date(),
       });
-
-      console.log("Layout auto-saved successfully");
-    } catch (error) {
-      console.error("Failed to auto-save layout:", error);
-    }
+    } catch (error) {}
   }, [currentLayout, currentLayoutId, repository, updateLayout]);
 
   // Handle layout changes from ChartPanel with auto-save
   const handleLayoutChange = useCallback(
-    (layout: PanelLayout) => {
+    (layout: PanelLayout, changeType: LayoutChangeType = "unknown") => {
       setCurrentLayout(layout);
 
       // Clear existing timeout
@@ -191,8 +157,9 @@ export const ChartApp: React.FC<ChartAppProps> = ({
         clearTimeout(autoSaveTimeoutRef.current);
       }
 
-      // Set new timeout for auto-save
-      if (currentLayoutId) {
+      // Only auto-save for structural changes (panel resizes, splits)
+      // Chart data changes are handled by ChartContainer
+      if (currentLayoutId && changeType === "structure") {
         autoSaveTimeoutRef.current = setTimeout(() => {
           autoSaveLayout();
         }, 1000); // Auto-save 1 second after resize stops
@@ -204,10 +171,6 @@ export const ChartApp: React.FC<ChartAppProps> = ({
   // Handle layout selection from LayoutSelector
   const handleLayoutSelection = useCallback(
     async (layout: PanelLayout, layoutId?: string) => {
-      console.log("ChartApp: Layout selection", {
-        layoutId,
-        layoutName: layout.id,
-      });
       setCurrentLayout(layout);
       setCurrentLayoutId(layoutId || null);
 
@@ -215,10 +178,7 @@ export const ChartApp: React.FC<ChartAppProps> = ({
       if (!layoutId) {
         try {
           await setActiveLayout(null);
-          console.log("Cleared active layout - switched to unsaved layout");
-        } catch (error) {
-          console.error("Failed to clear active layout:", error);
-        }
+        } catch (error) {}
       }
       // Note: Setting active layout when selecting a saved layout is handled in LayoutSelector
     },

@@ -1,8 +1,12 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { SCChart, SCChartRef } from "./SCChart";
 import { ChartHeader } from "./ChartHeader";
 import { db } from "~/lib/firebase";
 import { useCharts } from "~/hooks/useRepository";
+import {
+  ChartSettingsProvider,
+  useChartSettings,
+} from "~/contexts/ChartSettingsContext";
 import type { Granularity } from "@anssipiirainen/sc-charts";
 
 export interface ChartConfig {
@@ -16,7 +20,6 @@ interface ChartContainerProps {
   config: ChartConfig;
   layoutId?: string;
   onRemove?: () => void;
-  onSymbolChange?: (symbol: string) => void;
   onConfigUpdate?: (config: ChartConfig) => void;
 }
 
@@ -33,29 +36,119 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
   config,
   layoutId,
   onRemove,
-  onSymbolChange,
+  onConfigUpdate,
+}) => {
+  const { updateChart, saveChart } = useCharts();
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleSettingsChange = async (
+    settings: { symbol: string; granularity: Granularity },
+    chartId?: string
+  ) => {
+    // Clear existing timeout
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+
+    // Debounce the persistence to prevent rapid updates
+    debounceTimeoutRef.current = setTimeout(async () => {
+      try {
+        // Update the config through the callback
+        const updatedConfig = {
+          ...config,
+          symbol: settings.symbol,
+          granularity: settings.granularity,
+        };
+
+        if (onConfigUpdate) {
+          onConfigUpdate(updatedConfig);
+        }
+
+        // Persist to repository (chart-specific persistence)
+        // Don't trigger layout auto-save as this is a chart data change, not structural
+        try {
+          const result = await updateChart(
+            config.id,
+            {
+              symbol: settings.symbol,
+              granularity: settings.granularity,
+              indicators: config.indicators || [],
+            },
+            layoutId
+          );
+        } catch (updateError: any) {
+          if (updateError?.code === "NOT_FOUND") {
+            // Create the chart if it doesn't exist
+            const newChart = await saveChart(
+              {
+                symbol: settings.symbol,
+                granularity: settings.granularity,
+                indicators: config.indicators || [],
+              },
+              layoutId
+            );
+          } else {
+            throw updateError;
+          }
+        }
+      } catch (error) {
+        console.error(
+          "Failed to persist settings change to repository:",
+          error
+        );
+      }
+    }, 500); // Wait 500ms before persisting
+  };
+
+  // Cleanup debounce timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const initialSettings = useMemo(
+    () => ({
+      symbol: config.symbol,
+      granularity: config.granularity,
+    }),
+    [config.symbol, config.granularity]
+  );
+
+  return (
+    <ChartSettingsProvider
+      initialSettings={initialSettings}
+      onSettingsChange={handleSettingsChange}
+    >
+      <ChartContainerInner
+        config={config}
+        layoutId={layoutId}
+        onRemove={onRemove}
+        onConfigUpdate={onConfigUpdate}
+      />
+    </ChartSettingsProvider>
+  );
+};
+
+const ChartContainerInner: React.FC<ChartContainerProps> = ({
+  config,
+  layoutId,
+  onRemove,
   onConfigUpdate,
 }) => {
   const { updateChart, saveChart } = useCharts();
   const [chartError, setChartError] = useState<string | null>(null);
-  const [currentSymbol, setCurrentSymbol] = useState(config.symbol);
-  const [currentGranularity, setCurrentGranularity] = useState(
-    config.granularity
-  );
   const [isChangingSymbol, setIsChangingSymbol] = useState(false);
   const [isChangingGranularity, setIsChangingGranularity] = useState(false);
   const chartRef = useRef<SCChartRef>(null);
+  const { settings } = useChartSettings(config.id);
 
   const initialState = {
     symbol: config.symbol,
     granularity: config.granularity,
   };
-
-  console.log(`ChartContainer [${config.id}]: Rendering with config`, {
-    config,
-    initialState,
-    renderCount: Math.random().toString(36).substr(2, 5),
-  });
 
   /**
    * Wait for Chart API to be available with retry mechanism
@@ -73,183 +166,6 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
     }
 
     return !!(chartRef.current && chartRef.current.api);
-  };
-
-  /**
-   * Handle symbol changes using the Chart API
-   * This function uses the sc-charts API to change the trading pair independently
-   * for this specific chart instance, without affecting other charts
-   */
-  const handleSymbolChange = async (symbol: string) => {
-    if (symbol === currentSymbol) return;
-
-    setIsChangingSymbol(true);
-    setChartError(null);
-
-    try {
-      const apiAvailable = await waitForApi();
-
-      if (apiAvailable && chartRef.current) {
-        // Use Chart API to change symbol - this updates only this chart instance
-        await chartRef.current.setSymbol(symbol);
-        setCurrentSymbol(symbol);
-        onSymbolChange?.(symbol);
-
-        // Update the config through the callback
-        const updatedConfig = {
-          ...config,
-          symbol,
-          granularity: currentGranularity,
-        };
-
-        if (onConfigUpdate) {
-          onConfigUpdate(updatedConfig);
-        }
-
-        // Persist to repository
-        try {
-          // Try to update first, if it fails (chart not found), create it
-          try {
-            await updateChart(
-              config.id,
-              {
-                symbol,
-                granularity: currentGranularity,
-                indicators: config.indicators || [],
-              },
-              layoutId
-            );
-          } catch (updateError: any) {
-            if (updateError?.code === "NOT_FOUND") {
-              console.log("Chart not found in repository, creating it...");
-              // Create the chart with the correct ID and updated symbol
-              const newChart = await saveChart(
-                {
-                  symbol: symbol, // Use the new symbol
-                  granularity: currentGranularity,
-                  indicators: config.indicators || [],
-                },
-                layoutId
-              );
-              console.log("Chart created with ID:", newChart.id);
-            } else {
-              throw updateError;
-            }
-          }
-        } catch (error) {
-          console.error(
-            "Failed to persist symbol change to repository:",
-            error
-          );
-        }
-      } else {
-        console.warn(
-          "Chart API not available - symbol change will require chart reload"
-        );
-        setChartError(
-          "Chart API not available. Symbol changes require chart reload."
-        );
-        // Reset the select to the previous symbol on error
-        setCurrentSymbol(config.symbol);
-      }
-    } catch (error) {
-      console.error("Failed to change symbol:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-      setChartError(`Failed to change symbol: ${errorMessage}`);
-      // Reset the select to the previous symbol on error
-      setCurrentSymbol(config.symbol);
-    } finally {
-      setIsChangingSymbol(false);
-    }
-  };
-
-  /**
-   * Handle granularity/timeframe changes using the Chart API
-   * This function uses the sc-charts API to change the timeframe independently
-   * for this specific chart instance
-   */
-  const handleGranularityChange = async (granularity: Granularity) => {
-    if (granularity === currentGranularity) return;
-
-    setIsChangingGranularity(true);
-    setChartError(null);
-
-    try {
-      const apiAvailable = await waitForApi();
-
-      if (apiAvailable && chartRef.current) {
-        // Use Chart API to change granularity - this updates only this chart instance
-        await chartRef.current.setGranularity(granularity);
-        setCurrentGranularity(granularity);
-
-        // Update the config through the callback
-        const updatedConfig = {
-          ...config,
-          symbol: currentSymbol,
-          granularity,
-        };
-
-        if (onConfigUpdate) {
-          onConfigUpdate(updatedConfig);
-        }
-
-        // Persist to repository
-        try {
-          // Try to update first, if it fails (chart not found), create it
-          try {
-            await updateChart(
-              config.id,
-              {
-                symbol: currentSymbol,
-                granularity,
-                indicators: config.indicators || [],
-              },
-              layoutId
-            );
-          } catch (updateError: any) {
-            if (updateError?.code === "NOT_FOUND") {
-              console.log("Chart not found in repository, creating it...");
-              // Create the chart with the correct ID and updated granularity
-              const newChart = await saveChart(
-                {
-                  symbol: currentSymbol,
-                  granularity: granularity, // Use the new granularity
-                  indicators: config.indicators || [],
-                },
-                layoutId
-              );
-              console.log("Chart created with ID:", newChart.id);
-            } else {
-              throw updateError;
-            }
-          }
-        } catch (error) {
-          console.error(
-            "Failed to persist granularity change to repository:",
-            error
-          );
-        }
-      } else {
-        console.warn(
-          "Chart API not available - granularity change will require chart reload"
-        );
-        setChartError(
-          "Chart API not available. Granularity changes require chart reload."
-        );
-        // Reset the select to the previous granularity on error
-        setCurrentGranularity(config.granularity);
-      }
-    } catch (error) {
-      console.error("Failed to change granularity:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-      setChartError(`Failed to change granularity: ${errorMessage}`);
-      // Reset the select to the previous granularity on error
-      setCurrentGranularity(config.granularity);
-    } finally {
-      setIsChangingGranularity(false);
-    }
   };
 
   // Dummy handlers for split functionality (to be implemented later)
@@ -271,12 +187,9 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
   return (
     <div className="h-full flex flex-col bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
       <ChartHeader
-        symbol={currentSymbol}
-        granularity={currentGranularity}
+        chartId={config.id}
         isChangingSymbol={isChangingSymbol}
         isChangingGranularity={isChangingGranularity}
-        onSymbolChange={handleSymbolChange}
-        onGranularityChange={handleGranularityChange}
         onDelete={onRemove}
         onSplitHorizontal={handleSplitHorizontal}
         onSplitVertical={handleSplitVertical}

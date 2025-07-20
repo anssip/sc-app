@@ -1,14 +1,12 @@
 import React from "react";
 import { useSymbols } from "~/hooks/useRepository";
+import { useChartSettings } from "~/contexts/ChartSettingsContext";
 import type { Granularity } from "@anssipiirainen/sc-charts";
 
 interface ChartToolbarProps {
-  symbol: string;
-  granularity: Granularity;
-  isChangingSymbol: boolean;
-  isChangingGranularity: boolean;
-  onSymbolChange: (symbol: string) => void;
-  onGranularityChange: (granularity: Granularity) => void;
+  chartId?: string;
+  isChangingSymbol?: boolean;
+  isChangingGranularity?: boolean;
   onDelete?: () => void;
   onSplitHorizontal?: () => void;
   onSplitVertical?: () => void;
@@ -27,12 +25,9 @@ const GRANULARITY_OPTIONS: { value: Granularity; label: string }[] = [
 ];
 
 export const ChartToolbar: React.FC<ChartToolbarProps> = ({
-  symbol,
-  granularity,
-  isChangingSymbol,
-  isChangingGranularity,
-  onSymbolChange,
-  onGranularityChange,
+  chartId,
+  isChangingSymbol = false,
+  isChangingGranularity = false,
   onDelete,
   onSplitHorizontal,
   onSplitVertical,
@@ -43,14 +38,8 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
     error: symbolsError,
   } = useSymbols();
 
-  // Debug logging
-  console.log("ChartToolbar: Symbol state", {
-    activeSymbolsCount: activeSymbols.length,
-    symbolsLoading,
-    symbolsError,
-    currentSymbol: symbol,
-    currentGranularity: granularity,
-  });
+  // Use chart settings context
+  const { settings, setSymbol, setGranularity } = useChartSettings(chartId);
 
   // Fallback symbols if repository fails to load
   const fallbackSymbols = [
@@ -168,8 +157,8 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
       {/* Left side - Symbol and Granularity selectors */}
       <div className="flex items-center gap-2">
         <select
-          value={symbol}
-          onChange={(e) => onSymbolChange(e.target.value)}
+          value={settings.symbol}
+          onChange={(e) => setSymbol(e.target.value)}
           disabled={isChangingSymbol || symbolsLoading}
           className={`text-sm font-bold bg-transparent border-none outline-none cursor-pointer text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${
             isChangingSymbol || symbolsLoading
@@ -178,14 +167,14 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
           }`}
         >
           {symbolsLoading ? (
-            <option value={symbol}>Loading symbols...</option>
+            <option value={settings.symbol}>Loading symbols...</option>
           ) : symbolsError ? (
-            <option value={symbol}>Error loading symbols</option>
+            <option value={settings.symbol}>Error loading symbols</option>
           ) : (
             <>
               {/* Current symbol if not in popular list */}
-              {!popularSymbols.find((s) => s.symbol === symbol) && (
-                <option value={symbol}>{symbol}</option>
+              {!popularSymbols.find((s) => s.symbol === settings.symbol) && (
+                <option value={settings.symbol}>{settings.symbol}</option>
               )}
 
               {/* Popular symbols */}
@@ -201,8 +190,8 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
         <span className="text-gray-300 dark:text-gray-600">|</span>
 
         <select
-          value={granularity}
-          onChange={(e) => onGranularityChange(e.target.value as Granularity)}
+          value={settings.granularity}
+          onChange={(e) => setGranularity(e.target.value as Granularity)}
           disabled={isChangingGranularity}
           className={`text-sm font-medium bg-transparent border-none outline-none cursor-pointer text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${
             isChangingGranularity ? "opacity-50 cursor-not-allowed" : ""

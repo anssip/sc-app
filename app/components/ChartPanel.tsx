@@ -33,7 +33,10 @@ export interface PanelLayout {
 interface ChartPanelProps {
   layout: PanelLayout;
   layoutId?: string;
-  onLayoutChange?: (layout: PanelLayout) => void;
+  onLayoutChange?: (
+    layout: PanelLayout,
+    changeType?: "chart-data" | "structure"
+  ) => void;
   className?: string;
 }
 
@@ -92,9 +95,6 @@ const renderPanelGroup = (
         <ChartContainer
           config={layout.chart}
           layoutId={layoutId}
-          onSymbolChange={(symbol) => {
-            // This callback can be used for additional symbol change handling if needed
-          }}
           onConfigUpdate={(updatedConfig) => {
             if (onLayoutChange && rootLayout) {
               // Update the specific chart within the full layout tree
@@ -122,7 +122,7 @@ const renderPanelGroup = (
               };
 
               const updatedRootLayout = updateChartInLayout(rootLayout);
-              onLayoutChange(updatedRootLayout);
+              onLayoutChange(updatedRootLayout, "chart-data");
             }
           }}
         />
@@ -178,7 +178,7 @@ const renderPanelGroup = (
                 layout.id,
                 sizes
               );
-              onLayoutChange(updatedRootLayout);
+              onLayoutChange(updatedRootLayout, "structure");
             }
           }}
         >

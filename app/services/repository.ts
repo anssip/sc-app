@@ -165,16 +165,24 @@ export class Repository implements IRepository {
 
     // Queue for async sync
     this.queueSync(async () => {
-      console.log("Requesting draw:", updates);
       const layoutRef = doc(db, "settings", this.userId, "layouts", layoutId);
-      console.log(
-        `DEBUG: Updating layout ${layoutId} with data:`,
-        JSON.parse(JSON.stringify(updates))
-      );
-      await updateDoc(layoutRef, {
-        ...updates,
+
+      // Only update the layout field and updatedAt, ignore any other fields
+      const updateData: any = {
         updatedAt: Timestamp.fromDate(updatedLayout.updatedAt),
-      });
+      };
+
+      // Only include layout if it's provided
+      if (updates.layout) {
+        updateData.layout = updates.layout;
+      }
+
+      // Include name if it's provided (for rename operations)
+      if (updates.name) {
+        updateData.name = updates.name;
+      }
+
+      await updateDoc(layoutRef, updateData);
     });
 
     this.emitEvent("layout_updated", updatedLayout);
@@ -266,13 +274,13 @@ export class Repository implements IRepository {
   async updateChart(
     chartId: string,
     updates: Partial<ChartConfig>,
-    layoutId: string
+    layoutId?: string
   ): Promise<ChartConfig> {
     this.ensureInitialized();
 
-    // Find all layouts and search for the chart
-    let targetLayout: SavedLayout | null = null;
+    // Find the existing chart in the specified layout or all layouts
     let existingChart: ChartConfig | null = null;
+    let targetLayout: SavedLayout | null = null;
 
     // If layoutId is provided, check that layout first
     if (layoutId) {
@@ -917,15 +925,18 @@ export class Repository implements IRepository {
   ): LayoutNode {
     if (node.type === "chart") {
       const chartNode = node as ChartLayoutNode;
+
       if (
         chartNode.chart &&
         (chartNode.chart.id === chartId || chartNode.chartId === chartId)
       ) {
-        return {
-          ...chartNode,
+        const { chartId: _, ...nodeWithoutChartId } = chartNode;
+        const updatedNode = {
+          ...nodeWithoutChartId,
           chart: updatedChart,
-          chartId: undefined, // Remove deprecated field
         };
+
+        return updatedNode;
       }
       return node;
     } else if (node.type === "split") {

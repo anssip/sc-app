@@ -143,14 +143,6 @@ export function useRepository(): UseRepositoryReturn {
     };
   }, [user]);
 
-  console.log("useRepository: Returning state", {
-    hasRepository: !!repository,
-    isLoading,
-    error,
-    isOnline,
-    userEmail: user?.email,
-  });
-
   return {
     repository,
     isLoading,
