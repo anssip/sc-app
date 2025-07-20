@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useRef } from "react";
 import { useSymbols } from "~/hooks/useRepository";
 import { useChartSettings } from "~/contexts/ChartSettingsContext";
 import type { Granularity } from "@anssipiirainen/sc-charts";
 
 interface ChartToolbarProps {
   chartId?: string;
+  chartApiRef?: React.MutableRefObject<any>;
   isChangingSymbol?: boolean;
   isChangingGranularity?: boolean;
   onDelete?: () => void;
@@ -26,6 +27,7 @@ const GRANULARITY_OPTIONS: { value: Granularity; label: string }[] = [
 
 export const ChartToolbar: React.FC<ChartToolbarProps> = ({
   chartId,
+  chartApiRef,
   isChangingSymbol = false,
   isChangingGranularity = false,
   onDelete,
@@ -38,8 +40,8 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
     error: symbolsError,
   } = useSymbols();
 
-  // Use chart settings context
-  const { settings, setSymbol, setGranularity } = useChartSettings(chartId);
+  // Use chart settings context (read-only for UI display)
+  const { settings } = useChartSettings(chartId);
 
   // Fallback symbols if repository fails to load
   const fallbackSymbols = [
@@ -158,7 +160,12 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
       <div className="flex items-center gap-2">
         <select
           value={settings.symbol}
-          onChange={(e) => setSymbol(e.target.value)}
+          onChange={(e) => {
+            // Call Chart API directly instead of context
+            if (chartApiRef?.current?.setSymbol) {
+              chartApiRef.current.setSymbol(e.target.value);
+            }
+          }}
           disabled={isChangingSymbol || symbolsLoading}
           className={`text-sm font-bold bg-transparent border-none outline-none cursor-pointer text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${
             isChangingSymbol || symbolsLoading
@@ -191,7 +198,12 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
 
         <select
           value={settings.granularity}
-          onChange={(e) => setGranularity(e.target.value as Granularity)}
+          onChange={(e) => {
+            // Call Chart API directly instead of context
+            if (chartApiRef?.current?.setGranularity) {
+              chartApiRef.current.setGranularity(e.target.value as Granularity);
+            }
+          }}
           disabled={isChangingGranularity}
           className={`text-sm font-medium bg-transparent border-none outline-none cursor-pointer text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${
             isChangingGranularity ? "opacity-50 cursor-not-allowed" : ""

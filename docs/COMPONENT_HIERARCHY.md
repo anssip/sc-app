@@ -23,12 +23,17 @@ App (Root)
     │               └── renderPanelGroup() [recursive]
     │                   ├── Panel (leaf)
     │                   │   └── ChartContainer
-    │                   │       ├── ChartHeader
-    │                   │       │   ├── Symbol Selector
-    │                   │       │   ├── Granularity Selector
-    │                   │       │   └── Remove Button
+    │                   │       ├── ChartSettingsProvider (Context)
+    │                   │       │   └── useChartSettings() hook
     │                   │       │
-    │                   │       └── SCChart
+    │                   │       ├── ChartHeader
+    │                   │       │   └── ChartToolbar
+    │                   │       │       ├── Symbol Selector (reads/writes context)
+    │                   │       │       ├── Granularity Selector (reads/writes context)
+    │                   │       │       └── Action Buttons
+    │                   │       │
+    │                   │       └── SCChart (listens to symbolChange events)
+    │                   │           ├── Context integration for symbol/granularity sync
     │                   │           └── @anssipiirainen/sc-charts (3rd party)
     │                   │
     │                   └── Panel (split)
@@ -68,34 +73,83 @@ App (Root)
 │     LayoutSelector          │     │     ChartContainer          │
 │  (Layout management UI)     │     │   (Individual chart UI)     │
 └─────────────────────────────┘     └─────────────────────────────┘
+                                                    │
+                                                    ▼
+                                    ┌─────────────────────────────┐
+                                    │   ChartSettingsProvider     │
+                                    │  (Context for chart state)  │
+                                    └─────────────────────────────┘
+                                                    │
+                                                    ▼
+                                    ┌─────────────────────────────┐
+                                    │   useChartSettings()        │
+                                    │ (Hook for symbol/granularity)│
+                                    └─────────────────────────────┘
+                                                    │
+                                    ┌───────────────┼───────────────┐
+                                    ▼               ▼               ▼
+                              ┌─────────┐   ┌─────────────┐   ┌─────────┐
+                              │ChartToolbar │   │   SCChart   │   │Persistence│
+                              │(reads UI)   │   │(writes ctx) │   │(Firestore)│
+                              │(calls API)  │   │(via events) │   │           │
+                              └─────────────┘   └─────────────┘   └─────────────┘
 ```
 
-## Props Flow
+## Props Flow & Context Integration
 
 ```
 ChartApp
 ├── currentLayout: PanelLayout ─────┐
-└── onLayoutChange: function        │
+├── onLayoutChange: function        │
+└── changeType: "chart-data" | "structure"
                                     │
                                     ▼
                             ChartPanel
                             ├── layout: PanelLayout
                             ├── layoutId?: string
-                            └── onLayoutChange: function
+                            └── onLayoutChange: (layout, changeType) => void
                                     │
                                     ▼
                             ChartContainer
                             ├── config: ChartConfig
                             ├── layoutId?: string
-                            ├── onSymbolChange?: function
                             └── onConfigUpdate?: function
                                     │
                                     ▼
-                                SCChart
-                                ├── firestore: Firestore
-                                ├── initialState: any
-                                ├── chartId?: string
-                                └── onReady/onError: functions
+                        ChartSettingsProvider
+                        ├── initialSettings: { symbol, granularity }
+                        ├── onSettingsChange: (settings, chartId) => void
+                        └── Context Value: { settings } (read-only for UI)
+                                    │
+                            ┌───────┼───────┐
+                            ▼               ▼
+                    ChartToolbar        SCChart
+                    ├── chartId         ├── chartId
+                    ├── chartApiRef     ├── useChartSettings()
+                    ├── reads context   ├── symbolChange listener
+                    └── calls Chart API └── writes to context
+```
+
+## Context-Based State Management
+
+```
+Simplified Chart Settings Flow:
+User Action → ChartToolbar → Chart API → Chart Visual Update
+                                 │
+                                 ▼
+                          symbolChange Event → SCChart → Context Update
+                                                              │
+                                                              ▼
+                                                         Persistence
+                                                              │
+                                                              ▼
+                                                    ChartToolbar UI Update
+
+Key Benefits:
+- Single direction: Only SCChart writes to context
+- No redundant context updates
+- Chart API is the source of truth
+- symbolChange events drive all context updates
 ```
 
 ## Layout Data Structure
@@ -130,8 +184,31 @@ App
 ├── AuthProvider
 │   └── Provides: { user, signIn, signOut, loading }
 │
-└── LayoutProvider (optional - not currently used)
-    └── Would provide: { currentLayoutId, setCurrentLayoutId }
+└── ChartApp
+    └── For each chart:
+        └── ChartSettingsProvider
+            ├── Provides: { settings, setSymbol, setGranularity }
+            ├── Manages: per-chart state (symbol, granularity)
+            ├── Multi-chart support: chartId-based state isolation
+            └── Persistence: onSettingsChange callback
+```
+
+## Chart Settings Context API
+
+```
+interface ChartSettings {
+  symbol: string;           // Trading pair (e.g., "BTC-USD")
+  granularity: Granularity; // Timeframe (e.g., "ONE_HOUR")
+  // Future: indicators, theme, timezone
+}
+
+useChartSettings(chartId?: string) returns:
+├── settings: ChartSettings
+├── setSymbol: (symbol: string) => void
+├── setGranularity: (granularity: Granularity) => void
+├── setSettings: (partial: Partial<ChartSettings>) => void
+├── registerChart: (initialSettings: ChartSettings) => void
+└── unregisterChart: () => void
 ```
 
 ## Hook Dependencies
@@ -156,6 +233,35 @@ useSymbols()
 useUserSettings()
 ├── Depends on: useRepository()
 └── Manages: user preferences
+
+useChartSettings() [NEW]
+├── Depends on: ChartSettingsProvider context
+├── Manages: per-chart symbol/granularity state
+├── Supports: multi-chart scenarios with chartId
+├── Triggers: persistence via onSettingsChange callback
+└── Usage: ChartToolbar (read-only), SCChart (write via events)
+```
+
+## State Management Strategy
+
+```
+Chart Data Changes:
+├── Source: ChartToolbar user interactions
+├── Flow: ChartToolbar → Chart API → symbolChange Event → Context → Persistence
+├── Single Direction: Only SCChart writes to context (via events)
+├── Persistence: Chart-specific updates to Firestore
+└── Auto-save: DISABLED (prevents race conditions)
+
+Layout Structural Changes:
+├── Source: Panel resizing, splits, layout modifications
+├── Flow: ChartPanel → ChartApp → Layout auto-save
+├── Persistence: Layout structure updates to Firestore
+└── Auto-save: ENABLED (1 second debounce)
+
+Change Type Detection:
+├── "chart-data": Symbol/granularity changes → Chart persistence only
+├── "structure": Panel resizes/splits → Layout auto-save only
+└── Fine-grained updates prevent conflicts between persistence mechanisms
 ```
 
 ## Simple Visual ASCII Diagram
@@ -191,29 +297,112 @@ Legend:
 │├└┌┐┘┬┴─ = Box drawing characters
 ```
 
+## Context-Based Chart State Flow Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          User Interaction                              │
+│  User selects "ETH-USD" from symbol dropdown in ChartToolbar          │
+└─────────────────────────┬───────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                       ChartToolbar                                     │
+│  Calls Chart API directly: chartApiRef.current.setSymbol("ETH-USD")   │
+└─────────────────────────┬───────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        Chart API                                       │
+│  Changes symbol to ETH-USD, updates chart visualization                │
+│  Fires symbolChange event when change is complete                      │
+└─────────────────────────┬───────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                      symbolChange Event                                │
+│  SCChart receives event and updates context with new symbol            │
+└─────────────────────────┬───────────────────────────────────────────────┘
+                          │
+          ┌───────────────┼───────────────┐
+          ▼               ▼               ▼
+┌─────────────────┐ ┌─────────────┐ ┌─────────────────┐
+│ChartSettingsContext │ Persistence │ │  ChartToolbar   │
+│                 │ │             │ │                 │
+│ Context state   │ │ChartContainer│ │ UI automatically│
+│ updated with    │ │onSettingsChange│ │ reflects new    │
+│ symbol:         │ │             │ │ symbol via      │
+│ "ETH-USD"       │ │ Saves to    │ │ context reading │
+│                 │ │ Firestore   │ │                 │
+│ Single source   │ │ (debounced) │ │ No direct state │
+│ of truth for    │ │             │ │ management      │
+│ chart state     │ │             │ │ needed          │
+└─────────────────┘ └─────────────┘ └─────────────────┘
+
+Benefits:
+- No double writes to context
+- Chart API is the authoritative source
+- Context updates only from symbolChange events
+- UI automatically stays in sync
+```
+
+## Multi-Chart Context Isolation
+
+```
+ChartApp Layout with 3 Charts:
+┌─────────────────────────────────────────────────────────────────────────┐
+│ ChartContainer A (chartId: "chart-123")                                │
+│ ├── ChartSettingsProvider                                              │
+│ │   ├── Context State: { symbol: "BTC-USD", granularity: "ONE_HOUR" }  │
+│ │   └── useChartSettings("chart-123")                                   │
+│ ├── ChartToolbar (reads/writes Context A)                              │
+│ └── SCChart (syncs with Context A)                                     │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ ChartContainer B (chartId: "chart-456")                                │
+│ ├── ChartSettingsProvider                                              │
+│ │   ├── Context State: { symbol: "ETH-USD", granularity: "FOUR_HOUR" } │
+│ │   └── useChartSettings("chart-456")                                   │
+│ ├── ChartToolbar (reads/writes Context B)                              │
+│ └── SCChart (syncs with Context B)                                     │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ ChartContainer C (chartId: "chart-789")                                │
+│ ├── ChartSettingsProvider                                              │
+│ │   ├── Context State: { symbol: "SOL-USD", granularity: "ONE_DAY" }   │
+│ │   └── useChartSettings("chart-789")                                   │
+│ ├── ChartToolbar (reads/writes Context C)                              │
+│ └── SCChart (syncs with Context C)                                     │
+└─────────────────────────────────────────────────────────────────────────┘
+
+Each chart has isolated state - changing symbol in Chart A doesn't affect Chart B or C
+```
+
 ## Nested Component Example (Horizontal Split)
 
 ```
 ChartPanel
 └── PanelGroup (horizontal)
     ├── Panel (50%)
-    │   └── ChartContainer
-    │       ├── ChartHeader [BTC-USD ▼] [1H ▼] [✕]
-    │       └── SCChart
+    │   └── ChartContainer + ChartSettingsProvider
+    │       ├── ChartHeader → ChartToolbar [BTC-USD ▼] [1H ▼] [✕]
+    │       └── SCChart (with symbolChange listener)
     │
     ├── PanelResizeHandle ║
     │
     └── Panel (50%)
         └── PanelGroup (vertical)
             ├── Panel (50%)
-            │   └── ChartContainer
-            │       ├── ChartHeader [ETH-USD ▼] [1D ▼] [✕]
-            │       └── SCChart
+            │   └── ChartContainer + ChartSettingsProvider
+            │       ├── ChartHeader → ChartToolbar [ETH-USD ▼] [1D ▼] [✕]
+            │       └── SCChart (with symbolChange listener)
             │
             ├── PanelResizeHandle ═
             │
             └── Panel (50%)
-                └── ChartContainer
-                    ├── ChartHeader [SOL-USD ▼] [4H ▼] [✕]
-                    └── SCChart
+                └── ChartContainer + ChartSettingsProvider
+                    ├── ChartHeader → ChartToolbar [SOL-USD ▼] [4H ▼] [✕]
+                    └── SCChart (with symbolChange listener)
 ```

@@ -188,6 +188,7 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
     <div className="h-full flex flex-col bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
       <ChartHeader
         chartId={config.id}
+        chartApiRef={chartRef}
         isChangingSymbol={isChangingSymbol}
         isChangingGranularity={isChangingGranularity}
         onDelete={onRemove}

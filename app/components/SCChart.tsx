@@ -11,6 +11,7 @@ import React, {
 import { firebaseConfig } from "~/lib/firebase";
 import {
   useChartSettings,
+  UseChartSettingsReturn,
   type ChartSettings,
 } from "~/contexts/ChartSettingsContext";
 import type { ChartApi, Granularity } from "@anssipiirainen/sc-charts";
@@ -53,7 +54,9 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
 
     // Use chart settings context
     const globalChartSettings = useChartSettings();
-    const chartSettings = useChartSettings(uniqueChartId.current);
+    const chartSettings: UseChartSettingsReturn = useChartSettings(
+      uniqueChartId.current
+    );
 
     useEffect(() => {
       setIsClient(true);
@@ -317,7 +320,7 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
         chartRef.current = chartContainer;
         container.appendChild(chartContainer as HTMLElement);
 
-        const { app, api } = await initChartWithApi(
+        const { app, api } = initChartWithApi(
           chartContainer as any,
           firebaseConfig,
           initialState as any
@@ -374,25 +377,8 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
       initChart();
     }, [isClient]);
 
-    // Sync chart API with context changes (from toolbar)
-    useEffect(() => {
-      if (!isInitializedRef.current || !apiRef.current) {
-        return;
-      }
-
-      const currentSymbol = apiRef.current.getSymbol?.() || "";
-      const currentGranularity = apiRef.current.getGranularity?.() || "";
-
-      // Update chart symbol if context changed
-      if (chartSettings.settings.symbol !== currentSymbol) {
-        apiRef.current.setSymbol?.(chartSettings.settings.symbol);
-      }
-
-      // Update chart granularity if context changed
-      if (chartSettings.settings.granularity !== currentGranularity) {
-        apiRef.current.setGranularity?.(chartSettings.settings.granularity);
-      }
-    }, [chartSettings.settings.symbol, chartSettings.settings.granularity]);
+    // Context-to-API sync removed - ChartToolbar now calls API directly
+    // SCChart only updates context when API fires symbolChange events
 
     useEffect(() => {
       return () => {

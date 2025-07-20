@@ -3,6 +3,7 @@ import { ChartToolbar } from "./ChartToolbar";
 
 interface ChartHeaderProps {
   chartId?: string;
+  chartApiRef?: React.MutableRefObject<any>;
   isChangingSymbol?: boolean;
   isChangingGranularity?: boolean;
   onDelete?: () => void;
@@ -12,6 +13,7 @@ interface ChartHeaderProps {
 
 export const ChartHeader: React.FC<ChartHeaderProps> = ({
   chartId,
+  chartApiRef,
   isChangingSymbol,
   isChangingGranularity,
   onDelete,
@@ -22,6 +24,7 @@ export const ChartHeader: React.FC<ChartHeaderProps> = ({
     <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
       <ChartToolbar
         chartId={chartId}
+        chartApiRef={chartApiRef}
         isChangingSymbol={isChangingSymbol}
         isChangingGranularity={isChangingGranularity}
         onDelete={onDelete}

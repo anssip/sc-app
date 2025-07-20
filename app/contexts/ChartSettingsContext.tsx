@@ -177,7 +177,21 @@ export const ChartSettingsProvider: React.FC<ChartSettingsProviderProps> = ({
   );
 };
 
-export const useChartSettings = (chartId?: string) => {
+export interface UseChartSettingsReturn {
+  settings: ChartSettings;
+  setSymbol: (symbol: string) => void;
+  setGranularity: (granularity: Granularity) => void;
+  setSettings: (settings: Partial<ChartSettings>) => void;
+  registerChart: (
+    chartIdOrInitialSettings: string | ChartSettings,
+    initialSettings?: ChartSettings
+  ) => void;
+  unregisterChart: (chartId?: string) => void;
+  getChartSettings?: (chartId: string) => ChartSettings | undefined;
+  chartId?: string;
+}
+
+export const useChartSettings = (chartId?: string): UseChartSettingsReturn => {
   const context = useContext(ChartSettingsContext);
 
   if (!context) {
@@ -197,9 +211,21 @@ export const useChartSettings = (chartId?: string) => {
         context.setGranularity(granularity, chartId),
       setSettings: (settings: Partial<ChartSettings>) =>
         context.setSettings(settings, chartId),
-      registerChart: (initialSettings: ChartSettings) =>
-        context.registerChart(chartId, initialSettings),
-      unregisterChart: () => context.unregisterChart(chartId),
+      registerChart: (
+        chartIdOrInitialSettings: string | ChartSettings,
+        initialSettings?: ChartSettings
+      ) => {
+        if (typeof chartIdOrInitialSettings === "string") {
+          context.registerChart(
+            chartIdOrInitialSettings,
+            initialSettings || context.settings
+          );
+        } else {
+          context.registerChart(chartId, chartIdOrInitialSettings);
+        }
+      },
+      unregisterChart: (targetChartId?: string) =>
+        context.unregisterChart(targetChartId || chartId),
       chartId,
     };
   }
@@ -210,8 +236,26 @@ export const useChartSettings = (chartId?: string) => {
     setSymbol: context.setSymbol,
     setGranularity: context.setGranularity,
     setSettings: context.setSettings,
-    registerChart: context.registerChart,
-    unregisterChart: context.unregisterChart,
+    registerChart: (
+      chartIdOrInitialSettings: string | ChartSettings,
+      initialSettings?: ChartSettings
+    ) => {
+      if (typeof chartIdOrInitialSettings === "string") {
+        context.registerChart(
+          chartIdOrInitialSettings,
+          initialSettings || context.settings
+        );
+      } else {
+        throw new Error(
+          "When using global chart settings, registerChart requires a chartId as the first parameter"
+        );
+      }
+    },
+    unregisterChart: (targetChartId?: string) => {
+      if (targetChartId) {
+        context.unregisterChart(targetChartId);
+      }
+    },
     getChartSettings: context.getChartSettings,
   };
 };

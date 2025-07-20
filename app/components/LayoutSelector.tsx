@@ -191,7 +191,7 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
           className="px-4 py-2 text-sm font-semibold bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
           title="Open layout manager"
         >
-          Manage Layouts
+          Layouts
         </button>
       </div>
 
