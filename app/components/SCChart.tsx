@@ -44,6 +44,9 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
     const appRef = useRef<any>(null);
     const apiRef = useRef<ChartApi | null>(null);
     const symbolChangeHandlerRef = useRef<((event: any) => void) | null>(null);
+    const indicatorChangeHandlerRef = useRef<((event: any) => void) | null>(
+      null
+    );
     const [isClient, setIsClient] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [initError, setInitError] = useState<string | null>(null);
@@ -69,6 +72,7 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
         const settings = {
           symbol: initialState.symbol || "BTC-USD",
           granularity: initialState.granularity || "ONE_HOUR",
+          indicators: [],
         };
         (
           globalChartSettings.registerChart as (
@@ -182,13 +186,20 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
         try {
           // Clean up existing chart and event listeners
           if (apiRef.current) {
-            // Remove event listener if it exists
+            // Remove event listeners if they exist
             if (symbolChangeHandlerRef.current && apiRef.current.off) {
               apiRef.current.off(
                 "symbolChange",
                 symbolChangeHandlerRef.current
               );
               symbolChangeHandlerRef.current = null;
+            }
+            if (indicatorChangeHandlerRef.current && apiRef.current.off) {
+              apiRef.current.off(
+                "indicatorChange",
+                indicatorChangeHandlerRef.current
+              );
+              indicatorChangeHandlerRef.current = null;
             }
             if (apiRef.current.dispose) {
               apiRef.current.dispose();
@@ -333,9 +344,9 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
         appRef.current = app;
         apiRef.current = api;
 
-        // Add symbolChange event listener
+        // Add event listeners
         if (api.on) {
-          // Store the handler reference for cleanup
+          // Store the symbolChange handler reference for cleanup
           symbolChangeHandlerRef.current = (event: any) => {
             // Only handle changes after initial setup is complete
             if (!isInitializedRef.current) {
@@ -359,7 +370,61 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
             }
           };
 
+          // Store the indicatorChange handler reference for cleanup
+          indicatorChangeHandlerRef.current = (event: any) => {
+            // Only handle changes after initial setup is complete
+            if (!isInitializedRef.current) {
+              return;
+            }
+
+            // Update indicators in context based on chart changes
+            if (event.action === "show" && event.indicator) {
+              const currentIndicators = chartSettings.settings.indicators;
+              const existingIndex = currentIndicators.findIndex(
+                (ind) => ind.id === event.indicator.id
+              );
+
+              let updatedIndicators;
+              if (existingIndex >= 0) {
+                // Update existing indicator
+                updatedIndicators = [...currentIndicators];
+                updatedIndicators[existingIndex] = {
+                  ...updatedIndicators[existingIndex],
+                  visible: true,
+                  display:
+                    event.indicator.display === "main" ? "Overlay" : "Bottom",
+                  params: event.indicator.params || {},
+                };
+              } else {
+                // Add new indicator
+                updatedIndicators = [
+                  ...currentIndicators,
+                  {
+                    id: event.indicator.id,
+                    name: event.indicator.name,
+                    display:
+                      event.indicator.display === "main" ? "Overlay" : "Bottom",
+                    visible: true,
+                    params: event.indicator.params || {},
+                    scale:
+                      event.indicator.scale === "value" ? "Price" : "Value",
+                    className: "MarketIndicator",
+                  },
+                ];
+              }
+
+              chartSettings.setIndicators(updatedIndicators);
+            } else if (event.action === "hide" && event.indicatorId) {
+              const currentIndicators = chartSettings.settings.indicators;
+              const updatedIndicators = currentIndicators.map((ind) =>
+                ind.id === event.indicatorId ? { ...ind, visible: false } : ind
+              );
+              chartSettings.setIndicators(updatedIndicators);
+            }
+          };
+
           api.on("symbolChange", symbolChangeHandlerRef.current);
+          api.on("indicatorChange", indicatorChangeHandlerRef.current);
         }
 
         setIsLoading(false);
@@ -384,10 +449,17 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
       return () => {
         // Cleanup on unmount
         if (apiRef.current) {
-          // Remove event listener if it exists
+          // Remove event listeners if they exist
           if (symbolChangeHandlerRef.current && apiRef.current.off) {
             apiRef.current.off("symbolChange", symbolChangeHandlerRef.current);
             symbolChangeHandlerRef.current = null;
+          }
+          if (indicatorChangeHandlerRef.current && apiRef.current.off) {
+            apiRef.current.off(
+              "indicatorChange",
+              indicatorChangeHandlerRef.current
+            );
+            indicatorChangeHandlerRef.current = null;
           }
           if (apiRef.current.dispose) {
             apiRef.current.dispose();

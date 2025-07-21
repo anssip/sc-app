@@ -67,3 +67,31 @@ there is a symbolChange listener in the SCChart component. Would it be easier to
 Perpahps we could use a React Context to store the chart selections we have in the toolbar: symbol and granularity. Additionally a hook to use the Context. We could use the hook in CSChart to listen to chart changes for granularity and symbol changes and store them to the context using the hook. Then we update the changes to the Repository in [@ChartContainer.tsx](@file:sc-app/app/components/ChartContainer.tsx) or in [@ChartApp.tsx](@file:sc-app/app/components/ChartApp.tsx)
 
 There are more chart settings and events that we can handle using this similar approach in the future.
+
+# Indicators
+
+Let's add a menu for indicators selection. There should be a dropdown menu in ChartToolbar in the Right side section.
+
+The indicators for this dropdown menu should be loaded from Firestore from the `indicators` collection. The documents in the indicators collection looks like this:
+
+```
+{
+    id: "bollinger-bands",
+    name: "Bollinger Bands",
+    display: "Overlay",
+    visible: false,
+    params: { period: 20, stdDev: 2 },
+    scale: "Price",
+    className: "MarketIndicator",
+}
+```
+
+this document is in path `/indicators/bollinger-bands` in Firestore.
+
+The chart API is documented in CHART_API_REFERENCE.md
+
+The selection of an indicator from the menu should enable the indicator in the chart. This can be done using the `showIndicator()` function. The document retrieved from Firestore should be passed to the `showIndicator()` function.
+
+Indicator selection and deselectyion in the chart emits an `indicatorChange` event. You can find the documentation for this in CHART_API_REFERENCE.md in section #### 3. `IndicatorChangeEvent`. Add a listener for this event into SCChart and make it save the indicators state in the ChartSettingsContext. This context needs to be enhanced to handle indicators.
+
+Implement this, please.

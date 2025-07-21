@@ -1,7 +1,10 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { useSymbols } from "~/hooks/useRepository";
 import { useChartSettings } from "~/contexts/ChartSettingsContext";
+import { useIndicators } from "~/hooks/useIndicators";
+import { db } from "~/lib/firebase";
 import type { Granularity } from "@anssipiirainen/sc-charts";
+import type { IndicatorConfig } from "~/contexts/ChartSettingsContext";
 
 interface ChartToolbarProps {
   chartId?: string;
@@ -42,6 +45,16 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
 
   // Use chart settings context (read-only for UI display)
   const { settings } = useChartSettings(chartId);
+
+  // Load indicators from Firestore
+  const {
+    indicators: availableIndicators,
+    isLoading: indicatorsLoading,
+    error: indicatorsError,
+  } = useIndicators(db);
+
+  // State for indicator dropdown
+  const [isIndicatorDropdownOpen, setIsIndicatorDropdownOpen] = useState(false);
 
   // Fallback symbols if repository fails to load
   const fallbackSymbols = [
@@ -230,57 +243,18 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
         )}
       </div>
 
-      {/* Right side - Action buttons */}
+      {/* Right side */}
       <div className="flex items-center gap-1">
-        {/* Split buttons */}
-        <button
-          onClick={onSplitHorizontal}
-          className="p-1 text-gray-400 hover:text-blue-500 transition-colors rounded"
-          title="Split horizontally"
-        >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 6h16M4 12h16M4 18h16"
-            />
-          </svg>
-        </button>
-        <button
-          onClick={onSplitVertical}
-          className="p-1 text-gray-400 hover:text-blue-500 transition-colors rounded"
-          title="Split vertically"
-        >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
-        </button>
-
-        {/* Delete button */}
-        {onDelete && (
+        {/* Indicator Dropdown */}
+        <div className="relative">
           <button
-            onClick={onDelete}
-            className="p-1 text-gray-400 hover:text-red-500 transition-colors rounded ml-1"
-            title="Delete chart"
+            onClick={() => setIsIndicatorDropdownOpen(!isIndicatorDropdownOpen)}
+            disabled={indicatorsLoading}
+            className="flex items-center gap-1 px-2 py-1 text-xs font-medium bg-transparent border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Add Indicators"
           >
             <svg
-              className="w-4 h-4"
+              className="w-3 h-3"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -289,11 +263,121 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
+                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+              />
+            </svg>
+            {indicatorsLoading ? "Loading..." : "Indicators"}
+            <svg
+              className={`w-3 h-3 transition-transform ${
+                isIndicatorDropdownOpen ? "rotate-180" : ""
+              }`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
               />
             </svg>
           </button>
-        )}
+
+          {/* Dropdown Menu */}
+          {isIndicatorDropdownOpen && (
+            <div className="absolute right-0 top-full mt-1 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-50 max-h-96 overflow-y-auto">
+              {indicatorsError ? (
+                <div className="p-3 text-red-600 dark:text-red-400 text-xs">
+                  Error loading indicators: {indicatorsError}
+                </div>
+              ) : indicatorsLoading ? (
+                <div className="p-3 text-gray-500 dark:text-gray-400 text-xs">
+                  Loading indicators...
+                </div>
+              ) : availableIndicators.length === 0 ? (
+                <div className="p-3 text-gray-500 dark:text-gray-400 text-xs">
+                  No indicators available
+                </div>
+              ) : (
+                <div className="py-1">
+                  {availableIndicators.map((indicator) => {
+                    const isVisible = settings.indicators.some(
+                      (ind) => ind.id === indicator.id && ind.visible
+                    );
+
+                    return (
+                      <button
+                        key={indicator.id}
+                        onClick={() => {
+                          if (chartApiRef?.current) {
+                            if (isVisible) {
+                              // Hide indicator
+                              chartApiRef.current.hideIndicator?.(indicator.id);
+                            } else {
+                              // Show indicator
+                              const apiIndicatorConfig = {
+                                id: indicator.id,
+                                name: indicator.name,
+                                visible: true,
+                                display:
+                                  indicator.display === "Overlay"
+                                    ? "main"
+                                    : "bottom",
+                                scale:
+                                  indicator.scale === "Price"
+                                    ? "value"
+                                    : "value",
+                                params: indicator.params || {},
+                              };
+                              chartApiRef.current.showIndicator?.(
+                                apiIndicatorConfig
+                              );
+                            }
+                          }
+                          setIsIndicatorDropdownOpen(false);
+                        }}
+                        className={`w-full px-3 py-2 text-left text-xs hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-between ${
+                          isVisible
+                            ? "text-blue-600 dark:text-blue-400"
+                            : "text-gray-700 dark:text-gray-300"
+                        }`}
+                      >
+                        <div>
+                          <div className="font-medium">{indicator.name}</div>
+                          <div className="text-gray-500 dark:text-gray-400 text-xs">
+                            {indicator.display}
+                          </div>
+                        </div>
+                        {isVisible && (
+                          <svg
+                            className="w-3 h-3"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Click outside to close */}
+          {isIndicatorDropdownOpen && (
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setIsIndicatorDropdownOpen(false)}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

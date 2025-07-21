@@ -20,6 +20,7 @@ TODO next:
   - quick layout buttons to be removed from toolbar
   - button opens a modal that lists saved layouts
   - modal has a way to add a new layout using the quick layout buttons (number of charts), a field for title also
+- [ ] Add indicators to Firestore
 - [ ] Indicators menu
 - [ ] Indicators persistence
 - [ ] Chart color customization

@@ -47,6 +47,13 @@ service cloud.firestore {
       }
     }
 
+    // Allow reading indicators from Firestore
+    match /indicators/{indicatorId} {
+      allow read: if true;
+      allow list: if true;
+      allow write: if false;
+    }
+
     // Default deny for everything else
     match /{document=**} {
       allow read, write: if false;

@@ -78,7 +78,10 @@ const ResizeHandle: React.FC<{ direction: "horizontal" | "vertical" }> = ({
 const renderPanelGroup = (
   layout: PanelLayout,
   layoutId?: string,
-  onLayoutChange?: (layout: PanelLayout) => void,
+  onLayoutChange?: (
+    layout: PanelLayout,
+    changeType?: "chart-data" | "structure"
+  ) => void,
   rootLayout?: PanelLayout,
   parentPath: string = ""
 ): React.ReactNode => {

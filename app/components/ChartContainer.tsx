@@ -6,6 +6,7 @@ import { useCharts } from "~/hooks/useRepository";
 import {
   ChartSettingsProvider,
   useChartSettings,
+  type ChartSettings,
 } from "~/contexts/ChartSettingsContext";
 import type { Granularity } from "@anssipiirainen/sc-charts";
 
@@ -42,7 +43,7 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleSettingsChange = async (
-    settings: { symbol: string; granularity: Granularity },
+    settings: ChartSettings,
     chartId?: string
   ) => {
     // Clear existing timeout
@@ -113,6 +114,7 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
     () => ({
       symbol: config.symbol,
       granularity: config.granularity,
+      indicators: [],
     }),
     [config.symbol, config.granularity]
   );
@@ -148,6 +150,7 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
   const initialState = {
     symbol: config.symbol,
     granularity: config.granularity,
+    indicators: [],
   };
 
   /**
