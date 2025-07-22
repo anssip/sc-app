@@ -7,92 +7,116 @@ The `settings` collection is used to store user preferences and settings. Each u
 Users chart layouts are stored inside the settings collection. The document path looks like this:
 
 ```
-/settings/{userId}/layouts/{layoutId}
+/settings/{email}/layouts/{layoutId}
 ```
 
 The document structure is as follows:
 
 ```json
 {
-  "name": "string",
-  "charts": [
-    {
-      "type": "split",
-      "direction": "horizontal",
-      "ratio": 0.6,
-      "children": [
-        {
-          "type": "chart",
-          "id": 1
-        },
-        {
-          "type": "split",
-          "direction": "vertical",
-          "ratio": 0.4,
-          "children": [
-            {
-              "type": "chart",
-              "id": 2
-            },
-            {
-              "type": "chart",
-              "id": 3
+  "name": "quad",
+  "id": "1753008073737-9ej0jt8yg",
+  "userId": "anssip@gmail.com",
+  "createdAt": "2025-07-20T10:41:13.737Z",
+  "updatedAt": "2025-07-21T07:13:45.420Z",
+  "layout": {
+    "type": "split",
+    "direction": "horizontal",
+    "ratio": 0.5,
+    "sizes": [50, 50],
+    "children": [
+      {
+        "type": "split",
+        "direction": "vertical",
+        "ratio": 0.5,
+        "sizes": [50.1753360608, 49.8246639392],
+        "children": [
+          {
+            "type": "chart",
+            "id": "layout-1753008073737-minfum493",
+            "size": 50.1753360608,
+            "chart": {
+              "id": "chart-1753008073737-gr4ojwgj3",
+              "symbol": "SOL-USD",
+              "granularity": "ONE_DAY",
+              "indicators": []
             }
-          ]
-        }
-      ]
-    }
-  ]
+          },
+          {
+            "type": "chart",
+            "id": "layout-1753008073737-fw9x1v48n",
+            "size": 49.8246639392,
+            "chart": {
+              "id": "chart-1753008073737-eha8xxw6y",
+              "symbol": "ETH-USD",
+              "granularity": "ONE_HOUR",
+              "indicators": []
+            }
+          }
+        ]
+      },
+      {
+        "type": "split",
+        "direction": "vertical",
+        "ratio": 0.5,
+        "sizes": [50, 50],
+        "children": [
+          {
+            "type": "chart",
+            "id": "layout-1753008073737-b9q5u8cey",
+            "size": 50,
+            "chart": {
+              "id": "chart-1753008073737-kd0dipuap",
+              "symbol": "BTC-USD",
+              "granularity": "FIFTEEN_MINUTE",
+              "indicators": []
+            }
+          },
+          {
+            "type": "chart",
+            "id": "layout-1753008073737-m9dokfux1",
+            "size": 50,
+            "chart": {
+              "id": "chart-1753008073737-s33dnafb8",
+              "symbol": "DOGE-USD",
+              "granularity": "ONE_HOUR",
+              "indicators": []
+            }
+          }
+        ]
+      }
+    ]
+  }
 }
 ```
 
-- type: "split" or "panel"
-- direction: "horizontal" or "vertical" (for splits)
-- ratio: Split position (0.0 to 1.0)
-- children: Array of child nodes (for splits)
-- id/content: Chart identifier (for leaves)
+**Layout Structure:**
+- `type`: "split" or "chart"
+- `direction`: "horizontal" or "vertical" (for splits only)
+- `ratio`: Split position (0.0 to 1.0) (for splits only)
+- `sizes`: Array of actual sizes for child elements (for splits only)
+- `children`: Array of child nodes (for splits only)
+- `id`: Unique identifier for layout nodes
+- `size`: Current size of the node
+- `chart`: Embedded chart configuration (for chart nodes only)
 
-Each chart is stored in the charts collection and look like so:
-
-```json
-{
-  "title": "ETC to the moon!",
-  "id": 1,
-  "symbol": "ETH-USD",
-  "granularity": "1d",
-  "indicators": ["RSI", "MACD"]
-}
-```
+**Chart Configuration (embedded within chart nodes):**
+- `id`: Unique chart identifier
+- `symbol`: Trading pair (e.g., "BTC-USD", "ETH-USD")
+- `granularity`: Time interval ("ONE_MINUTE", "FIVE_MINUTE", "FIFTEEN_MINUTE", "THIRTY_MINUTE", "ONE_HOUR", "TWO_HOUR", "SIX_HOUR", "ONE_DAY")
+- `indicators`: Array of technical indicators (e.g., ["RSI", "MACD"])
 
 ### Restoration algorithm:
 
 The layout can be restored from a JSON object like so.
 
-1. Parse the layout description
-2. Recursively traverse the tree
-3. For each split node, create a splitter container
-4. For each panel node, instantiate the actual panel
-5. Apply the size ratios to set initial dimensions
+1. Parse the layout description from the `layout` property
+2. Recursively traverse the tree structure
+3. For each split node, create a splitter container with the specified direction and ratio
+4. For each chart node, instantiate a chart panel using the embedded chart configuration
+5. Apply the size ratios and actual sizes to set initial dimensions
+6. Configure each chart with its symbol, granularity, and indicators from the embedded chart object
 
-## Charts
-
-The chart settings are stored inside the settings collection in the following path:
-
-```
-/settings/{userId}/charts/{chartId}
-```
-
-An example chart document:
-
-```json
-{
-  "title": "ETC to the moon!",
-  "id": 1,
-  "symbol": "ETH-USD",
-  "granularity": "1d",
-  "indicators": ["RSI", "MACD"]
-}
-```
 
 # Symbols
 
