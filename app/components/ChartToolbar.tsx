@@ -175,8 +175,8 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
           value={settings.symbol}
           onChange={(e) => {
             // Call Chart API directly instead of context
-            if (chartApiRef?.current?.setSymbol) {
-              chartApiRef.current.setSymbol(e.target.value);
+            if (chartApiRef?.current?.api?.setSymbol) {
+              chartApiRef.current.api.setSymbol(e.target.value);
             }
           }}
           disabled={isChangingSymbol || symbolsLoading}
@@ -213,8 +213,8 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
           value={settings.granularity}
           onChange={(e) => {
             // Call Chart API directly instead of context
-            if (chartApiRef?.current?.setGranularity) {
-              chartApiRef.current.setGranularity(e.target.value as Granularity);
+            if (chartApiRef?.current?.api?.setGranularity) {
+              chartApiRef.current.api.setGranularity(e.target.value as Granularity);
             }
           }}
           disabled={isChangingGranularity}
@@ -310,10 +310,10 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
                       <button
                         key={indicator.id}
                         onClick={() => {
-                          if (chartApiRef?.current) {
+                          if (chartApiRef?.current?.api) {
                             if (isVisible) {
                               // Hide indicator
-                              chartApiRef.current.hideIndicator?.(indicator.id);
+                              chartApiRef.current.api.hideIndicator?.(indicator.id);
                             } else {
                               // Show indicator
                               const apiIndicatorConfig = {
@@ -330,7 +330,7 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
                                     : "value",
                                 params: indicator.params || {},
                               };
-                              chartApiRef.current.showIndicator?.(
+                              chartApiRef.current.api.showIndicator?.(
                                 apiIndicatorConfig
                               );
                             }
