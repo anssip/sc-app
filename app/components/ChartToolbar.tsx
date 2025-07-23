@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { useSymbols } from "~/hooks/useRepository";
 import { useChartSettings } from "~/contexts/ChartSettingsContext";
 import { useIndicators } from "~/hooks/useIndicators";
@@ -55,6 +55,23 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
 
   // State for indicator dropdown
   const [isIndicatorDropdownOpen, setIsIndicatorDropdownOpen] = useState(false);
+
+  // Handle Esc key to close indicators menu
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isIndicatorDropdownOpen) {
+        setIsIndicatorDropdownOpen(false);
+      }
+    };
+
+    if (isIndicatorDropdownOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isIndicatorDropdownOpen]);
 
   // Fallback symbols if repository fails to load
   const fallbackSymbols = [
