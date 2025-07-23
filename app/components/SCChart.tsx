@@ -47,6 +47,7 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
     const indicatorChangeHandlerRef = useRef<((event: any) => void) | null>(
       null
     );
+    const readyHandlerRef = useRef<((event: any) => void) | null>(null);
     const [isClient, setIsClient] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [initError, setInitError] = useState<string | null>(null);
@@ -54,6 +55,8 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
       chartId || `chart-${Math.random().toString(36).substr(2, 9)}`
     );
     const isInitializedRef = useRef(false);
+    const isInitializingRef = useRef(false);
+    const restoredIndicatorsRef = useRef<Set<string>>(new Set());
 
     // Use chart settings context
     const globalChartSettings = useChartSettings();
@@ -271,11 +274,14 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
     }, []);
 
     useEffect(() => {
-      if (!isClient || appRef.current) {
+      if (!isClient || appRef.current || isInitializingRef.current) {
         return;
       }
 
       const initChart = async () => {
+        // Set initialization flag to prevent double initialization
+        isInitializingRef.current = true;
+
         try {
           setIsLoading(true);
           setInitError(null);
@@ -311,6 +317,9 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
 
           setInitError(`Chart initialization failed: ${errorMessage}`);
           setIsLoading(false);
+
+          // Reset initialization flag on error so retry is possible
+          isInitializingRef.current = false;
 
           if (onError) {
             onError(errorMessage);
@@ -379,63 +388,115 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
 
             // Update indicators in context based on chart changes
             if (event.action === "show" && event.indicator) {
-              const currentIndicators = chartSettings.settings.indicators;
-              const existingIndex = currentIndicators.findIndex(
-                (ind) => ind.id === event.indicator.id
-              );
+              // Use functional update to ensure we get the most current state
+              chartSettings.setIndicators((currentIndicators) => {
+                const existingIndex = currentIndicators.findIndex(
+                  (ind) => ind.id === event.indicator.id
+                );
 
-              let updatedIndicators;
-              if (existingIndex >= 0) {
-                // Update existing indicator
-                updatedIndicators = [...currentIndicators];
-                updatedIndicators[existingIndex] = {
-                  ...updatedIndicators[existingIndex],
-                  visible: true,
-                  display:
-                    event.indicator.display === "main" ? "Overlay" : "Bottom",
-                  params: event.indicator.params || {},
-                };
-              } else {
-                // Add new indicator
-                updatedIndicators = [
-                  ...currentIndicators,
-                  {
-                    id: event.indicator.id,
-                    name: event.indicator.name,
+                let updatedIndicators;
+                if (existingIndex >= 0) {
+                  // Update existing indicator
+                  updatedIndicators = [...currentIndicators];
+                  updatedIndicators[existingIndex] = {
+                    ...updatedIndicators[existingIndex],
+                    visible: true,
                     display:
                       event.indicator.display === "main" ? "Overlay" : "Bottom",
-                    visible: true,
                     params: event.indicator.params || {},
-                    scale:
-                      event.indicator.scale === "value" ? "Price" : "Value",
-                    className: "MarketIndicator",
-                  },
-                ];
-              }
+                  };
+                } else {
+                  // Add new indicator
+                  updatedIndicators = [
+                    ...currentIndicators,
+                    {
+                      id: event.indicator.id,
+                      name: event.indicator.name,
+                      display:
+                        event.indicator.display === "main" ? "Overlay" : "Bottom",
+                      visible: true,
+                      params: event.indicator.params || {},
+                      scale:
+                        event.indicator.scale === "value" ? "Price" : "Value",
+                      className: "MarketIndicator",
+                    },
+                  ];
+                }
 
-              chartSettings.setIndicators(updatedIndicators);
+                console.log(`SCChart: Updated indicators for ${event.indicator.id}:`, updatedIndicators.map(i => `${i.id}(${i.visible})`));
+                return updatedIndicators;
+              });
             } else if (event.action === "hide" && event.indicatorId) {
-              const currentIndicators = chartSettings.settings.indicators;
-              const updatedIndicators = currentIndicators.map((ind) =>
-                ind.id === event.indicatorId ? { ...ind, visible: false } : ind
-              );
-              chartSettings.setIndicators(updatedIndicators);
+              // Use functional update for hide as well
+              chartSettings.setIndicators((currentIndicators) => {
+                const updatedIndicators = currentIndicators.map((ind) =>
+                  ind.id === event.indicatorId ? { ...ind, visible: false } : ind
+                );
+                console.log(`SCChart: Hidden indicator ${event.indicatorId}:`, updatedIndicators.map(i => `${i.id}(${i.visible})`));
+                return updatedIndicators;
+              });
             }
           };
 
+          // Store the ready handler reference for cleanup
+          readyHandlerRef.current = (event: any) => {
+            console.log("SCChart: Chart ready event received:", event);
+
+            // Prevent duplicate indicator restoration if already initialized
+            if (isInitializedRef.current) {
+              console.log(
+                "SCChart: Skipping indicator restoration - already initialized"
+              );
+              return;
+            }
+
+            // Mark as initialized BEFORE restoring indicators so indicator events are processed
+            isInitializedRef.current = true;
+
+            // Restore indicators from initial state after chart is ready
+            if (
+              initialState?.indicators &&
+              Array.isArray(initialState.indicators) &&
+              initialState.indicators.length > 0
+            ) {
+              console.log(
+                "SCChart: Restoring indicators from initial state:",
+                initialState.indicators
+              );
+
+              // Restore indicators by ID with minimal configuration (matching working example)
+              initialState.indicators.forEach((indicatorId: string) => {
+                if (
+                  api.showIndicator && 
+                  indicatorId.length > 0 && 
+                  !restoredIndicatorsRef.current.has(indicatorId)
+                ) {
+                  console.log(
+                    `SCChart: Restoring indicator '${indicatorId}', chartId ${chartId}`
+                  );
+                  const basicIndicatorConfig = {
+                    id: indicatorId,
+                    name: indicatorId.toUpperCase(), // Fallback name
+                    visible: true,
+                  };
+                  api.showIndicator(basicIndicatorConfig);
+                  
+                  // Mark this indicator as restored
+                  restoredIndicatorsRef.current.add(indicatorId);
+                }
+              });
+            }
+
+            setIsLoading(false);
+
+            if (onReady) {
+              onReady();
+            }
+          };
+
+          api.on("ready", readyHandlerRef.current);
           api.on("symbolChange", symbolChangeHandlerRef.current);
           api.on("indicatorChange", indicatorChangeHandlerRef.current);
-        }
-
-        setIsLoading(false);
-
-        // Mark as initialized after a brief delay to avoid capturing initial symbol changes
-        setTimeout(() => {
-          isInitializedRef.current = true;
-        }, 100);
-
-        if (onReady) {
-          onReady();
         }
       };
 
@@ -450,6 +511,10 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
         // Cleanup on unmount
         if (apiRef.current) {
           // Remove event listeners if they exist
+          if (readyHandlerRef.current && apiRef.current.off) {
+            apiRef.current.off("ready", readyHandlerRef.current);
+            readyHandlerRef.current = null;
+          }
           if (symbolChangeHandlerRef.current && apiRef.current.off) {
             apiRef.current.off("symbolChange", symbolChangeHandlerRef.current);
             symbolChangeHandlerRef.current = null;

@@ -335,7 +335,7 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
                               );
                             }
                           }
-                          setIsIndicatorDropdownOpen(false);
+                          // Don't close the menu to allow multiple indicator selection
                         }}
                         className={`w-full px-3 py-2 text-left text-xs hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-between ${
                           isVisible
