@@ -3,10 +3,12 @@ import { SCChart, SCChartRef } from "./SCChart";
 import { ChartHeader } from "./ChartHeader";
 import { db } from "~/lib/firebase";
 import { useCharts } from "~/hooks/useRepository";
+import { useIndicators } from "~/hooks/useIndicators";
 import {
   ChartSettingsProvider,
   useChartSettings,
   type ChartSettings,
+  type IndicatorConfig,
 } from "~/contexts/ChartSettingsContext";
 import type { Granularity } from "@anssipiirainen/sc-charts";
 
@@ -40,6 +42,10 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
   onConfigUpdate,
 }) => {
   const { updateChart, saveChart } = useCharts();
+  const { 
+    indicators: availableIndicators = [], 
+    isLoading: indicatorsLoading 
+  } = useIndicators(db);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleSettingsChange = async (
@@ -54,11 +60,17 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
     // Debounce the persistence to prevent rapid updates
     debounceTimeoutRef.current = setTimeout(async () => {
       try {
+        // Convert rich IndicatorConfig objects to simple indicator ID strings
+        const indicatorIds = settings.indicators
+          .filter(indicator => indicator.visible)
+          .map(indicator => indicator.id);
+
         // Update the config through the callback
         const updatedConfig = {
           ...config,
           symbol: settings.symbol,
           granularity: settings.granularity,
+          indicators: indicatorIds,
         };
 
         if (onConfigUpdate) {
@@ -73,7 +85,7 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
             {
               symbol: settings.symbol,
               granularity: settings.granularity,
-              indicators: config.indicators || [],
+              indicators: indicatorIds,
             },
             layoutId
           );
@@ -84,7 +96,7 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
               {
                 symbol: settings.symbol,
                 granularity: settings.granularity,
-                indicators: config.indicators || [],
+                indicators: indicatorIds,
               },
               layoutId
             );
@@ -111,12 +123,47 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
   }, []);
 
   const initialSettings = useMemo(
-    () => ({
-      symbol: config.symbol,
-      granularity: config.granularity,
-      indicators: [],
-    }),
-    [config.symbol, config.granularity]
+    () => {
+      // Don't process indicators while still loading - wait for them to be available
+      if (indicatorsLoading || availableIndicators.length === 0) {
+        return {
+          symbol: config.symbol,
+          granularity: config.granularity,
+          indicators: [],
+        };
+      }
+
+      // Convert indicator IDs from config to full IndicatorConfig objects
+      const indicatorConfigs: IndicatorConfig[] = (config.indicators || [])
+        .map((indicatorId: string) => {
+          const availableIndicator = availableIndicators.find(ind => ind.id === indicatorId);
+          if (availableIndicator) {
+            return {
+              ...availableIndicator,
+              visible: true, // Mark as visible since it's in the saved config
+            };
+          } else {
+            // Create a fallback indicator config if not found in available indicators
+            return {
+              id: indicatorId,
+              name: indicatorId.toUpperCase(),
+              display: "Bottom",
+              visible: true,
+              params: {},
+              scale: "Value",
+              className: "MarketIndicator",
+            };
+          }
+        })
+        .filter(Boolean);
+
+      return {
+        symbol: config.symbol,
+        granularity: config.granularity,
+        indicators: indicatorConfigs,
+      };
+    },
+    [config.symbol, config.granularity, config.indicators, availableIndicators, indicatorsLoading]
   );
 
   return (
@@ -141,6 +188,10 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
   onConfigUpdate,
 }) => {
   const { updateChart, saveChart } = useCharts();
+  const { 
+    indicators: availableIndicators = [], 
+    isLoading: indicatorsLoading 
+  } = useIndicators(db);
   const [chartError, setChartError] = useState<string | null>(null);
   const [isChangingSymbol, setIsChangingSymbol] = useState(false);
   const [isChangingGranularity, setIsChangingGranularity] = useState(false);
@@ -150,7 +201,7 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
   const initialState = {
     symbol: config.symbol,
     granularity: config.granularity,
-    indicators: [],
+    indicators: config.indicators || [],
   };
 
   /**

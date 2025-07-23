@@ -6,6 +6,7 @@ import {
   useLayouts,
   useUserSettings,
 } from "~/hooks/useRepository";
+import type { Repository } from "~/services/repository";
 import { useAuth } from "~/lib/auth-context";
 import {
   autoMigrateLegacyLayout,
@@ -19,6 +20,37 @@ import type { PanelLayout } from "./ChartPanel";
 import type { ChartConfig, SavedLayout } from "~/types";
 
 type LayoutChangeType = "chart-data" | "structure" | "unknown";
+
+/**
+ * Recursively loads all chart configurations referenced in a layout
+ */
+async function loadChartsForLayout(
+  layoutNode: any,
+  charts: Map<string, ChartConfig>,
+  repository: Repository,
+  layoutId?: string
+): Promise<void> {
+  if (layoutNode.type === "chart") {
+    const chartId = layoutNode.chartId || layoutNode.id;
+    if (chartId && !charts.has(chartId)) {
+      try {
+        const chartConfig = await repository.getChart(chartId, layoutId);
+        if (chartConfig) {
+          charts.set(chartId, chartConfig);
+        }
+      } catch (error) {
+        console.error(`Failed to load chart ${chartId}:`, error);
+      }
+    }
+  } else if (layoutNode.children && Array.isArray(layoutNode.children)) {
+    // Recursively load charts from children
+    await Promise.all(
+      layoutNode.children.map((child: any) =>
+        loadChartsForLayout(child, charts, repository, layoutId)
+      )
+    );
+  }
+}
 
 interface ChartAppProps {
   className?: string;
@@ -84,21 +116,28 @@ export const ChartApp: React.FC<ChartAppProps> = ({
       );
 
       if (activeLayout) {
-        try {
-          const charts = new Map<string, ChartConfig>();
-          const panelLayout = convertToChartPanelLayout(
-            activeLayout.layout,
-            charts
-          );
-          setCurrentLayout(panelLayout);
-          setCurrentLayoutId(activeLayout.id);
-          setIsInitialized(true);
+        const loadActiveLayout = async () => {
+          try {
+            // Load all charts referenced in the layout
+            const charts = new Map<string, ChartConfig>();
+            await loadChartsForLayout(activeLayout.layout, charts, repository, activeLayout.id);
+            
+            const panelLayout = convertToChartPanelLayout(
+              activeLayout.layout,
+              charts
+            );
+            setCurrentLayout(panelLayout);
+            setCurrentLayoutId(activeLayout.id);
+            setIsInitialized(true);
+          } catch (error) {
+            console.error("Error loading active layout:", error);
+            // Clear the invalid active layout ID
+            setActiveLayout(null).catch(console.error);
+          }
+        };
 
-          return;
-        } catch (error) {
-          // Clear the invalid active layout ID
-          setActiveLayout(null).catch(console.error);
-        }
+        loadActiveLayout();
+        return;
       } else if (layouts.length > 0) {
         // We have layouts loaded but the active one isn't found
 
