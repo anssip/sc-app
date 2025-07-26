@@ -2,6 +2,8 @@
 
 This is a Remix application that is used to manage and show financial charts using the sc-charts module.
 
+All charting functionality is provided by the sc-charts module. This app interfaces with sc-charts module via it's API.
+
 ## Main Features
 
 - **Chart Management**: Easily create, edit, and delete charts.

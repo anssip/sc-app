@@ -95,3 +95,65 @@ The selection of an indicator from the menu should enable the indicator in the c
 Indicator selection and deselectyion in the chart emits an `indicatorChange` event. You can find the documentation for this in CHART_API_REFERENCE.md in section #### 3. `IndicatorChangeEvent`. Add a listener for this event into SCChart and make it save the indicators state in the ChartSettingsContext. This context needs to be enhanced to handle indicators.
 
 Implement this, please.
+
+# Subscriptions via Stripe
+
+There will be a trial period of 7 days to use the application. After the trial period, the user needs to have an active subscription in Stripe.
+
+We should handle the trial period and subscription status in Stripe.
+
+There are two subscription products already created in Stripe: `Basic` and `Pro`. You can look this up using your MCP server.
+
+Here's how the payment method flow works:
+
+Frontend (Web App) - Payment Method Creation
+
+In your web app, you'd use Stripe Elements or Payment Element to securely collect payment details and create the payment method directly with Stripe:
+
+// Example with Stripe Elements
+const stripe = Stripe('pk_test_your_publishable_key');
+const elements = stripe.elements();
+const cardElement = elements.create('card');
+
+// When user submits form
+const {paymentMethod, error} = await stripe.createPaymentMethod({
+type: 'card',
+card: cardElement,
+billing_details: {
+email: 'user@example.com',
+},
+});
+
+if (!error) {
+// Use paymentMethod.id for the signup API call
+const paymentMethodId = paymentMethod.id; // e.g., "pm_1234567890"
+}
+
+Backend - Uses Existing Payment Method
+
+The create_subscription() endpoint I created expects the payment_method_id that was already created by your frontend. It then:
+
+1. Attaches the payment method to the customer: app.py:32-35
+2. Sets it as default for future invoices: app.py:27
+3. Uses it for the subscription without re-creating it
+
+Benefits of This Approach
+
+- Security: Card details never touch your server
+- PCI Compliance: Stripe handles all sensitive data
+- User Experience: Real-time validation and formatting
+- Flexibility: Payment method can be reused for future subscriptions
+
+Alternative: Setup Intents
+
+For even better UX with trials, you could also use Setup Intents in your frontend to authorize the payment method without charging immediately:
+
+const {setupIntent, error} = await stripe.confirmSetup({
+elements,
+confirmParams: {
+return_url: 'https://your-website.com/setup-complete',
+},
+});
+// Use setupIntent.payment_method for signup
+
+The current implementation supports both approaches since it just needs the payment_method_id.
