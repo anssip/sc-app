@@ -183,25 +183,40 @@ export const ChartApp: React.FC<ChartAppProps> = ({
       await updateLayout(currentLayoutId, {
         layout: repositoryLayout,
       });
-    } catch (error) {}
+    } catch (error) {
+      console.error('Auto-save failed:', error);
+    }
   }, [currentLayout, currentLayoutId, repository, updateLayout]);
 
   // Handle layout changes from ChartPanel with auto-save
   const handleLayoutChange = useCallback(
     (layout: PanelLayout, changeType: LayoutChangeType = "unknown") => {
+      console.log('ChartApp: handleLayoutChange called', {
+        changeType,
+        currentLayoutId,
+        hasLayout: !!layout
+      });
+
       setCurrentLayout(layout);
 
       // Clear existing timeout
       if (autoSaveTimeoutRef.current) {
         clearTimeout(autoSaveTimeoutRef.current);
+        console.log('ChartApp: Cleared existing auto-save timeout');
       }
 
       // Only auto-save for structural changes (panel resizes, splits)
       // Chart data changes are handled by ChartContainer
       if (currentLayoutId && changeType === "structure") {
+        console.log('ChartApp: Setting auto-save timeout for structural change');
         autoSaveTimeoutRef.current = setTimeout(() => {
+          console.log('ChartApp: Auto-save timeout triggered');
           autoSaveLayout();
         }, 1000); // Auto-save 1 second after resize stops
+      } else {
+        console.log('ChartApp: Auto-save not triggered', {
+          reason: !currentLayoutId ? 'No currentLayoutId' : changeType !== 'structure' ? 'Not structure change' : 'Other'
+        });
       }
     },
     [currentLayoutId, autoSaveLayout]

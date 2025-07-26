@@ -213,16 +213,9 @@ export const ChartPanel: React.FC<ChartPanelProps> = ({
   onLayoutChange,
   className = "",
 }) => {
-  const resizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
   const handleLayoutChange = useCallback(
     (sizes: number[]) => {
       if (!onLayoutChange || !layout.children) return;
-
-      // Clear existing timeout
-      if (resizeTimeoutRef.current) {
-        clearTimeout(resizeTimeoutRef.current);
-      }
 
       // Update the layout with new sizes
       const updatedLayout = {
@@ -234,14 +227,9 @@ export const ChartPanel: React.FC<ChartPanelProps> = ({
         })),
       };
 
-      // Call the change handler immediately for UI updates
-      onLayoutChange(updatedLayout);
 
-      // Set a timeout for auto-save (debounced)
-      resizeTimeoutRef.current = setTimeout(() => {
-        // The auto-save will be triggered by the parent component
-        console.log("Resize complete, ready for auto-save");
-      }, 500); // Wait 500ms after resize stops
+      // Call the change handler with "structure" change type for auto-save
+      onLayoutChange(updatedLayout, "structure");
     },
     [onLayoutChange, layout]
   );
