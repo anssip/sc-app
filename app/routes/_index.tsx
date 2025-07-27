@@ -28,28 +28,29 @@ export default function Index() {
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="text-lg text-gray-600">Loading...</div>
+        <div className="text-lg text-gray-500">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen items-center justify-center">
-      <div className="flex flex-col items-center gap-16">
-        <header className="flex flex-col items-center gap-9">
-          <div className="flex justify-between items-center w-full max-w-4xl">
-            <h1 className="leading text-4xl font-bold text-gray-800 dark:text-gray-100">
-              Spot Canvas App
+    <div className="min-h-screen bg-primary-dark py-16">
+      <div className="container mx-auto px-6 max-w-6xl">
+        <header className="mb-20">
+          <div className="flex justify-between items-center mb-12">
+            <h1 className="text-5xl lg:text-7xl font-bold font-primary">
+              <span className="text-white">Spot</span>{" "}
+              <span className="text-accent-1">Canvas</span>
             </h1>
             <div className="flex items-center gap-4">
               {user ? (
                 <div className="flex items-center gap-4">
-                  <span className="text-gray-600 dark:text-gray-300">
+                  <span className="text-gray-300">
                     Welcome, {user.email}
                   </span>
                   <button
                     onClick={handleSignOut}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    className="px-4 py-2 text-sm font-medium text-primary-dark bg-accent-1 rounded-md hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-accent-1 focus:ring-offset-2 focus:ring-offset-primary-dark"
                   >
                     Sign Out
                   </button>
@@ -59,24 +60,25 @@ export default function Index() {
               )}
             </div>
           </div>
-          <p className="text-lg text-gray-600 dark:text-gray-300 text-center max-w-2xl">
-            A powerful financial charting application with cloud-based layout
-            persistence, real-time synchronization, and offline support
+          <p className="text-xl lg:text-2xl text-gray-300 max-w-3xl leading-relaxed">
+            A powerful <span className="text-accent-1">financial charting</span> application with 
+            cloud-based layout persistence, real-time synchronization, and 
+            <span className="text-accent-2">offline support</span>
           </p>
         </header>
 
         {/* Conditional navigation based on auth state */}
         {user ? (
           // Authenticated user navigation
-          <nav className="flex flex-col items-center justify-center gap-4 rounded-3xl border border-gray-200 p-6 dark:border-gray-700">
-            <p className="leading-6 text-gray-700 dark:text-gray-200">
+          <nav className="mt-16 max-w-2xl">
+            <p className="text-lg text-gray-300 mb-8">
               Welcome back! Your saved layouts and preferences are synced and
               ready.
             </p>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-4">
               <Link
                 to="/chart"
-                className="group flex items-center gap-3 self-stretch p-4 leading-normal text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
+                className="group inline-flex items-center gap-3 px-8 py-4 text-lg font-medium text-primary-dark bg-accent-1 rounded-lg hover:opacity-90 transition-opacity"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -84,11 +86,11 @@ export default function Index() {
                   height="20"
                   viewBox="0 0 20 20"
                   fill="currentColor"
-                  className="text-white"
+                  className="text-primary-dark"
                 >
                   <path
                     d="M3 13L6 10L10 14L17 7"
-                    strokeWidth="1.5"
+                    strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     stroke="currentColor"
@@ -97,61 +99,62 @@ export default function Index() {
                 </svg>
                 Open Chart Dashboard
               </Link>
-              <ul>
+              <div className="flex gap-4 mt-6">
                 {resources.map(({ href, text, icon }) => (
-                  <li key={href}>
-                    <a
-                      className="group flex items-center gap-3 self-stretch p-3 leading-normal text-blue-700 hover:underline dark:text-blue-500"
-                      href={href}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {icon}
-                      {text}
-                    </a>
-                  </li>
+                  <a
+                    key={href}
+                    className="group flex items-center gap-2 text-gray-300 hover:text-accent-1 transition-colors"
+                    href={href}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {icon}
+                    {text}
+                  </a>
                 ))}
-              </ul>
+              </div>
             </div>
           </nav>
         ) : (
           // Unauthenticated user navigation
-          <nav className="flex flex-col items-center justify-center gap-4 rounded-3xl border border-gray-200 p-6 dark:border-gray-700">
-            <div className="text-center mb-4">
-              <p className="leading-6 text-gray-700 dark:text-gray-200 mb-3">
-                Sign in to access professional trading charts with cloud sync
+          <nav className="mt-16">
+            <div className="mb-8">
+              <p className="text-xl text-gray-300 mb-8">
+                Sign in to access <span className="text-accent-1">professional trading charts</span> with cloud sync
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-gray-600 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-                <div className="text-center">
-                  <div className="text-blue-600 dark:text-blue-400 mb-1">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+                <div className="bg-primary-dark-70 backdrop-blur-sm border border-gray-500/20 rounded-lg p-6">
+                  <div className="text-accent-1 text-2xl mb-3">
                     💾
                   </div>
-                  <div className="font-medium">Save Layouts</div>
-                  <div>Create and save custom chart arrangements</div>
+                  <div className="font-medium text-white mb-2">Save Layouts</div>
+                  <div className="text-gray-300">Create and save custom chart arrangements</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-blue-600 dark:text-blue-400 mb-1">
+                <div className="bg-primary-dark-70 backdrop-blur-sm border border-gray-500/20 rounded-lg p-6">
+                  <div className="text-accent-1 text-2xl mb-3">
                     🔄
                   </div>
-                  <div className="font-medium">Real-time Sync</div>
-                  <div>Access your layouts from any device</div>
+                  <div className="font-medium text-white mb-2">Real-time Sync</div>
+                  <div className="text-gray-300">Access your layouts from any device</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-blue-600 dark:text-blue-400 mb-1">
+                <div className="bg-primary-dark-70 backdrop-blur-sm border border-gray-500/20 rounded-lg p-6">
+                  <div className="text-accent-1 text-2xl mb-3">
                     📱
                   </div>
-                  <div className="font-medium">Offline Support</div>
-                  <div>Works without internet connection</div>
+                  <div className="font-medium text-white mb-2">Offline Support</div>
+                  <div className="text-gray-300">Works without internet connection</div>
                 </div>
               </div>
             </div>
-            <Login
-              title=""
-              description=""
-              showFeatures={true}
-              layout="vertical"
-              className="w-full max-w-sm"
-            />
+            <div className="max-w-md">
+              <Login
+                title=""
+                description=""
+                showFeatures={true}
+                layout="vertical"
+                className="w-full"
+              />
+            </div>
           </nav>
         )}
       </div>
@@ -170,7 +173,7 @@ const resources = [
         height="20"
         viewBox="0 0 20 20"
         fill="none"
-        className="stroke-gray-600 group-hover:stroke-current dark:stroke-gray-300"
+        className="stroke-current"
       >
         <path
           d="M9.99981 10.0751V9.99992M17.4688 17.4688C15.889 19.0485 11.2645 16.9853 7.13958 12.8604C3.01467 8.73546 0.951405 4.11091 2.53116 2.53116C4.11091 0.951405 8.73546 3.01467 12.8604 7.13958C16.9853 11.2645 19.0485 15.889 17.4688 17.4688ZM2.53132 17.4688C0.951566 15.8891 3.01483 11.2645 7.13974 7.13963C11.2647 3.01471 15.8892 0.951453 17.469 2.53121C19.0487 4.11096 16.9854 8.73551 12.8605 12.8604C8.73562 16.9853 4.11107 19.0486 2.53132 17.4688Z"
@@ -190,7 +193,7 @@ const resources = [
         height="20"
         viewBox="0 0 20 20"
         fill="none"
-        className="stroke-gray-600 group-hover:stroke-current dark:stroke-gray-300"
+        className="stroke-current"
       >
         <path
           d="M8.51851 12.0741L7.92592 18L15.6296 9.7037L11.4815 7.33333L12.0741 2L4.37036 10.2963L8.51851 12.0741Z"

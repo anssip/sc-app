@@ -14,8 +14,9 @@
   --color-accent-2: #f1fee0;
   --color-gray-100: #f8f8f8;
   --color-gray-300: #e0e0e0;
+  --color-gray-500: #999999;
   --color-error: #eb4545;
-  --color-white: #FFFFFF;
+  --color-white: #ffffff;
 
   /* other */
   --color-background-secondary: rgb(143, 143, 143);
@@ -42,9 +43,8 @@
 
 html,
 body {
-  @apply bg-white dark:bg-gray-950;
-
-  @media (prefers-color-scheme: dark) {
-    color-scheme: dark;
-  }
+  background-color: var(--color-primary-dark);
+  color: var(--color-white);
+  font-family: var(--font-secondary);
+  min-height: 100vh;
 }

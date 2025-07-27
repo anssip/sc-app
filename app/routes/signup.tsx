@@ -73,17 +73,17 @@ export default function SignUp() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-primary-dark py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create your account
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-white">
+            Create your <span className="text-accent-1">account</span>
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-center text-sm text-gray-300">
             Or{" "}
             <a
               href="/signin"
-              className="font-medium text-indigo-600 hover:text-indigo-500"
+              className="font-medium text-accent-1 hover:text-accent-2 transition-colors"
             >
               sign in to your existing account
             </a>
@@ -92,10 +92,10 @@ export default function SignUp() {
         
         <form onSubmit={handleSubmit} className="mt-8 space-y-6">
           {error && (
-            <div className="rounded-md bg-red-50 p-4">
+            <div className="rounded-md bg-red-500/10 p-4 border border-red-500/20">
               <div className="flex">
                 <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">
+                  <h3 className="text-sm font-medium text-red-500">
                     {error}
                   </h3>
                 </div>
@@ -112,10 +112,10 @@ export default function SignUp() {
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
+              <div className="w-full border-t border-gray-500" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-gray-50 text-gray-500">Or create account with email</span>
+              <span className="px-2 bg-primary-dark text-gray-300">Or create account with email</span>
             </div>
           </div>
 
@@ -132,7 +132,7 @@ export default function SignUp() {
                 required
                 value={formData.email}
                 onChange={handleInputChange}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-500 placeholder-gray-500 text-white bg-primary-dark rounded-t-md focus:outline-none focus:ring-accent-1 focus:border-accent-1 focus:z-10 sm:text-sm"
                 placeholder="Email address"
                 disabled={isSubmitting}
               />
@@ -149,7 +149,7 @@ export default function SignUp() {
                 required
                 value={formData.password}
                 onChange={handleInputChange}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-500 placeholder-gray-500 text-white bg-primary-dark focus:outline-none focus:ring-accent-1 focus:border-accent-1 focus:z-10 sm:text-sm"
                 placeholder="Password"
                 disabled={isSubmitting}
               />
@@ -166,7 +166,7 @@ export default function SignUp() {
                 required
                 value={formData.confirmPassword}
                 onChange={handleInputChange}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-500 placeholder-gray-500 text-white bg-primary-dark rounded-b-md focus:outline-none focus:ring-accent-1 focus:border-accent-1 focus:z-10 sm:text-sm"
                 placeholder="Confirm password"
                 disabled={isSubmitting}
               />
@@ -177,7 +177,7 @@ export default function SignUp() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-primary-dark bg-accent-1 hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-primary-dark focus:ring-accent-1 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? "Creating account..." : "Sign up"}
             </button>

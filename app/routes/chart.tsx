@@ -24,26 +24,30 @@ function ChartContent() {
   };
 
   return (
-    <div className="h-screen flex flex-col">
-      <header className="bg-gray-900 text-white p-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold">Spot Canvas - Charts</h1>
-          <a href="/" className="text-blue-400 hover:text-blue-300 underline">
+    <div className="h-screen flex flex-col bg-primary-dark">
+      <header className="bg-primary-dark-95 border-b border-gray-500/20 px-6 py-4">
+        <div className="flex items-center justify-between mb-2">
+          <h1 className="text-2xl font-bold font-primary">
+            <span className="text-white">Spot</span>{" "}
+            <span className="text-accent-1">Canvas</span>
+            <span className="text-gray-300 font-normal ml-2">- Charts</span>
+          </h1>
+          <a href="/" className="text-gray-300 hover:text-accent-1 transition-colors text-sm">
             ← Back to Home
           </a>
         </div>
         <div className="flex items-center gap-4">
-          <span className="text-gray-300">Welcome, {user?.email}</span>
+          <span className="text-gray-300 text-sm">Welcome, {user?.email}</span>
           <button
             onClick={handleSignOut}
-            className="px-3 py-1 text-sm bg-gray-700 hover:bg-gray-600 rounded transition-colors"
+            className="px-3 py-1 text-sm text-primary-dark bg-accent-1 hover:opacity-90 transition-opacity rounded"
           >
             Sign Out
           </button>
         </div>
       </header>
 
-      <main className="flex-1">
+      <main className="flex-1 bg-primary-dark">
         <ChartApp className="h-full" />
       </main>
     </div>
@@ -54,7 +58,7 @@ export default function ChartRoute() {
   return (
     <ProtectedRoute
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="min-h-screen flex items-center justify-center bg-primary-dark">
           <div className="max-w-md w-full">
             <Login
               title="Authentication Required"
