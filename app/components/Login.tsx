@@ -1,6 +1,6 @@
-import { Link } from "@remix-run/react";
 import { useState } from "react";
 import GoogleSignInButton from "~/components/GoogleSignInButton";
+import Button from "~/components/Button";
 
 interface LoginProps {
   title?: string;
@@ -56,18 +56,22 @@ export default function Login({
             onError={setAuthError}
             className="w-full"
           />
-          <Link
+          <Button
+            asLink
             to="/signin"
-            className="w-full text-center px-4 py-2 text-sm font-medium text-primary-dark bg-accent-1 border border-transparent rounded-md hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-primary-dark focus:ring-accent-1"
+            variant="primary"
+            fullWidth
           >
             Sign In
-          </Link>
-          <Link
+          </Button>
+          <Button
+            asLink
             to="/signup"
-            className="w-full text-center px-4 py-2 text-sm font-medium text-white bg-transparent border border-gray-500 rounded-md hover:bg-gray-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-primary-dark focus:ring-gray-500"
+            variant="secondary"
+            fullWidth
           >
             Create Account
-          </Link>
+          </Button>
         </div>
       </div>
     );
@@ -85,18 +89,22 @@ export default function Login({
           onError={setAuthError}
           className="px-3 py-1.5 text-xs"
         />
-        <Link
+        <Button
+          asLink
           to="/signin"
-          className="px-4 py-2 text-sm font-medium text-white bg-transparent border border-gray-500 rounded-md hover:bg-gray-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-primary-dark focus:ring-gray-500"
+          variant="secondary"
+          size="sm"
         >
           Sign In
-        </Link>
-        <Link
+        </Button>
+        <Button
+          asLink
           to="/signup"
-          className="px-4 py-2 text-sm font-medium text-primary-dark bg-accent-1 border border-transparent rounded-md hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-primary-dark focus:ring-accent-1"
+          variant="primary"
+          size="sm"
         >
           Sign Up
-        </Link>
+        </Button>
       </div>
     </div>
   );

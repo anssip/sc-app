@@ -3,6 +3,7 @@ import { Link } from "@remix-run/react";
 import { useAuth } from "~/lib/auth-context";
 import { logOut } from "~/lib/auth";
 import Login from "~/components/Login";
+import Button from "~/components/Button";
 
 export const meta: MetaFunction = () => {
   return [
@@ -48,12 +49,13 @@ export default function Index() {
                   <span className="text-gray-300">
                     Welcome, {user.email}
                   </span>
-                  <button
+                  <Button
                     onClick={handleSignOut}
-                    className="px-4 py-2 text-sm font-medium text-primary-dark bg-accent-1 rounded-md hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-accent-1 focus:ring-offset-2 focus:ring-offset-primary-dark"
+                    variant="primary"
+                    size="sm"
                   >
                     Sign Out
-                  </button>
+                  </Button>
                 </div>
               ) : (
                 <Login layout="horizontal" />
@@ -76,9 +78,11 @@ export default function Index() {
               ready.
             </p>
             <div className="flex flex-col gap-4">
-              <Link
+              <Button
+                asLink
                 to="/chart"
-                className="group inline-flex items-center gap-3 px-8 py-4 text-lg font-medium text-primary-dark bg-accent-1 rounded-lg hover:opacity-90 transition-opacity"
+                variant="primary"
+                size="lg"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -86,7 +90,7 @@ export default function Index() {
                   height="20"
                   viewBox="0 0 20 20"
                   fill="currentColor"
-                  className="text-primary-dark"
+                  className="text-black"
                 >
                   <path
                     d="M3 13L6 10L10 14L17 7"
@@ -98,7 +102,7 @@ export default function Index() {
                   />
                 </svg>
                 Open Chart Dashboard
-              </Link>
+              </Button>
               <div className="flex gap-4 mt-6">
                 {resources.map(({ href, text, icon }) => (
                   <a

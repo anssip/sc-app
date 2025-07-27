@@ -26,6 +26,23 @@ export default {
         sans: ["var(--font-secondary)"],
         primary: ["var(--font-primary)"],
       },
+      backgroundImage: {
+        "gradient-primary": "var(--gradient-primary)",
+        "gradient-card": "var(--gradient-card)",
+        "gradient-bg": "var(--gradient-bg)",
+      },
+      boxShadow: {
+        glow: "var(--shadow-glow)",
+        "glow-green": "var(--shadow-glow-green)",
+        card: "var(--shadow-card)",
+      },
+      borderColor: {
+        DEFAULT: "var(--border-color)",
+        highlight: "var(--border-color-highlight)",
+      },
+      colors: {
+        "pricing-green": "var(--color-pricing-green)",
+      },
     },
   },
   plugins: [],
