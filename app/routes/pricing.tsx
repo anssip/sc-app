@@ -2,7 +2,7 @@ import type { MetaFunction } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { useLoaderData, useNavigate } from "@remix-run/react";
 import PricingCard from "~/components/PricingCard";
-import Button from "~/components/Button";
+import Navigation from "~/components/Navigation";
 
 export const meta: MetaFunction = () => {
   return [
@@ -117,43 +117,7 @@ export default function PricingPage() {
       </div>
 
       {/* Navigation */}
-      <nav className="relative z-20 p-6">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-pricing-green rounded-sm"></div>
-            <span className="text-white font-bold text-xl">Spot Canvas</span>
-          </div>
-          <div className="hidden md:flex items-center gap-8">
-            <a
-              href="/"
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              Features
-            </a>
-            <a
-              href="/pricing"
-              className="text-white transition-colors"
-            >
-              Pricing
-            </a>
-            <a
-              href="#blog"
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              Blog
-            </a>
-            <a
-              href="#contact"
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              Contact
-            </a>
-          </div>
-          <Button variant="primary" size="sm">
-            Get started
-          </Button>
-        </div>
-      </nav>
+      <Navigation />
 
       {/* Main Content */}
       <div className="relative z-10 max-w-7xl mx-auto px-6 pt-12 pb-20">

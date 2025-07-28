@@ -1,71 +1,72 @@
-import { Link } from "@remix-run/react";
-import { useAuth } from "~/lib/auth-context";
-import { logOut } from "~/lib/auth";
+import { Link, useLocation } from "@remix-run/react";
+import Button from "~/components/Button";
+import AccountMenu from "~/components/AccountMenu";
 
-export default function Navigation() {
-  const { user, loading } = useAuth();
+interface NavigationProps {
+  showGetStarted?: boolean;
+}
 
-  const handleSignOut = async () => {
-    try {
-      await logOut();
-    } catch (error) {
-      console.error("Error signing out:", error);
-    }
+export default function Navigation({ showGetStarted = true }: NavigationProps) {
+  const location = useLocation();
+  
+  const isActive = (path: string) => {
+    return location.pathname === path;
   };
 
-  if (loading) {
-    return null;
-  }
-
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex items-center">
-            <Link 
-              to="/" 
-              className="text-xl font-bold text-gray-900 hover:text-gray-700"
-            >
-              Spot Canvas
-            </Link>
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            {user ? (
-              <>
-                <Link
-                  to="/chart"
-                  className="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium"
-                >
-                  Charts
-                </Link>
-                <span className="text-gray-500 text-sm">
-                  {user.email}
-                </span>
-                <button
-                  onClick={handleSignOut}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-md text-sm font-medium"
-                >
-                  Sign Out
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  to="/signin"
-                  className="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium"
-                >
-                  Sign In
-                </Link>
-                <Link
-                  to="/signup"
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-md text-sm font-medium"
-                >
-                  Sign Up
-                </Link>
-              </>
-            )}
-          </div>
+    <nav className="relative z-20 p-6">
+      <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-pricing-green rounded-sm"></div>
+            <span className="text-white font-bold text-xl">Spot Canvas</span>
+          </Link>
+        </div>
+        
+        <div className="hidden md:flex items-center gap-8">
+          <Link
+            to="/"
+            className={`transition-colors ${
+              isActive("/") ? "text-white" : "text-gray-400 hover:text-white"
+            }`}
+          >
+            Home
+          </Link>
+          <a
+            href="#features"
+            className="text-gray-400 hover:text-white transition-colors"
+          >
+            Features
+          </a>
+          <Link
+            to="/pricing"
+            className={`transition-colors ${
+              isActive("/pricing") ? "text-white" : "text-gray-400 hover:text-white"
+            }`}
+          >
+            Pricing
+          </Link>
+          <a
+            href="#blog"
+            className="text-gray-400 hover:text-white transition-colors"
+          >
+            Blog
+          </a>
+          <a
+            href="#contact"
+            className="text-gray-400 hover:text-white transition-colors"
+          >
+            Contact
+          </a>
+        </div>
+        
+        <div className="flex items-center gap-4">
+          {showGetStarted && (
+            <Button variant="primary" size="sm">
+              Get started
+            </Button>
+          )}
+          <AccountMenu />
         </div>
       </div>
     </nav>

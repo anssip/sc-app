@@ -1,9 +1,9 @@
 import type { MetaFunction } from "@remix-run/node";
 import { Link } from "@remix-run/react";
 import { useAuth } from "~/lib/auth-context";
-import { logOut } from "~/lib/auth";
 import Login from "~/components/Login";
 import Button from "~/components/Button";
+import Navigation from "~/components/Navigation";
 
 export const meta: MetaFunction = () => {
   return [
@@ -18,14 +18,6 @@ export const meta: MetaFunction = () => {
 export default function Index() {
   const { user, loading } = useAuth();
 
-  const handleSignOut = async () => {
-    try {
-      await logOut();
-    } catch (error) {
-      console.error("Error signing out:", error);
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -35,33 +27,15 @@ export default function Index() {
   }
 
   return (
-    <div className="min-h-screen bg-primary-dark py-16">
-      <div className="container mx-auto px-6 max-w-6xl">
+    <div className="min-h-screen bg-primary-dark">
+      <Navigation showGetStarted={false} />
+      
+      <div className="container mx-auto px-6 max-w-6xl py-16">
         <header className="mb-20">
-          <div className="flex justify-between items-center mb-12">
-            <h1 className="text-5xl lg:text-7xl font-bold font-primary">
-              <span className="text-white">Spot</span>{" "}
-              <span className="text-accent-1">Canvas</span>
-            </h1>
-            <div className="flex items-center gap-4">
-              {user ? (
-                <div className="flex items-center gap-4">
-                  <span className="text-gray-300">
-                    Welcome, {user.email}
-                  </span>
-                  <Button
-                    onClick={handleSignOut}
-                    variant="primary"
-                    size="sm"
-                  >
-                    Sign Out
-                  </Button>
-                </div>
-              ) : (
-                <Login layout="horizontal" />
-              )}
-            </div>
-          </div>
+          <h1 className="text-5xl lg:text-7xl font-bold font-primary mb-6">
+            <span className="text-white">Spot</span>{" "}
+            <span className="text-accent-1">Canvas</span>
+          </h1>
           <p className="text-xl lg:text-2xl text-gray-300 max-w-3xl leading-relaxed">
             A powerful <span className="text-accent-1">financial charting</span> application with 
             cloud-based layout persistence, real-time synchronization, and 

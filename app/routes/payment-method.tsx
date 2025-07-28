@@ -2,6 +2,7 @@ import type { MetaFunction, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { useLoaderData, useNavigate } from "@remix-run/react";
 import Button from "~/components/Button";
+import AccountMenu from "~/components/AccountMenu";
 
 export const meta: MetaFunction = () => {
   return [
@@ -30,12 +31,15 @@ export default function PaymentMethodPage() {
             <div className="w-8 h-8 bg-pricing-green rounded-sm"></div>
             <span className="text-white font-bold text-xl">Spot Canvas</span>
           </div>
-          <button
-            onClick={() => navigate("/pricing")}
-            className="text-gray-400 hover:text-white transition-colors"
-          >
-            Back to Pricing
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate("/pricing")}
+              className="text-gray-400 hover:text-white transition-colors"
+            >
+              Back to Pricing
+            </button>
+            <AccountMenu />
+          </div>
         </div>
       </nav>
 
