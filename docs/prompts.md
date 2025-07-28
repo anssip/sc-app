@@ -96,6 +96,20 @@ Indicator selection and deselectyion in the chart emits an `indicatorChange` eve
 
 Implement this, please.
 
+# Account Menu
+
+Add an AccountMenu component which allows for people to sign in and out, and for people who have not yet signed up it should show the sign up optios.
+
+For people who have not yet signed up:
+
+- At the top level, when not yet signed in, it should show an account icon (from lucide-react) and a label "Account"
+- Clicking it opens up a menu with the singup options: Continue with google, Sign in, Create Account (like the options currently in the home page)
+
+When logged in:
+
+- Show the user's email address at top level together with the account icon
+- Menu options: Chart Dashboard, Sign out
+
 # Subscriptions via Stripe
 
 There will be a trial period of 7 days to use the application. After the trial period, the user needs to have an active subscription in Stripe.
