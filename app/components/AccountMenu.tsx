@@ -1,13 +1,15 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "@remix-run/react";
-import { User, ChevronDown } from "lucide-react";
+import { User, ChevronDown, Crown, Zap } from "lucide-react";
 import { useAuth } from "~/lib/auth-context";
 import { logOut } from "~/lib/auth";
 import Button from "~/components/Button";
 import GoogleSignInButton from "~/components/GoogleSignInButton";
+import { useSubscription } from "~/contexts/SubscriptionContext";
 
 export default function AccountMenu() {
   const { user } = useAuth();
+  const { status, plan, trialEndsAt } = useSubscription();
   const [isOpen, setIsOpen] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -56,14 +58,50 @@ export default function AccountMenu() {
               <div className="mb-4 pb-4 border-b border-gray-800">
                 <p className="text-sm text-gray-400">Signed in as</p>
                 <p className="text-white font-medium">{user.email}</p>
+                
+                {/* Subscription Status */}
+                {status !== 'none' && (
+                  <div className="mt-3">
+                    {status === 'trialing' && trialEndsAt && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Zap className="h-4 w-4 text-yellow-500" />
+                        <span className="text-yellow-500">
+                          Trial ends {new Date(trialEndsAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    )}
+                    {status === 'active' && (
+                      <div className="flex items-center gap-2 text-sm">
+                        {plan === 'pro' ? (
+                          <>
+                            <Crown className="h-4 w-4 text-pricing-green" />
+                            <span className="text-pricing-green">Pro Plan</span>
+                          </>
+                        ) : (
+                          <>
+                            <Zap className="h-4 w-4 text-blue-500" />
+                            <span className="text-blue-500">Starter Plan</span>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Link
-                  to="/chart"
+                  to="/charts"
                   onClick={() => setIsOpen(false)}
                   className="block w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-800 rounded-md transition-colors"
                 >
                   Chart Dashboard
+                </Link>
+                <Link
+                  to="/billing"
+                  onClick={() => setIsOpen(false)}
+                  className="block w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-800 rounded-md transition-colors"
+                >
+                  Billing & Subscription
                 </Link>
                 <button
                   onClick={handleSignOut}

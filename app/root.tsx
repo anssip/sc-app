@@ -7,6 +7,7 @@ import {
 } from "@remix-run/react";
 import type { LinksFunction } from "@remix-run/node";
 import { AuthProvider } from "~/lib/auth-context";
+import { SubscriptionProvider } from "~/contexts/SubscriptionContext";
 
 import "./tailwind.css";
 
@@ -73,7 +74,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <AuthProvider>
-      <Outlet />
+      <SubscriptionProvider>
+        <Outlet />
+      </SubscriptionProvider>
     </AuthProvider>
   );
 }

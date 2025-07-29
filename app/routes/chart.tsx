@@ -4,6 +4,7 @@ import { useAuth } from "~/lib/auth-context";
 import { logOut } from "~/lib/auth";
 import Login from "~/components/Login";
 import { ChartApp } from "~/components/ChartApp";
+import SubscriptionNotification from "~/components/SubscriptionNotification";
 
 export const meta: MetaFunction = () => {
   return [
@@ -48,7 +49,12 @@ function ChartContent() {
       </header>
 
       <main className="flex-1 bg-primary-dark">
-        <ChartApp className="h-full" />
+        <div className="h-full flex flex-col">
+          <div className="px-6 pt-4">
+            <SubscriptionNotification />
+          </div>
+          <ChartApp className="flex-1" />
+        </div>
       </main>
     </div>
   );
