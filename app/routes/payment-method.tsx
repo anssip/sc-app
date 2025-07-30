@@ -101,12 +101,12 @@ export default function PaymentMethodPage() {
             <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-6">
               <h3 className="text-yellow-500 font-medium mb-2">Stripe Configuration Required</h3>
               <p className="text-gray-400 text-sm mb-4">
-                To enable payment processing, please set the STRIPE_PUBLISHABLE_KEY environment variable.
+                To enable payment processing, please set the VITE_STRIPE_PUBLISHABLE_KEY environment variable.
               </p>
               <p className="text-gray-500 text-xs">
                 Add your Stripe publishable key to your .env file:
                 <br />
-                <code className="text-gray-300">STRIPE_PUBLISHABLE_KEY=pk_test_...</code>
+                <code className="text-gray-300">VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...</code>
               </p>
             </div>
           )}

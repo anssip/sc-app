@@ -1,40 +1,31 @@
-import { FirebaseApp, initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { FirebaseApp, initializeApp, getApps } from "firebase/app";
+import { getAuth, Auth } from "firebase/auth";
+import { getFirestore, Firestore } from "firebase/firestore";
 
-// Firebase configuration from environment variables
-// In Vite, client-side env vars must be prefixed with VITE_
-export const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "",
+// Firebase configuration
+// These are client-side keys and safe to expose
+const firebaseConfig = {
+  apiKey: "AIzaSyDkDBUUnxUqV3YZBm9GOrkcULZjBT4azyc",
+  authDomain: "spotcanvas-prod.firebaseapp.com",
+  projectId: "spotcanvas-prod",
+  storageBucket: "spotcanvas-prod.firebasestorage.app",
+  messagingSenderId: "346028322665",
+  appId: "1:346028322665:web:f278b8364243d165f8d7f8",
 };
 
-// Validate that all required Firebase config values are present
-const requiredConfigKeys = [
-  'apiKey',
-  'authDomain',
-  'projectId',
-  'storageBucket',
-  'messagingSenderId',
-  'appId'
-] as const;
+let app: FirebaseApp;
+let auth: Auth;
+let db: Firestore;
 
-for (const key of requiredConfigKeys) {
-  if (!firebaseConfig[key]) {
-    console.error(`Missing required Firebase configuration: ${key}`);
-  }
+// Initialize Firebase
+if (getApps().length === 0) {
+  app = initializeApp(firebaseConfig);
+} else {
+  app = getApps()[0];
 }
 
-const app: FirebaseApp = initializeApp(firebaseConfig);
+auth = getAuth(app);
+db = getFirestore(app);
 
-// Initialize Firebase Authentication and get a reference to the service
-export const auth = getAuth(app);
-
-// Initialize Cloud Firestore and get a reference to the service
-export const db = getFirestore(app);
-
+export { auth, db, firebaseConfig };
 export default app;
