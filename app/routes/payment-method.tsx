@@ -30,15 +30,17 @@ export async function loader({ request }: LoaderFunctionArgs) {
   return json({ 
     selectedPlan,
     priceId: priceIds[selectedPlan.toLowerCase() as keyof typeof priceIds] || priceIds.pro,
-    publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || "",
   });
 }
 
 
 export default function PaymentMethodPage() {
-  const { selectedPlan, publishableKey, priceId } = useLoaderData<typeof loader>();
+  const { selectedPlan, priceId } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const [stripePromise, setStripePromise] = useState<Promise<any> | null>(null);
+  
+  // Get the publishable key from Vite env vars on the client side
+  const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "";
 
   useEffect(() => {
     if (publishableKey) {
