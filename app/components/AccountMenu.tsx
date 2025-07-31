@@ -90,7 +90,7 @@ export default function AccountMenu() {
               </div>
               <div className="space-y-2">
                 <Link
-                  to="/charts"
+                  to="/chart"
                   onClick={() => setIsOpen(false)}
                   className="block w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-800 rounded-md transition-colors"
                 >

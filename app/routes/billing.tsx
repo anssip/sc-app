@@ -73,7 +73,7 @@ function BillingContent() {
           </div>
           <div className="flex items-center gap-4">
             <button
-              onClick={() => navigate("/charts")}
+              onClick={() => navigate("/chart")}
               className="text-gray-400 hover:text-white transition-colors"
             >
               Back to Charts

@@ -75,11 +75,11 @@ export default function PaymentForm({ priceId, selectedPlan, onSuccess }: Paymen
         throw new Error(data.error || 'Failed to create subscription')
       }
 
-      // Success! Redirect to charts
+      // Success! Redirect to thank you page
       if (onSuccess) {
         onSuccess()
       } else {
-        navigate('/charts')
+        navigate('/thank-you')
       }
     } catch (error) {
       console.error('Payment error:', error)
