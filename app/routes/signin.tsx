@@ -69,12 +69,16 @@ export default function SignIn() {
           </h2>
           <p className="mt-2 text-center text-sm text-gray-300">
             Or{" "}
-            <a
-              href="/signup"
-              className="font-medium text-accent-1 hover:text-accent-2 transition-colors"
+            <Button
+              asLink
+              to="/signup"
+              variant="outline"
+              size="sm"
+              outlineColor="var(--color-accent-1)"
+              className="!px-3 !py-1 !text-xs border-2 hover:!bg-accent-1/10 hover:!text-accent-1"
             >
               create a new account
-            </a>
+            </Button>
           </p>
         </div>
         

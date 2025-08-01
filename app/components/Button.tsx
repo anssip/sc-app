@@ -9,6 +9,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   asLink?: boolean;
   to?: string;
   href?: string;
+  outlineColor?: string;
 }
 
 export default function Button({
@@ -19,6 +20,7 @@ export default function Button({
   asLink = false,
   to,
   href,
+  outlineColor,
   className = "",
   ...props
 }: ButtonProps) {
@@ -37,18 +39,20 @@ export default function Button({
     secondary:
       "bg-transparent border border-gray-600 text-white hover:border-pricing-green/50 hover:bg-pricing-green/10",
     outline:
-      "bg-transparent border border-gray-500 text-white hover:bg-gray-500/10",
+      "bg-transparent border-2 border-gray-500 text-white hover:bg-gray-500/10",
     blue: "bg-primary text-white hover:bg-primary/90 hover:scale-105 hover:shadow-lg",
   };
 
   const widthClass = fullWidth ? "w-full" : "";
 
-  const combinedClasses = `${baseClasses} ${sizeClasses[size]} ${variantClasses[variant]} ${widthClass} ${className}`;
+  // Apply custom outline color if provided and variant is outline
+  let finalClassName = `${baseClasses} ${sizeClasses[size]} ${variantClasses[variant]} ${widthClass} ${className}`;
+  const customStyle = variant === "outline" && outlineColor ? { borderColor: outlineColor } : undefined;
 
   // If it's a Link component
   if (asLink && to) {
     return (
-      <Link to={to} className={combinedClasses}>
+      <Link to={to} className={finalClassName} style={customStyle}>
         {children}
       </Link>
     );
@@ -57,7 +61,7 @@ export default function Button({
   // If it's an anchor tag
   if (href) {
     return (
-      <a href={href} className={combinedClasses}>
+      <a href={href} className={finalClassName} style={customStyle}>
         {children}
       </a>
     );
@@ -65,7 +69,7 @@ export default function Button({
 
   // Default button
   return (
-    <button className={combinedClasses} {...props}>
+    <button className={finalClassName} style={customStyle} {...props}>
       {children}
     </button>
   );
