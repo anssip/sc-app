@@ -8,7 +8,7 @@ import { useSubscription } from "~/contexts/SubscriptionContext";
 
 export const meta: MetaFunction = () => {
   return [
-    { title: "Welcome to Spot Canvas Pro!" },
+    { title: "Welcome to Spot Canvas!" },
     { name: "description", content: "Your free trial has been activated" },
   ];
 };
@@ -48,7 +48,9 @@ export default function ThankYouPage() {
 
           {/* Welcome Message */}
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-            Welcome to Spot Canvas Pro!
+            Welcome to Spot Canvas {plan && plan !== 'none' ? (
+              <span className="capitalize">{plan}</span>
+            ) : ''}!
           </h1>
           
           <p className="text-xl text-gray-300 mb-8">
@@ -73,25 +75,48 @@ export default function ThankYouPage() {
           {/* Features List */}
           <div className="mb-12">
             <p className="text-lg text-gray-300 mb-6">
-              You now have access to all Pro features:
+              You now have access to {plan === 'starter' ? 'Starter' : 'Pro'} features:
             </p>
             <ul className="text-left inline-block space-y-3">
-              <li className="flex items-center gap-3 text-gray-300">
-                <CheckCircle className="h-5 w-5 text-pricing-green flex-shrink-0" />
-                <span>300+ crypto trading pairs</span>
-              </li>
-              <li className="flex items-center gap-3 text-gray-300">
-                <CheckCircle className="h-5 w-5 text-pricing-green flex-shrink-0" />
-                <span>Advanced multi-chart layouts</span>
-              </li>
-              <li className="flex items-center gap-3 text-gray-300">
-                <CheckCircle className="h-5 w-5 text-pricing-green flex-shrink-0" />
-                <span>Unlimited saved layouts</span>
-              </li>
-              <li className="flex items-center gap-3 text-gray-300">
-                <CheckCircle className="h-5 w-5 text-pricing-green flex-shrink-0" />
-                <span>All technical indicators</span>
-              </li>
+              {plan === 'starter' ? (
+                <>
+                  <li className="flex items-center gap-3 text-gray-300">
+                    <CheckCircle className="h-5 w-5 text-pricing-green flex-shrink-0" />
+                    <span>4 trading symbols</span>
+                  </li>
+                  <li className="flex items-center gap-3 text-gray-300">
+                    <CheckCircle className="h-5 w-5 text-pricing-green flex-shrink-0" />
+                    <span>Basic indicators</span>
+                  </li>
+                  <li className="flex items-center gap-3 text-gray-300">
+                    <CheckCircle className="h-5 w-5 text-pricing-green flex-shrink-0" />
+                    <span>2 charts per layout</span>
+                  </li>
+                  <li className="flex items-center gap-3 text-gray-300">
+                    <CheckCircle className="h-5 w-5 text-pricing-green flex-shrink-0" />
+                    <span>Essential trading tools</span>
+                  </li>
+                </>
+              ) : (
+                <>
+                  <li className="flex items-center gap-3 text-gray-300">
+                    <CheckCircle className="h-5 w-5 text-pricing-green flex-shrink-0" />
+                    <span>300+ crypto trading pairs</span>
+                  </li>
+                  <li className="flex items-center gap-3 text-gray-300">
+                    <CheckCircle className="h-5 w-5 text-pricing-green flex-shrink-0" />
+                    <span>Advanced multi-chart layouts</span>
+                  </li>
+                  <li className="flex items-center gap-3 text-gray-300">
+                    <CheckCircle className="h-5 w-5 text-pricing-green flex-shrink-0" />
+                    <span>Unlimited saved layouts</span>
+                  </li>
+                  <li className="flex items-center gap-3 text-gray-300">
+                    <CheckCircle className="h-5 w-5 text-pricing-green flex-shrink-0" />
+                    <span>All technical indicators</span>
+                  </li>
+                </>
+              )}
             </ul>
           </div>
 
