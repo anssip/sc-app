@@ -106,9 +106,9 @@ export default function SignIn() {
             </div>
           </div>
 
-          <div className="rounded-md shadow-sm -space-y-px">
+          <div className="space-y-4">
             <div>
-              <label htmlFor="email" className="sr-only">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1">
                 Email address
               </label>
               <input
@@ -119,13 +119,13 @@ export default function SignIn() {
                 required
                 value={formData.email}
                 onChange={handleInputChange}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-500 placeholder-gray-500 text-white bg-primary-dark rounded-t-md focus:outline-none focus:ring-accent-1 focus:border-accent-1 focus:z-10 sm:text-sm"
-                placeholder="Email address"
+                className="appearance-none relative block w-full px-3 py-2 border border-gray-500 placeholder-gray-500 text-white bg-primary-dark rounded-md focus:outline-none focus:ring-accent-1 focus:border-accent-1 focus:z-10 sm:text-sm"
+                placeholder="Enter your email"
                 disabled={isSubmitting}
               />
             </div>
             <div>
-              <label htmlFor="password" className="sr-only">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1">
                 Password
               </label>
               <input
@@ -136,8 +136,8 @@ export default function SignIn() {
                 required
                 value={formData.password}
                 onChange={handleInputChange}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-500 placeholder-gray-500 text-white bg-primary-dark rounded-b-md focus:outline-none focus:ring-accent-1 focus:border-accent-1 focus:z-10 sm:text-sm"
-                placeholder="Password"
+                className="appearance-none relative block w-full px-3 py-2 border border-gray-500 placeholder-gray-500 text-white bg-primary-dark rounded-md focus:outline-none focus:ring-accent-1 focus:border-accent-1 focus:z-10 sm:text-sm"
+                placeholder="Enter your password"
                 disabled={isSubmitting}
               />
             </div>
