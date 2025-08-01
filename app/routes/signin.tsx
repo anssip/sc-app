@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { signIn, getErrorMessage } from "~/lib/auth";
 import { useAuth } from "~/lib/auth-context";
 import GoogleSignInButton from "~/components/GoogleSignInButton";
+import Button from "~/components/Button";
 
 export const meta: MetaFunction = () => {
   return [
@@ -144,13 +145,14 @@ export default function SignIn() {
           </div>
 
           <div>
-            <button
+            <Button
               type="submit"
+              variant="blue"
+              fullWidth
               disabled={isSubmitting}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-primary-dark bg-accent-1 hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-primary-dark focus:ring-accent-1 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? "Signing in..." : "Sign in"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
