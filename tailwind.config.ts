@@ -21,6 +21,7 @@ export default {
         background: {
           secondary: "var(--color-background-secondary)",
         },
+        "pricing-green": "var(--color-pricing-green)",
       },
       fontFamily: {
         sans: ["var(--font-secondary)"],
@@ -39,9 +40,6 @@ export default {
       borderColor: {
         DEFAULT: "var(--border-color)",
         highlight: "var(--border-color-highlight)",
-      },
-      colors: {
-        "pricing-green": "var(--color-pricing-green)",
       },
     },
   },

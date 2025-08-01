@@ -42,7 +42,9 @@ export default function Login({
 
         {showFeatures && (
           <div className="text-center text-sm text-gray-300">
-            <p className="font-medium mb-2 text-white">Features available after sign-in:</p>
+            <p className="font-medium mb-2 text-white">
+              Features available after sign-in:
+            </p>
             <ul className="space-y-1">
               {features.map((feature, index) => (
                 <li key={index}>• {feature}</li>
@@ -52,24 +54,11 @@ export default function Login({
         )}
 
         <div className="flex flex-col gap-3 w-full max-w-sm">
-          <GoogleSignInButton
-            onError={setAuthError}
-            className="w-full"
-          />
-          <Button
-            asLink
-            to="/signin"
-            variant="blue"
-            fullWidth
-          >
+          <GoogleSignInButton onError={setAuthError} className="w-full" />
+          <Button asLink to="/signin" variant="blue" fullWidth>
             Sign In
           </Button>
-          <Button
-            asLink
-            to="/signup"
-            variant="secondary"
-            fullWidth
-          >
+          <Button asLink to="/signup" variant="secondary" fullWidth>
             Create Account
           </Button>
         </div>
@@ -89,20 +78,10 @@ export default function Login({
           onError={setAuthError}
           className="px-3 py-1.5 text-xs"
         />
-        <Button
-          asLink
-          to="/signin"
-          variant="blue"
-          size="sm"
-        >
+        <Button asLink to="/signin" variant="blue" size="sm">
           Sign In
         </Button>
-        <Button
-          asLink
-          to="/signup"
-          variant="primary"
-          size="sm"
-        >
+        <Button asLink to="/signup" variant="primary" size="sm">
           Sign Up
         </Button>
       </div>

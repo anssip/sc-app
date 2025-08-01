@@ -29,7 +29,7 @@ export default function Index() {
   return (
     <div className="min-h-screen bg-primary-dark">
       <Navigation showGetStarted={false} />
-      
+
       <div className="container mx-auto px-6 max-w-6xl py-16">
         <header className="mb-20">
           <h1 className="text-5xl lg:text-7xl font-bold font-primary mb-6">
@@ -37,8 +37,9 @@ export default function Index() {
             <span className="text-accent-1">Canvas</span>
           </h1>
           <p className="text-xl lg:text-2xl text-gray-300 max-w-3xl leading-relaxed">
-            A powerful <span className="text-accent-1">financial charting</span> application with 
-            cloud-based layout persistence, real-time synchronization, and 
+            A powerful <span className="text-accent-1">financial charting</span>{" "}
+            application with cloud-based layout persistence, real-time
+            synchronization, and
             <span className="text-accent-2">offline support</span>
           </p>
         </header>
@@ -52,12 +53,7 @@ export default function Index() {
               ready.
             </p>
             <div className="flex flex-col gap-4">
-              <Button
-                asLink
-                to="/chart"
-                variant="primary"
-                size="lg"
-              >
+              <Button asLink to="/chart" variant="primary" size="lg">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="24"
@@ -98,29 +94,39 @@ export default function Index() {
           <nav className="mt-16">
             <div className="mb-8">
               <p className="text-xl text-gray-300 mb-8">
-                Sign in to access <span className="text-accent-1">professional trading charts</span> with cloud sync
+                Sign in to access{" "}
+                <span className="text-accent-1">
+                  professional trading charts
+                </span>{" "}
+                with cloud sync
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
                 <div className="bg-primary-dark-70 backdrop-blur-sm border border-gray-500/20 rounded-lg p-6">
-                  <div className="text-accent-1 text-2xl mb-3">
-                    💾
+                  <div className="text-accent-1 text-2xl mb-3">💾</div>
+                  <div className="font-medium text-white mb-2">
+                    Save Layouts
                   </div>
-                  <div className="font-medium text-white mb-2">Save Layouts</div>
-                  <div className="text-gray-300">Create and save custom chart arrangements</div>
+                  <div className="text-gray-300">
+                    Create and save custom chart arrangements
+                  </div>
                 </div>
                 <div className="bg-primary-dark-70 backdrop-blur-sm border border-gray-500/20 rounded-lg p-6">
-                  <div className="text-accent-1 text-2xl mb-3">
-                    🔄
+                  <div className="text-accent-1 text-2xl mb-3">🔄</div>
+                  <div className="font-medium text-white mb-2">
+                    Real-time Sync
                   </div>
-                  <div className="font-medium text-white mb-2">Real-time Sync</div>
-                  <div className="text-gray-300">Access your layouts from any device</div>
+                  <div className="text-gray-300">
+                    Access your layouts from any device
+                  </div>
                 </div>
                 <div className="bg-primary-dark-70 backdrop-blur-sm border border-gray-500/20 rounded-lg p-6">
-                  <div className="text-accent-1 text-2xl mb-3">
-                    📱
+                  <div className="text-accent-1 text-2xl mb-3">📱</div>
+                  <div className="font-medium text-white mb-2">
+                    Offline Support
                   </div>
-                  <div className="font-medium text-white mb-2">Offline Support</div>
-                  <div className="text-gray-300">Works without internet connection</div>
+                  <div className="text-gray-300">
+                    Works without internet connection
+                  </div>
                 </div>
               </div>
             </div>
