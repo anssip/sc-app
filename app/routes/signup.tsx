@@ -5,6 +5,7 @@ import { signUp, getErrorMessage } from "~/lib/auth";
 import { useAuth } from "~/lib/auth-context";
 import GoogleSignInButton from "~/components/GoogleSignInButton";
 import Button from "~/components/Button";
+import Navigation from "~/components/Navigation";
 
 export const meta: MetaFunction = () => {
   return [
@@ -12,8 +13,6 @@ export const meta: MetaFunction = () => {
     { name: "description", content: "Create your account" },
   ];
 };
-
-
 
 export default function SignUp() {
   const navigate = useNavigate();
@@ -67,15 +66,17 @@ export default function SignUp() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-primary-dark py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen bg-primary-dark">
+      <Navigation showGetStarted={false} />
+      <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-white">
             Create your <span className="text-accent-1">account</span>
@@ -90,25 +91,20 @@ export default function SignUp() {
             </a>
           </p>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="mt-8 space-y-6">
           {error && (
             <div className="rounded-md bg-red-500/10 p-4 border border-red-500/20">
               <div className="flex">
                 <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-500">
-                    {error}
-                  </h3>
+                  <h3 className="text-sm font-medium text-red-500">{error}</h3>
                 </div>
               </div>
             </div>
           )}
 
           <div>
-            <GoogleSignInButton
-              onError={setError}
-              disabled={isSubmitting}
-            />
+            <GoogleSignInButton onError={setError} disabled={isSubmitting} />
           </div>
 
           <div className="relative">
@@ -116,15 +112,14 @@ export default function SignUp() {
               <div className="w-full border-t border-gray-500" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-primary-dark text-gray-300">Or create account with email</span>
+              <span className="px-2 bg-primary-dark text-gray-300">
+                Or create account with email
+              </span>
             </div>
           </div>
 
           <div className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1">
-                Email address
-              </label>
               <input
                 id="email"
                 name="email"
@@ -139,9 +134,6 @@ export default function SignUp() {
               />
             </div>
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1">
-                Password
-              </label>
               <input
                 id="password"
                 name="password"
@@ -156,9 +148,6 @@ export default function SignUp() {
               />
             </div>
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-1">
-                Confirm Password
-              </label>
               <input
                 id="confirmPassword"
                 name="confirmPassword"
@@ -186,6 +175,7 @@ export default function SignUp() {
           </div>
         </form>
       </div>
+    </div>
     </div>
   );
 }
