@@ -41,6 +41,9 @@ export default {
         DEFAULT: "var(--border-color)",
         highlight: "var(--border-color-highlight)",
       },
+      animation: {
+        "spin-slow": "spin 4s linear infinite",
+      },
     },
   },
   plugins: [],
