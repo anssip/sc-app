@@ -3,7 +3,7 @@ import { type ButtonHTMLAttributes, type ReactNode } from "react";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
-  variant?: "primary" | "secondary" | "outline";
+  variant?: "primary" | "secondary" | "outline" | "blue";
   size?: "sm" | "md" | "lg";
   fullWidth?: boolean;
   asLink?: boolean;
@@ -34,6 +34,7 @@ export default function Button({
     primary: "bg-gradient-primary text-black hover:shadow-glow-green hover:scale-105",
     secondary: "bg-transparent border border-gray-600 text-white hover:border-pricing-green/50 hover:bg-pricing-green/10",
     outline: "bg-transparent border border-gray-500 text-white hover:bg-gray-500/10",
+    blue: "bg-primary text-white hover:bg-primary/90 hover:scale-105 hover:shadow-lg",
   };
 
   const widthClass = fullWidth ? "w-full" : "";

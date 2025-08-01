@@ -59,7 +59,7 @@ export default function Login({
           <Button
             asLink
             to="/signin"
-            variant="primary"
+            variant="blue"
             fullWidth
           >
             Sign In
@@ -92,7 +92,7 @@ export default function Login({
         <Button
           asLink
           to="/signin"
-          variant="secondary"
+          variant="blue"
           size="sm"
         >
           Sign In
