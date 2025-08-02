@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { SCChart, SCChartRef } from "./SCChart";
 import { ChartHeader } from "./ChartHeader";
 import { db } from "~/lib/firebase";
@@ -41,14 +41,15 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
   onRemove,
   onConfigUpdate,
 }) => {
-  const { updateChart, saveChart } = useCharts();
+  const { updateChart, saveChart, isLoading: chartsLoading } = useCharts();
   const { 
     indicators: availableIndicators = [], 
     isLoading: indicatorsLoading 
   } = useIndicators(db);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingSettingsRef = useRef<ChartSettings | null>(null);
 
-  const handleSettingsChange = async (
+  const handleSettingsChange = useCallback(async (
     settings: ChartSettings,
     chartId?: string
   ) => {
@@ -75,6 +76,14 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
 
         if (onConfigUpdate) {
           onConfigUpdate(updatedConfig);
+        }
+
+        // Skip persistence if charts are still loading (repository not ready)
+        if (chartsLoading) {
+          console.log("ChartContainer: Skipping persistence - repository still loading");
+          // Store the pending settings to retry later
+          pendingSettingsRef.current = settings;
+          return;
         }
 
         // Persist to repository (chart-specific persistence)
@@ -111,7 +120,7 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
         );
       }
     }, 500); // Wait 500ms before persisting
-  };
+  }, [config, onConfigUpdate, chartsLoading, updateChart, saveChart, layoutId]);
 
   // Cleanup debounce timeout on unmount
   useEffect(() => {
@@ -121,6 +130,16 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
       }
     };
   }, []);
+
+  // Retry pending settings when repository becomes ready
+  useEffect(() => {
+    if (!chartsLoading && pendingSettingsRef.current) {
+      console.log("ChartContainer: Repository ready, retrying pending settings save");
+      const pendingSettings = pendingSettingsRef.current;
+      pendingSettingsRef.current = null;
+      handleSettingsChange(pendingSettings, config.id);
+    }
+  }, [chartsLoading, config.id, handleSettingsChange]);
 
   const initialSettings = useMemo(
     () => {

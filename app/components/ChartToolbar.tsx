@@ -192,8 +192,8 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
           value={settings.symbol}
           onChange={(e) => {
             // Call Chart API directly instead of context
-            if (chartApiRef?.current?.api?.setSymbol) {
-              chartApiRef.current.api.setSymbol(e.target.value);
+            if (chartApiRef?.current?.setSymbol) {
+              chartApiRef.current.setSymbol(e.target.value);
             }
           }}
           disabled={isChangingSymbol || symbolsLoading}
@@ -230,8 +230,8 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
           value={settings.granularity}
           onChange={(e) => {
             // Call Chart API directly instead of context
-            if (chartApiRef?.current?.api?.setGranularity) {
-              chartApiRef.current.api.setGranularity(e.target.value as Granularity);
+            if (chartApiRef?.current?.setGranularity) {
+              chartApiRef.current.setGranularity(e.target.value as Granularity);
             }
           }}
           disabled={isChangingGranularity}

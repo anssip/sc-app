@@ -111,6 +111,8 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
               const newSymbol = apiRef.current.getSymbol?.() || "";
 
               if (newSymbol === symbol) {
+                // Update the context to trigger persistence
+                chartSettings.setSymbol(symbol, uniqueChartId.current);
                 return;
               } else {
                 // Force chart re-initialization with new symbol
@@ -118,6 +120,8 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
                   symbol,
                   apiRef.current.getGranularity?.() || "ONE_HOUR"
                 );
+                // Update the context after reinit
+                chartSettings.setSymbol(symbol, uniqueChartId.current);
               }
             } catch (error) {
               // Fall back to re-initialization
@@ -125,12 +129,16 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
                 symbol,
                 apiRef.current.getGranularity?.() || "ONE_HOUR"
               );
+              // Update the context after reinit
+              chartSettings.setSymbol(symbol);
             }
           } else {
             await reinitializeChart(
               symbol,
               apiRef.current.getGranularity?.() || "ONE_HOUR"
             );
+            // Update the context after reinit
+            chartSettings.setSymbol(symbol, uniqueChartId.current);
           }
         }
       },
@@ -151,6 +159,8 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
               const newGranularity = apiRef.current.getGranularity?.() || "";
 
               if (newGranularity === granularity) {
+                // Update the context to trigger persistence
+                chartSettings.setGranularity(granularity, uniqueChartId.current);
                 return;
               } else {
                 // Force chart re-initialization with new granularity
@@ -158,6 +168,8 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
                   apiRef.current.getSymbol?.() || "BTC-USD",
                   granularity
                 );
+                // Update the context after reinit
+                chartSettings.setGranularity(granularity, uniqueChartId.current);
               }
             } catch (error) {
               // Fall back to re-initialization
@@ -165,12 +177,16 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
                 apiRef.current.getSymbol?.() || "BTC-USD",
                 granularity
               );
+              // Update the context after reinit
+              chartSettings.setGranularity(granularity);
             }
           } else {
             await reinitializeChart(
               apiRef.current.getSymbol?.() || "BTC-USD",
               granularity
             );
+            // Update the context after reinit
+            chartSettings.setGranularity(granularity, uniqueChartId.current);
           }
         }
       },
@@ -180,8 +196,10 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
       getGranularity: () => {
         return apiRef.current?.getGranularity() || "ONE_HOUR";
       },
-      api: apiRef.current,
-    }));
+      get api() {
+        return apiRef.current;
+      },
+    }), []);
 
     // Function to reinitialize the chart with new parameters
     const reinitializeChart = useCallback(
@@ -367,7 +385,7 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
               event.newSymbol &&
               event.newSymbol !== chartSettings.settings.symbol
             ) {
-              chartSettings.setSymbol(event.newSymbol);
+              chartSettings.setSymbol(event.newSymbol, uniqueChartId.current);
             }
 
             // Also check for granularity changes in the same event, but only if different
@@ -375,7 +393,7 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
               event.newGranularity &&
               event.newGranularity !== chartSettings.settings.granularity
             ) {
-              chartSettings.setGranularity(event.newGranularity);
+              chartSettings.setGranularity(event.newGranularity, uniqueChartId.current);
             }
           };
 
@@ -425,7 +443,7 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
 
                 console.log(`SCChart: Updated indicators for ${event.indicator.id}:`, updatedIndicators.map(i => `${i.id}(${i.visible})`));
                 return updatedIndicators;
-              });
+              }, uniqueChartId.current);
             } else if (event.action === "hide" && event.indicatorId) {
               // Use functional update for hide as well
               chartSettings.setIndicators((currentIndicators) => {
@@ -434,7 +452,7 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
                 );
                 console.log(`SCChart: Hidden indicator ${event.indicatorId}:`, updatedIndicators.map(i => `${i.id}(${i.visible})`));
                 return updatedIndicators;
-              });
+              }, uniqueChartId.current);
             }
           };
 
