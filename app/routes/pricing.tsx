@@ -3,6 +3,7 @@ import { json } from "@remix-run/node";
 import { useLoaderData, useNavigate } from "@remix-run/react";
 import PricingCard from "~/components/PricingCard";
 import Navigation from "~/components/Navigation";
+import Footer from "~/components/Footer";
 
 export const meta: MetaFunction = () => {
   return [
@@ -77,9 +78,10 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black relative overflow-hidden">
-      {/* Background graphics */}
-      <div className="absolute inset-0 pointer-events-none">
+    <>
+      <div className="min-h-screen bg-black relative overflow-hidden">
+        {/* Background graphics */}
+        <div className="absolute inset-0 pointer-events-none">
         {/* Top right curved lines */}
         <svg
           className="absolute top-0 right-0 w-1/2 h-1/2"
@@ -154,5 +156,9 @@ export default function PricingPage() {
         </div>
       </div>
     </div>
+
+    {/* Footer */}
+    <Footer variant="dark" />
+  </>
   );
 }

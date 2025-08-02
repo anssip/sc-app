@@ -1,9 +1,10 @@
 import type { MetaFunction } from "@remix-run/node";
-import { useNavigate } from "@remix-run/react";
+import { useNavigate, Link } from "@remix-run/react";
 import { useEffect } from "react";
 import { CheckCircle, ArrowRight } from "lucide-react";
 import Button from "~/components/Button";
 import AccountMenu from "~/components/AccountMenu";
+import Footer from "~/components/Footer";
 import { useSubscription } from "~/contexts/SubscriptionContext";
 
 export const meta: MetaFunction = () => {
@@ -23,14 +24,18 @@ export default function ThankYouPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-black relative overflow-hidden flex flex-col">
+    <>
+      <div className="min-h-screen bg-black relative overflow-hidden flex flex-col">
       {/* Navigation */}
       <nav className="relative z-20 p-6 border-b border-gray-800">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-pricing-green rounded-sm"></div>
-            <span className="text-white font-bold text-xl">Spot Canvas</span>
-          </div>
+          <Link to="/" className="flex items-center">
+            <img 
+              src="/full-logo-white.svg" 
+              alt="Spot Canvas" 
+              className="h-10"
+            />
+          </Link>
           <AccountMenu />
         </div>
       </nav>
@@ -143,5 +148,9 @@ export default function ThankYouPage() {
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-pricing-green/10 rounded-full blur-3xl"></div>
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-pricing-green/5 rounded-full blur-3xl"></div>
     </div>
+
+    {/* Footer */}
+    <Footer />
+  </>
   );
 }

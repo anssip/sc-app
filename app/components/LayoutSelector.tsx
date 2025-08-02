@@ -91,7 +91,7 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
   onLayoutChange,
   className = "",
 }) => {
-  const { layouts, saveLayout, isLoading } = useLayouts();
+  const { layouts, saveLayout, deleteLayout, isLoading } = useLayouts();
   const { setActiveLayout } = useUserSettings();
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -198,6 +198,7 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
         onClose={() => setModalOpen(false)}
         onSaveLayout={handleSaveLayout}
         onSelectLayout={handleLoadSavedLayout}
+        onDeleteLayout={deleteLayout}
         layouts={layouts}
         activeLayoutId={currentLayoutId}
         loading={isLoading}

@@ -121,3 +121,46 @@ Use Setup Intents in your frontend to authorize the payment method without charg
 Let's create a new context and a hook for managing the user's subscription status. We can then use this in the AccountMenu and in the charts view to check the subscription status and act accordingly.
 
 The chart should show a notification if the user is not subscribed and offer options to subscribe - we can complete this functionality later and fill in the details.
+
+# Fonts
+
+Change it to use the following fonts.
+
+1. CSS variables
+
+   --font-primary: "Plus Jakarta Sans", serif;
+    --font-secondary:
+        "Lexend", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+
+2. font links to index.html
+
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap"
+            rel="stylesheet"
+        />
+
+# Home page
+
+Make the home page look like this: https://www.spotcanvas.com/
+
+- The top of the page should look exactly like the website.
+- The image for the hero section is in public/hero-home.webp
+- Use the same typography as in the website.
+- Use the same copy as in the website.
+- Don't include the chart component (below the hero section) in the home page
+- Include the FAQ using accordion components
+- Include the Features section using components
+- Don't include the get in touch section
+- Include the footer with contact information and navigation links
+
+# Chart page look and feel
+
+ > Change the chart dashboard look like in this attached screenshot. The page should be mostly black but still usable, we could add       │
+│   subtle variations of the dark brand colors.                                                                                            │
+│                                                                                                                                          │
+│   The header section should not waste as much screen estate as it does in the current screenshot. Combine the two horizontal bars into   │
+│   one and fit the controls into one area. Remove the Chart Dashboard label, and "Repository Online" could be replaced with one           │
+│   indicator light. Layout selector button should look more slick.

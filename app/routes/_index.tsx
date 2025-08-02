@@ -1,16 +1,20 @@
 import type { MetaFunction } from "@remix-run/node";
 import { Link } from "@remix-run/react";
 import { useAuth } from "~/lib/auth-context";
-import Login from "~/components/Login";
 import Button from "~/components/Button";
 import Navigation from "~/components/Navigation";
+import Accordion from "~/components/Accordion";
+import FeatureCard from "~/components/FeatureCard";
+import Footer from "~/components/Footer";
+import { BarChart3, Code2, Brain } from "lucide-react";
 
 export const meta: MetaFunction = () => {
   return [
-    { title: "Spot" },
+    { title: "Spot Canvas - Trading Charts Reimagined" },
     {
       name: "description",
-      content: "Financial charting for stocks & crypto",
+      content:
+        "Cutting-edge charting tools for traders seeking the ultimate market advantage",
     },
   ];
 };
@@ -28,164 +32,141 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-primary-dark">
-      <Navigation showGetStarted={false} />
+      <Navigation />
 
-      <div className="container mx-auto px-6 max-w-6xl py-16">
-        <header className="mb-20">
-          <h1 className="text-5xl lg:text-7xl font-bold font-primary mb-6">
-            <span className="text-white">Spot</span>{" "}
-            <span className="text-accent-1">Canvas</span>
-          </h1>
-          <p className="text-xl lg:text-2xl text-gray-300 max-w-3xl leading-relaxed">
-            A powerful <span className="text-accent-1">financial charting</span>{" "}
-            application with cloud-based layout persistence, real-time
-            synchronization, and
-            <span className="text-accent-2">offline support</span>
-          </p>
-        </header>
-
-        {/* Conditional navigation based on auth state */}
-        {user ? (
-          // Authenticated user navigation
-          <nav className="mt-16 max-w-2xl">
-            <p className="text-lg text-gray-300 mb-8">
-              Welcome back! Your saved layouts and preferences are synced and
-              ready.
-            </p>
-            <div className="flex flex-col gap-4">
-              <Button asLink to="/chart" variant="primary" size="lg">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="20"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  className="text-black"
-                >
-                  <path
-                    d="M3 13L6 10L10 14L17 7"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    stroke="currentColor"
-                    fill="none"
-                  />
-                </svg>
-                Open Chart Dashboard
-              </Button>
-              <div className="flex gap-4 mt-6">
-                {resources.map(({ href, text, icon }) => (
-                  <a
-                    key={href}
-                    className="group flex items-center gap-2 text-gray-300 hover:text-accent-1 transition-colors"
-                    href={href}
-                    target="_blank"
-                    rel="noreferrer"
+      {/* Hero Section */}
+      <section className="relative overflow-hidden">
+        <div className="pt-20 pb-32">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+              <div className="lg:col-span-6">
+                <h1 className="text-5xl lg:text-7xl text-white mb-8 font-primary whitespace-nowrap">
+                  Trading Charts{" "}
+                  <p className="text-accent-1 relative mt-4">
+                    <span>Reimagined.</span>
+                  </p>
+                </h1>
+                <p className="text-xl text-gray-200 my-8 leading-relaxed">
+                  Cutting-edge charting tools for traders seeking the ultimate
+                  market advantage.
+                </p>
+                <div className="flex gap-4">
+                  <Button
+                    href="#features"
+                    variant="primary"
+                    size="lg"
+                    className="inline-flex items-center gap-2"
                   >
-                    {icon}
-                    {text}
-                  </a>
-                ))}
+                    Learn more
+                  </Button>
+                  {user && (
+                    <Button
+                      asLink
+                      to="/chart"
+                      variant="outline"
+                      size="lg"
+                      outlineColor="var(--color-accent-1)"
+                      className="!px-8 !py-4 !text-base border-2 hover:!bg-accent-1/10 hover:!text-accent-1"
+                    >
+                      Open Charts
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
-          </nav>
-        ) : (
-          // Unauthenticated user navigation
-          <nav className="mt-16">
-            <div className="mb-8">
-              <p className="text-xl text-gray-300 mb-8">
-                Sign in to access{" "}
-                <span className="text-accent-1">
-                  professional trading charts
-                </span>{" "}
-                with cloud sync
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
-                <div className="bg-primary-dark-70 backdrop-blur-sm border border-gray-500/20 rounded-lg p-6">
-                  <div className="text-accent-1 text-2xl mb-3">💾</div>
-                  <div className="font-medium text-white mb-2">
-                    Save Layouts
-                  </div>
-                  <div className="text-gray-300">
-                    Create and save custom chart arrangements
-                  </div>
-                </div>
-                <div className="bg-primary-dark-70 backdrop-blur-sm border border-gray-500/20 rounded-lg p-6">
-                  <div className="text-accent-1 text-2xl mb-3">🔄</div>
-                  <div className="font-medium text-white mb-2">
-                    Real-time Sync
-                  </div>
-                  <div className="text-gray-300">
-                    Access your layouts from any device
-                  </div>
-                </div>
-                <div className="bg-primary-dark-70 backdrop-blur-sm border border-gray-500/20 rounded-lg p-6">
-                  <div className="text-accent-1 text-2xl mb-3">📱</div>
-                  <div className="font-medium text-white mb-2">
-                    Offline Support
-                  </div>
-                  <div className="text-gray-300">
-                    Works without internet connection
-                  </div>
+              <div className="lg:col-span-6 relative lg:-mr-6">
+                <div className="relative lg:scale-150 lg:origin-left">
+                  <img
+                    src="/hero-home.webp"
+                    alt="Spot Canvas Trading Charts"
+                    className="rounded-xl shadow-2xl w-full"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-tr from-accent-1/20 to-transparent rounded-xl pointer-events-none"></div>
                 </div>
               </div>
             </div>
-            <div className="max-w-md">
-              <Login
-                title=""
-                description=""
-                showFeatures={true}
-                layout="vertical"
-                className="w-full"
-              />
-            </div>
-          </nav>
-        )}
-      </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section id="features" className="py-20 bg-black/50">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4 font-primary">
+              Features
+            </h2>
+            <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+              Powerful tools and capabilities designed for professional traders
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <FeatureCard
+              title="Technical Analysis & Indicators"
+              description="Analyze markets with essential drawing tools, prebuilt indicators, and flexible scripting features."
+              timeline="H1/2025"
+              icon={<BarChart3 className="w-6 h-6" />}
+            />
+            <FeatureCard
+              title="Custom Extensions"
+              description="Extend charts with JavaScript, CSS, and Web Components. Build custom indicators using powerful APIs."
+              timeline="H2/2025"
+              icon={<Code2 className="w-6 h-6" />}
+            />
+            <FeatureCard
+              title="AI-Insights"
+              description="Gain deeper market understanding with AI-driven analysis of price movements and real-time alerts."
+              timeline="H3/2025"
+              icon={<Brain className="w-6 h-6" />}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-20">
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4 font-primary">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-xl text-gray-300">
+              Everything you need to know about Spot Canvas
+            </p>
+          </div>
+          <Accordion items={faqItems} />
+        </div>
+      </section>
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }
 
-const resources = [
+const faqItems = [
   {
-    href: "https://www.npmjs.com/package/@anssipiirainen/sc-charts",
-    text: "SC Charts Docs",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="20"
-        viewBox="0 0 20 20"
-        fill="none"
-        className="stroke-current"
-      >
-        <path
-          d="M9.99981 10.0751V9.99992M17.4688 17.4688C15.889 19.0485 11.2645 16.9853 7.13958 12.8604C3.01467 8.73546 0.951405 4.11091 2.53116 2.53116C4.11091 0.951405 8.73546 3.01467 12.8604 7.13958C16.9853 11.2645 19.0485 15.889 17.4688 17.4688ZM2.53132 17.4688C0.951566 15.8891 3.01483 11.2645 7.13974 7.13963C11.2647 3.01471 15.8892 0.951453 17.469 2.53121C19.0487 4.11096 16.9854 8.73551 12.8605 12.8604C8.73562 16.9853 4.11107 19.0486 2.53132 17.4688Z"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-        />
-      </svg>
-    ),
+    question: "What's unique about Spot Canvas?",
+    answer:
+      "Spot Canvas combines AI/machine learning with developer-friendly customization, focusing on seamless user experience. Our platform offers cutting-edge charting tools with powerful APIs for building custom indicators and extensions.",
   },
   {
-    href: "https://remix.run/docs",
-    text: "Remix Docs",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="20"
-        viewBox="0 0 20 20"
-        fill="none"
-        className="stroke-current"
-      >
-        <path
-          d="M8.51851 12.0741L7.92592 18L15.6296 9.7037L11.4815 7.33333L12.0741 2L4.37036 10.2963L8.51851 12.0741Z"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    ),
+    question: "How does customer support work?",
+    answer:
+      "We provide email support with responses within 24 hours. You can reach us at info@spotcanvas.com for any questions or assistance you need.",
+  },
+  {
+    question: "Can I cancel my subscription anytime?",
+    answer:
+      "Yes, you can cancel your subscription at any time. There are no long-term commitments, and you'll continue to have access until the end of your current billing period.",
+  },
+  {
+    question: "What's the development roadmap?",
+    answer:
+      "Our roadmap includes: Q1/2025 - Technical Analysis & Indicators launch, H2/2025 - Custom Extensions with JavaScript/CSS/Web Components, H3/2025 - AI-Insights for market analysis, and H1/2026 - Advanced trading features and integrations.",
+  },
+  {
+    question: "How do I change my plan?",
+    answer:
+      "Upgrading and downgrading can be done easily in your personal Dashboard. Simply navigate to the billing section and select your desired plan. Changes take effect immediately.",
   },
 ];

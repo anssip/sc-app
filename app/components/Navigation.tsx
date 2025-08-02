@@ -16,22 +16,15 @@ export default function Navigation({ showGetStarted = true }: NavigationProps) {
   return (
     <nav className="relative z-20 p-6">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-pricing-green rounded-sm"></div>
-            <span className="text-white font-bold text-xl">Spot Canvas</span>
-          </Link>
-        </div>
+        <Link to="/" className="flex items-center">
+          <img 
+            src="/full-logo-white.svg" 
+            alt="Spot Canvas" 
+            className="h-10"
+          />
+        </Link>
         
         <div className="hidden md:flex items-center gap-8">
-          <Link
-            to="/"
-            className={`transition-colors ${
-              isActive("/") ? "text-white" : "text-gray-400 hover:text-white"
-            }`}
-          >
-            Home
-          </Link>
           <a
             href="#features"
             className="text-gray-400 hover:text-white transition-colors"

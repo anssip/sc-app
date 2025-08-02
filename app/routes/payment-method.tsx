@@ -1,11 +1,12 @@
 import type { MetaFunction, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { useLoaderData, useNavigate } from "@remix-run/react";
+import { useLoaderData, useNavigate, Link } from "@remix-run/react";
 import { useEffect, useState } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 import AccountMenu from "~/components/AccountMenu";
 import SimplePaymentForm from "~/components/SimplePaymentForm";
+import Footer from "~/components/Footer";
 
 export const meta: MetaFunction = () => {
   return [
@@ -49,14 +50,18 @@ export default function PaymentMethodPage() {
   }, [publishableKey]);
 
   return (
-    <div className="min-h-screen bg-black relative overflow-hidden">
+    <>
+      <div className="min-h-screen bg-black relative overflow-hidden">
       {/* Navigation */}
       <nav className="relative z-20 p-6 border-b border-gray-800">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-pricing-green rounded-sm"></div>
-            <span className="text-white font-bold text-xl">Spot Canvas</span>
-          </div>
+          <Link to="/" className="flex items-center">
+            <img 
+              src="/full-logo-white.svg" 
+              alt="Spot Canvas" 
+              className="h-10"
+            />
+          </Link>
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate("/pricing")}
@@ -117,5 +122,9 @@ export default function PaymentMethodPage() {
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-pricing-green/5 rounded-full blur-3xl"></div>
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-pricing-green/5 rounded-full blur-3xl"></div>
     </div>
+
+    {/* Footer */}
+    <Footer />
+  </>
   );
 }
