@@ -201,10 +201,170 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
       },
     }), []);
 
+    // Function to set up event handlers
+    const setupEventHandlers = useCallback((api: any, currentInitialState: any) => {
+      if (!api.on) return;
+
+      // Remove old handlers if they exist
+      if (readyHandlerRef.current && api.off) {
+        api.off("ready", readyHandlerRef.current);
+      }
+      if (symbolChangeHandlerRef.current && api.off) {
+        api.off("symbolChange", symbolChangeHandlerRef.current);
+      }
+      if (indicatorChangeHandlerRef.current && api.off) {
+        api.off("indicatorChange", indicatorChangeHandlerRef.current);
+      }
+
+      // Store the symbolChange handler reference for cleanup
+      symbolChangeHandlerRef.current = (event: any) => {
+        // Only handle changes after initial setup is complete
+        if (!isInitializedRef.current) {
+          return;
+        }
+
+        // Update context when chart symbol changes internally, but only if different
+        if (
+          event.newSymbol &&
+          event.newSymbol !== chartSettings.settings.symbol
+        ) {
+          chartSettings.setSymbol(event.newSymbol, uniqueChartId.current);
+        }
+
+        // Also check for granularity changes in the same event, but only if different
+        if (
+          event.newGranularity &&
+          event.newGranularity !== chartSettings.settings.granularity
+        ) {
+          chartSettings.setGranularity(event.newGranularity, uniqueChartId.current);
+        }
+      };
+
+      // Store the indicatorChange handler reference for cleanup
+      indicatorChangeHandlerRef.current = (event: any) => {
+        // Only handle changes after initial setup is complete
+        if (!isInitializedRef.current) {
+          return;
+        }
+
+        // Update indicators in context based on chart changes
+        if (event.action === "show" && event.indicator) {
+          // Use functional update to ensure we get the most current state
+          chartSettings.setIndicators((currentIndicators) => {
+            const existingIndex = currentIndicators.findIndex(
+              (ind) => ind.id === event.indicator.id
+            );
+
+            let updatedIndicators;
+            if (existingIndex >= 0) {
+              // Update existing indicator
+              updatedIndicators = [...currentIndicators];
+              updatedIndicators[existingIndex] = {
+                ...updatedIndicators[existingIndex],
+                visible: true,
+                display:
+                  event.indicator.display === "main" ? "Overlay" : "Bottom",
+                params: event.indicator.params || {},
+              };
+            } else {
+              // Add new indicator
+              updatedIndicators = [
+                ...currentIndicators,
+                {
+                  id: event.indicator.id,
+                  name: event.indicator.name,
+                  display:
+                    event.indicator.display === "main" ? "Overlay" : "Bottom",
+                  visible: true,
+                  params: event.indicator.params || {},
+                  scale:
+                    event.indicator.scale === "value" ? "Price" : "Value",
+                  className: "MarketIndicator",
+                },
+              ];
+            }
+
+            console.log(`SCChart: Updated indicators for ${event.indicator.id}:`, updatedIndicators.map(i => `${i.id}(${i.visible})`));
+            return updatedIndicators;
+          }, uniqueChartId.current);
+        } else if (event.action === "hide" && event.indicatorId) {
+          // Use functional update for hide as well
+          chartSettings.setIndicators((currentIndicators) => {
+            const updatedIndicators = currentIndicators.map((ind) =>
+              ind.id === event.indicatorId ? { ...ind, visible: false } : ind
+            );
+            console.log(`SCChart: Hidden indicator ${event.indicatorId}:`, updatedIndicators.map(i => `${i.id}(${i.visible})`));
+            return updatedIndicators;
+          }, uniqueChartId.current);
+        }
+      };
+
+      // Store the ready handler reference for cleanup
+      readyHandlerRef.current = (event: any) => {
+        console.log("SCChart: Chart ready event received:", event);
+
+        // Always mark as initialized when ready
+        isInitializedRef.current = true;
+
+        // Restore indicators from initial state after chart is ready
+        if (
+          currentInitialState?.indicators &&
+          Array.isArray(currentInitialState.indicators) &&
+          currentInitialState.indicators.length > 0
+        ) {
+          console.log(
+            "SCChart: Restoring indicators from initial state:",
+            currentInitialState.indicators
+          );
+
+          // Clear restored indicators set for reinit
+          restoredIndicatorsRef.current.clear();
+
+          // Restore indicators by ID with minimal configuration
+          currentInitialState.indicators.forEach((indicatorId: string) => {
+            if (
+              api.showIndicator && 
+              indicatorId.length > 0 && 
+              !restoredIndicatorsRef.current.has(indicatorId)
+            ) {
+              console.log(
+                `SCChart: Restoring indicator '${indicatorId}', chartId ${chartId}`
+              );
+              const basicIndicatorConfig = {
+                id: indicatorId,
+                name: indicatorId.toUpperCase(), // Fallback name
+                visible: true,
+              };
+              api.showIndicator(basicIndicatorConfig);
+              
+              // Mark this indicator as restored
+              restoredIndicatorsRef.current.add(indicatorId);
+            }
+          });
+        }
+
+        setIsLoading(false);
+
+        if (onReady) {
+          onReady();
+        }
+      };
+
+      api.on("ready", readyHandlerRef.current);
+      api.on("symbolChange", symbolChangeHandlerRef.current);
+      api.on("indicatorChange", indicatorChangeHandlerRef.current);
+    }, [chartSettings, onReady, chartId]);
+
     // Function to reinitialize the chart with new parameters
     const reinitializeChart = useCallback(
       async (newSymbol: string, newGranularity: string) => {
         try {
+          // Get current visible indicators BEFORE cleanup
+          const currentIndicators = apiRef.current?.getVisibleIndicators?.() || [];
+          const visibleIndicatorIds = currentIndicators.map((ind: any) => ind.id);
+          
+          console.log('SCChart: Preserving indicators for reinit:', visibleIndicatorIds);
+
           // Clean up existing chart and event listeners
           if (apiRef.current) {
             // Remove event listeners if they exist
@@ -222,6 +382,10 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
               );
               indicatorChangeHandlerRef.current = null;
             }
+            if (readyHandlerRef.current && apiRef.current.off) {
+              apiRef.current.off("ready", readyHandlerRef.current);
+              readyHandlerRef.current = null;
+            }
             if (apiRef.current.dispose) {
               apiRef.current.dispose();
             }
@@ -237,11 +401,12 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
           apiRef.current = null;
           appRef.current = null;
           chartRef.current = null;
-
-          // Set new initial state
+          
+          // Set new initial state - preserve indicators
           const newInitialState = {
             symbol: newSymbol,
             granularity: newGranularity,
+            indicators: visibleIndicatorIds,
           };
 
           // Find the container
@@ -276,6 +441,9 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
 
           appRef.current = app;
           apiRef.current = api;
+
+          // Re-attach event handlers after reinit
+          setupEventHandlers(api, newInitialState);
         } catch (error) {
           setInitError(
             `Chart reinitialization failed: ${
@@ -284,7 +452,7 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
           );
         }
       },
-      [firebaseConfig]
+      [firebaseConfig, chartSettings, setupEventHandlers]
     );
 
     useEffect(() => {
@@ -371,155 +539,12 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
         appRef.current = app;
         apiRef.current = api;
 
-        // Add event listeners
-        if (api.on) {
-          // Store the symbolChange handler reference for cleanup
-          symbolChangeHandlerRef.current = (event: any) => {
-            // Only handle changes after initial setup is complete
-            if (!isInitializedRef.current) {
-              return;
-            }
-
-            // Update context when chart symbol changes internally, but only if different
-            if (
-              event.newSymbol &&
-              event.newSymbol !== chartSettings.settings.symbol
-            ) {
-              chartSettings.setSymbol(event.newSymbol, uniqueChartId.current);
-            }
-
-            // Also check for granularity changes in the same event, but only if different
-            if (
-              event.newGranularity &&
-              event.newGranularity !== chartSettings.settings.granularity
-            ) {
-              chartSettings.setGranularity(event.newGranularity, uniqueChartId.current);
-            }
-          };
-
-          // Store the indicatorChange handler reference for cleanup
-          indicatorChangeHandlerRef.current = (event: any) => {
-            // Only handle changes after initial setup is complete
-            if (!isInitializedRef.current) {
-              return;
-            }
-
-            // Update indicators in context based on chart changes
-            if (event.action === "show" && event.indicator) {
-              // Use functional update to ensure we get the most current state
-              chartSettings.setIndicators((currentIndicators) => {
-                const existingIndex = currentIndicators.findIndex(
-                  (ind) => ind.id === event.indicator.id
-                );
-
-                let updatedIndicators;
-                if (existingIndex >= 0) {
-                  // Update existing indicator
-                  updatedIndicators = [...currentIndicators];
-                  updatedIndicators[existingIndex] = {
-                    ...updatedIndicators[existingIndex],
-                    visible: true,
-                    display:
-                      event.indicator.display === "main" ? "Overlay" : "Bottom",
-                    params: event.indicator.params || {},
-                  };
-                } else {
-                  // Add new indicator
-                  updatedIndicators = [
-                    ...currentIndicators,
-                    {
-                      id: event.indicator.id,
-                      name: event.indicator.name,
-                      display:
-                        event.indicator.display === "main" ? "Overlay" : "Bottom",
-                      visible: true,
-                      params: event.indicator.params || {},
-                      scale:
-                        event.indicator.scale === "value" ? "Price" : "Value",
-                      className: "MarketIndicator",
-                    },
-                  ];
-                }
-
-                console.log(`SCChart: Updated indicators for ${event.indicator.id}:`, updatedIndicators.map(i => `${i.id}(${i.visible})`));
-                return updatedIndicators;
-              }, uniqueChartId.current);
-            } else if (event.action === "hide" && event.indicatorId) {
-              // Use functional update for hide as well
-              chartSettings.setIndicators((currentIndicators) => {
-                const updatedIndicators = currentIndicators.map((ind) =>
-                  ind.id === event.indicatorId ? { ...ind, visible: false } : ind
-                );
-                console.log(`SCChart: Hidden indicator ${event.indicatorId}:`, updatedIndicators.map(i => `${i.id}(${i.visible})`));
-                return updatedIndicators;
-              }, uniqueChartId.current);
-            }
-          };
-
-          // Store the ready handler reference for cleanup
-          readyHandlerRef.current = (event: any) => {
-            console.log("SCChart: Chart ready event received:", event);
-
-            // Prevent duplicate indicator restoration if already initialized
-            if (isInitializedRef.current) {
-              console.log(
-                "SCChart: Skipping indicator restoration - already initialized"
-              );
-              return;
-            }
-
-            // Mark as initialized BEFORE restoring indicators so indicator events are processed
-            isInitializedRef.current = true;
-
-            // Restore indicators from initial state after chart is ready
-            if (
-              initialState?.indicators &&
-              Array.isArray(initialState.indicators) &&
-              initialState.indicators.length > 0
-            ) {
-              console.log(
-                "SCChart: Restoring indicators from initial state:",
-                initialState.indicators
-              );
-
-              // Restore indicators by ID with minimal configuration
-              initialState.indicators.forEach((indicatorId: string) => {
-                if (
-                  api.showIndicator && 
-                  indicatorId.length > 0 && 
-                  !restoredIndicatorsRef.current.has(indicatorId)
-                ) {
-                  console.log(
-                    `SCChart: Restoring indicator '${indicatorId}', chartId ${chartId}`
-                  );
-                  const basicIndicatorConfig = {
-                    id: indicatorId,
-                    name: indicatorId.toUpperCase(), // Fallback name
-                    visible: true,
-                  };
-                  api.showIndicator(basicIndicatorConfig);
-                  
-                  // Mark this indicator as restored
-                  restoredIndicatorsRef.current.add(indicatorId);
-                }
-              });
-            }
-
-            setIsLoading(false);
-
-            if (onReady) {
-              onReady();
-            }
-          };
-
-          api.on("ready", readyHandlerRef.current);
-          api.on("symbolChange", symbolChangeHandlerRef.current);
-          api.on("indicatorChange", indicatorChangeHandlerRef.current);
-        }
+        // Set up event handlers
+        setupEventHandlers(api, initialState);
       };
 
       initChart();
-    }, [isClient]);
+    }, [isClient, setupEventHandlers]);
 
     // Context-to-API sync removed - ChartToolbar now calls API directly
     // SCChart only updates context when API fires symbolChange events
