@@ -187,7 +187,7 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
   return (
     <div className="flex items-center justify-between">
       {/* Left side - Symbol and Granularity selectors */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <select
           value={settings.symbol}
           onChange={(e) => {
@@ -197,7 +197,7 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
             }
           }}
           disabled={isChangingSymbol || symbolsLoading}
-          className={`text-sm font-bold bg-transparent border-none outline-none cursor-pointer text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${
+          className={`text-sm font-bold bg-transparent border-none outline-none cursor-pointer text-gray-100 hover:text-white transition-colors ${
             isChangingSymbol || symbolsLoading
               ? "opacity-50 cursor-not-allowed"
               : ""
@@ -224,7 +224,7 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
           )}
         </select>
 
-        <span className="text-gray-300 dark:text-gray-600">|</span>
+        <div className="h-4 w-px bg-gray-600"></div>
 
         <select
           value={settings.granularity}
@@ -235,7 +235,7 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
             }
           }}
           disabled={isChangingGranularity}
-          className={`text-sm font-medium bg-transparent border-none outline-none cursor-pointer text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${
+          className={`text-sm font-medium bg-transparent border-none outline-none cursor-pointer text-gray-300 hover:text-white transition-colors ${
             isChangingGranularity ? "opacity-50 cursor-not-allowed" : ""
           }`}
         >
@@ -256,18 +256,24 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
           </div>
         )}
         {(isChangingSymbol || isChangingGranularity || symbolsLoading) && (
-          <div className="animate-spin rounded-full h-3 w-3 border-b border-blue-600"></div>
+          <>
+            <div className="h-4 w-px bg-gray-600"></div>
+            <div className="animate-spin rounded-full h-3 w-3 border-b border-blue-600"></div>
+          </>
         )}
       </div>
 
+      {/* Center separator */}
+      <div className="h-4 w-px bg-gray-600"></div>
+
       {/* Right side */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-3">
         {/* Indicator Dropdown */}
         <div className="relative">
           <button
             onClick={() => setIsIndicatorDropdownOpen(!isIndicatorDropdownOpen)}
             disabled={indicatorsLoading}
-            className="flex items-center gap-1 px-2 py-1 text-xs font-medium bg-transparent border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-300 hover:text-white bg-transparent rounded hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             title="Add Indicators"
           >
             <svg
@@ -283,7 +289,6 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
                 d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
               />
             </svg>
-            {indicatorsLoading ? "Loading..." : "Indicators"}
             <svg
               className={`w-3 h-3 transition-transform ${
                 isIndicatorDropdownOpen ? "rotate-180" : ""
@@ -303,17 +308,17 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
 
           {/* Dropdown Menu */}
           {isIndicatorDropdownOpen && (
-            <div className="absolute right-0 top-full mt-1 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-50 max-h-96 overflow-y-auto">
+            <div className="absolute left-0 top-full mt-1 min-w-[280px] bg-black border border-gray-700 rounded-md shadow-lg z-[100] max-h-96 overflow-y-auto">
               {indicatorsError ? (
-                <div className="p-3 text-red-600 dark:text-red-400 text-xs">
+                <div className="p-3 text-red-400 text-xs">
                   Error loading indicators: {indicatorsError}
                 </div>
               ) : indicatorsLoading ? (
-                <div className="p-3 text-gray-500 dark:text-gray-400 text-xs">
+                <div className="p-3 text-gray-400 text-xs">
                   Loading indicators...
                 </div>
               ) : availableIndicators.length === 0 ? (
-                <div className="p-3 text-gray-500 dark:text-gray-400 text-xs">
+                <div className="p-3 text-gray-400 text-xs">
                   No indicators available
                 </div>
               ) : (
@@ -354,21 +359,21 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
                           }
                           // Don't close the menu to allow multiple indicator selection
                         }}
-                        className={`w-full px-3 py-2 text-left text-xs hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-between ${
+                        className={`w-full px-4 py-2.5 text-left text-sm hover:bg-gray-900 transition-colors flex items-center justify-between ${
                           isVisible
-                            ? "text-blue-600 dark:text-blue-400"
-                            : "text-gray-700 dark:text-gray-300"
+                            ? "text-blue-400"
+                            : "text-gray-100"
                         }`}
                       >
                         <div>
                           <div className="font-medium">{indicator.name}</div>
-                          <div className="text-gray-500 dark:text-gray-400 text-xs">
+                          <div className="text-gray-500 text-xs">
                             {indicator.display}
                           </div>
                         </div>
                         {isVisible && (
                           <svg
-                            className="w-3 h-3"
+                            className="w-3 h-3 flex-shrink-0 ml-2"
                             fill="currentColor"
                             viewBox="0 0 20 20"
                           >
@@ -390,7 +395,7 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
           {/* Click outside to close */}
           {isIndicatorDropdownOpen && (
             <div
-              className="fixed inset-0 z-40"
+              className="fixed inset-0 z-[99]"
               onClick={() => setIsIndicatorDropdownOpen(false)}
             />
           )}

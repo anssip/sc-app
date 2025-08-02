@@ -21,7 +21,7 @@ export const ChartHeader: React.FC<ChartHeaderProps> = ({
   onSplitVertical,
 }) => {
   return (
-    <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+    <div className="flex items-center justify-between p-2 bg-gray-900 border-b border-gray-800 relative z-10 overflow-visible">
       <ChartToolbar
         chartId={chartId}
         chartApiRef={chartApiRef}

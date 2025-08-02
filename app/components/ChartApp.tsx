@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ChartPanel } from "./ChartPanel";
 import { LayoutSelector } from "./LayoutSelector";
+import AccountMenu from "./AccountMenu";
 import {
   useRepository,
   useLayouts,
@@ -309,26 +310,40 @@ export const ChartApp: React.FC<ChartAppProps> = ({
   }
 
   return (
-    <div className={`flex flex-col h-full ${className}`}>
-      {/* Header with Layout Controls */}
-      <div className="flex-shrink-0 p-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between">
+    <div className={`flex flex-col h-full bg-black ${className}`}>
+      {/* Compact Header */}
+      <div className="flex-shrink-0 px-4 py-2 bg-gray-900 border-b border-gray-800">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          {/* Left side - Logo, AccountMenu, Status */}
           <div className="flex items-center gap-4">
-            <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Chart Dashboard
-            </h1>
+            {/* Logo */}
+            <img 
+              src="/full-logo-accent-1.svg" 
+              alt="Spot Canvas" 
+              className="h-6 w-auto"
+            />
+            
+            {/* Account Menu */}
+            <AccountMenu />
+            
+            {/* Status indicator light */}
             {repository && (
-              <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
-                Repository: {repository.isOnline() ? "Online" : "Offline"}
+              <div className="flex items-center gap-2" title={repository.isOnline() ? "Repository Online" : "Repository Offline"}>
+                <div className={`h-2 w-2 rounded-full ${repository.isOnline() ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                <span className="text-xs text-gray-400 hidden sm:inline">
+                  {repository.isOnline() ? "Online" : "Offline"}
+                </span>
               </div>
             )}
+            
             {migrationStatus && (
-              <div className="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded border border-blue-200 dark:border-blue-800">
+              <div className="text-xs text-blue-400 bg-blue-900/20 px-2 py-1 rounded border border-blue-800">
                 {migrationStatus}
               </div>
             )}
           </div>
 
+          {/* Right side - Layout Selector */}
           <LayoutSelector
             currentLayout={currentLayout}
             currentLayoutId={currentLayoutId}
@@ -339,7 +354,7 @@ export const ChartApp: React.FC<ChartAppProps> = ({
       </div>
 
       {/* Chart Panel */}
-      <div className="flex-1 relative">
+      <div className="flex-1 relative bg-black">
         <ChartPanel
           layout={currentLayout}
           layoutId={currentLayoutId || undefined}

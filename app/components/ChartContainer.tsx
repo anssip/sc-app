@@ -239,7 +239,7 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
   };
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+    <div className="h-full flex flex-col bg-gray-900 border border-gray-800 rounded-lg overflow-hidden relative">
       <ChartHeader
         chartId={config.id}
         chartApiRef={chartRef}

@@ -52,13 +52,13 @@ const ResizeHandle: React.FC<{ direction: "horizontal" | "vertical" }> = ({
 }) => (
   <PanelResizeHandle
     className={`
-      ${direction === "horizontal" ? "w-2 hover:w-3" : "h-2 hover:h-3"}
-      bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600
+      ${direction === "horizontal" ? "w-1 hover:w-2" : "h-1 hover:h-2"}
+      bg-gray-800 hover:bg-gray-700
       transition-all duration-200 ease-in-out
       ${
         direction === "horizontal"
-          ? "cursor-col-resize border-l border-r border-gray-300 dark:border-gray-600"
-          : "cursor-row-resize border-t border-b border-gray-300 dark:border-gray-600"
+          ? "cursor-col-resize"
+          : "cursor-row-resize"
       }
       flex items-center justify-center
       group
@@ -67,8 +67,8 @@ const ResizeHandle: React.FC<{ direction: "horizontal" | "vertical" }> = ({
     <div
       className={`
       ${direction === "horizontal" ? "w-0.5 h-6" : "h-0.5 w-6"}
-      bg-gray-400 dark:bg-gray-500
-      group-hover:bg-gray-500 dark:group-hover:bg-gray-400
+      bg-gray-600
+      group-hover:bg-gray-500
       transition-colors duration-200
     `}
     />
