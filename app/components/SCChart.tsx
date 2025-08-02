@@ -482,7 +482,7 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
                 initialState.indicators
               );
 
-              // Restore indicators by ID with minimal configuration (matching working example)
+              // Restore indicators by ID with minimal configuration
               initialState.indicators.forEach((indicatorId: string) => {
                 if (
                   api.showIndicator && 
