@@ -99,7 +99,14 @@ export default function SignUp() {
             <div className="mt-4 p-4 bg-accent-1/10 border border-accent-1/30 rounded-lg">
               <p className="text-center text-sm text-accent-1">
                 Welcome! Create your account to get started with your 7-day free trial. 
-                Already have an account? Sign in to continue.
+                Already have an account?{' '}
+                <a 
+                  href={`/signin?from=pricing&redirect=${encodeURIComponent(redirectTo)}`}
+                  className="underline hover:text-white transition-colors"
+                >
+                  Sign in
+                </a>
+                {' '}to continue.
               </p>
             </div>
           )}

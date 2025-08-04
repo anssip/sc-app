@@ -90,7 +90,14 @@ export default function SignIn() {
             <div className="mt-4 p-4 bg-accent-1/10 border border-accent-1/30 rounded-lg">
               <p className="text-center text-sm text-accent-1">
                 Welcome! Please sign in to continue with your subscription. 
-                New to Spot Canvas? Create an account to get started with your free trial.
+                New to Spot Canvas?{' '}
+                <a 
+                  href={`/signup?from=pricing&redirect=${encodeURIComponent(redirectTo)}`}
+                  className="underline hover:text-white transition-colors"
+                >
+                  Create an account
+                </a>
+                {' '}to get started with your free trial.
               </p>
             </div>
           )}
