@@ -6,9 +6,11 @@ interface ChartHeaderProps {
   chartApiRef?: React.MutableRefObject<any>;
   isChangingSymbol?: boolean;
   isChangingGranularity?: boolean;
+  layoutId?: string;
   onDelete?: () => void;
   onSplitHorizontal?: () => void;
   onSplitVertical?: () => void;
+  onOpenSymbolManager?: () => void;
 }
 
 export const ChartHeader: React.FC<ChartHeaderProps> = ({
@@ -16,9 +18,11 @@ export const ChartHeader: React.FC<ChartHeaderProps> = ({
   chartApiRef,
   isChangingSymbol,
   isChangingGranularity,
+  layoutId,
   onDelete,
   onSplitHorizontal,
   onSplitVertical,
+  onOpenSymbolManager,
 }) => {
   return (
     <div className="flex items-center justify-between p-2 bg-gray-900 border-b border-gray-800 relative z-10 overflow-visible">
@@ -27,9 +31,11 @@ export const ChartHeader: React.FC<ChartHeaderProps> = ({
         chartApiRef={chartApiRef}
         isChangingSymbol={isChangingSymbol}
         isChangingGranularity={isChangingGranularity}
+        layoutId={layoutId}
         onDelete={onDelete}
         onSplitHorizontal={onSplitHorizontal}
         onSplitVertical={onSplitVertical}
+        onOpenSymbolManager={onOpenSymbolManager}
       />
     </div>
   );

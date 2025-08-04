@@ -46,6 +46,7 @@ export interface SavedLayout {
   createdAt: Date;
   updatedAt: Date;
   layout: LayoutNode;
+  starredSymbols?: string[]; // Array of symbol strings for this layout
 }
 
 // Symbol/Product information
@@ -87,6 +88,13 @@ export interface UserSettings {
   preferences?: Record<string, any>;
 }
 
+// Starred symbol document
+export interface StarredSymbol {
+  symbol: string;
+  addedAt: Date;
+  order?: number;
+}
+
 // Repository interfaces
 export interface ILayoutRepository {
   // Layout management
@@ -100,6 +108,10 @@ export interface ILayoutRepository {
     updates: Partial<SavedLayout>
   ): Promise<SavedLayout>;
   deleteLayout(layoutId: string): Promise<void>;
+  
+  // Layout-specific starred symbols
+  getLayoutStarredSymbols(layoutId: string): Promise<string[]>;
+  updateLayoutStarredSymbols(layoutId: string, symbols: string[]): Promise<void>;
 
   // Chart management (DEPRECATED: Charts are now embedded in layouts)
   getChart(chartId: string, layoutId?: string): Promise<ChartConfig | null>;

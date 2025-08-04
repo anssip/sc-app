@@ -158,9 +158,17 @@ Make the home page look like this: https://www.spotcanvas.com/
 
 # Chart page look and feel
 
- > Change the chart dashboard look like in this attached screenshot. The page should be mostly black but still usable, we could add       │
-│   subtle variations of the dark brand colors.                                                                                            │
-│                                                                                                                                          │
-│   The header section should not waste as much screen estate as it does in the current screenshot. Combine the two horizontal bars into   │
-│   one and fit the controls into one area. Remove the Chart Dashboard label, and "Repository Online" could be replaced with one           │
-│   indicator light. Layout selector button should look more slick.
+ Change the chart dashboard look like in this attached screenshot:
+
+- The page should be mostly black but still usable.
+- The header section should not waste as much screen estate as it does currently: Combine the two horizontal bars into one and fit the controls into one area. Remove the Chart Dashboard label, and "Repository Online" should be replaced with one indicator light. Layout selector button should look more slick like in the screenshot.
+
+# Symbol Manager
+
+Let's add a Symbol Manager modal dialog, which allows the user to add symbols to their portfolio. It should list all the symbols from Firestore (not just the active ones which are currently shown in the symbol selector menu), and allow for the user to filter them by name or symbol. The Symbol Manager should like in the second image attached.. The addes symbols should be saved in Firestore and displayed in the symbol selector menu.
+
+- Let's store starred symbols in Firestore for each user in the following path: /settings/{userEmail}/symbols You can use your Firebase MCP to see the Firestore schema.
+- Change the symbol selector menu to only show starred symbols
+- Add a Manage Symbols menu item in the settings menu (see the image)
+- Make the menu look like in this image
+- There should be a max height in the menu section that shows the favorited symbols plus a scroll bar if necessary. This way the "Manage Symbols" item should always be visible at the bottom of the menu.

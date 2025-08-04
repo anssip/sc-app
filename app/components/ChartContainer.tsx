@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { SCChart, SCChartRef } from "./SCChart";
 import { ChartHeader } from "./ChartHeader";
+import { SymbolManager } from "./SymbolManager";
 import { db } from "~/lib/firebase";
 import { useCharts } from "~/hooks/useRepository";
 import { useIndicators } from "~/hooks/useIndicators";
@@ -214,6 +215,7 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
   const [chartError, setChartError] = useState<string | null>(null);
   const [isChangingSymbol, setIsChangingSymbol] = useState(false);
   const [isChangingGranularity, setIsChangingGranularity] = useState(false);
+  const [isSymbolManagerOpen, setIsSymbolManagerOpen] = useState(false);
   const chartRef = useRef<SCChartRef>(null);
   const { settings } = useChartSettings(config.id);
 
@@ -267,6 +269,15 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
         onDelete={onRemove}
         onSplitHorizontal={handleSplitHorizontal}
         onSplitVertical={handleSplitVertical}
+        onOpenSymbolManager={() => setIsSymbolManagerOpen(true)}
+        layoutId={layoutId}
+      />
+
+      {/* Symbol Manager Modal */}
+      <SymbolManager 
+        isOpen={isSymbolManagerOpen} 
+        onClose={() => setIsSymbolManagerOpen(false)} 
+        layoutId={layoutId}
       />
 
       {/* Chart Content */}

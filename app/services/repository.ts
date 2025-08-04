@@ -182,6 +182,11 @@ export class Repository implements IRepository {
         updateData.name = updates.name;
       }
 
+      // Include starredSymbols if it's provided
+      if (updates.starredSymbols !== undefined) {
+        updateData.starredSymbols = updates.starredSymbols;
+      }
+
       await updateDoc(layoutRef, updateData);
     });
 
@@ -551,6 +556,7 @@ export class Repository implements IRepository {
           layout: data.layout,
           createdAt: data.createdAt.toDate(),
           updatedAt: data.updatedAt.toDate(),
+          starredSymbols: data.starredSymbols || [],
         };
         this.layoutsCache.set(doc.id, layout);
 
@@ -720,6 +726,7 @@ export class Repository implements IRepository {
           layout: data.layout,
           createdAt: data.createdAt.toDate(),
           updatedAt: data.updatedAt.toDate(),
+          starredSymbols: data.starredSymbols || [],
         };
 
         if (change.type === "added" || change.type === "modified") {
@@ -1036,6 +1043,32 @@ export class Repository implements IRepository {
         "NOT_INITIALIZED"
       );
     }
+  }
+
+  // Layout-specific starred symbols
+  async getLayoutStarredSymbols(layoutId: string): Promise<string[]> {
+    this.ensureInitialized();
+    
+    const layout = await this.getLayout(layoutId);
+    if (!layout) {
+      return [];
+    }
+    
+    return layout.starredSymbols || [];
+  }
+
+  async updateLayoutStarredSymbols(layoutId: string, symbols: string[]): Promise<void> {
+    this.ensureInitialized();
+    
+    const layout = await this.getLayout(layoutId);
+    if (!layout) {
+      throw new RepositoryError("Layout not found", "NOT_FOUND", { layoutId });
+    }
+    
+    // Update the layout with the new starred symbols
+    await this.updateLayout(layoutId, {
+      starredSymbols: symbols
+    });
   }
 
   // Cleanup

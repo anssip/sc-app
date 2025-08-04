@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import { useSymbols } from "~/hooks/useRepository";
+import { useStarredSymbols } from "~/hooks/useStarredSymbols";
 import { useChartSettings } from "~/contexts/ChartSettingsContext";
 import { useIndicators } from "~/hooks/useIndicators";
 import { db } from "~/lib/firebase";
@@ -11,9 +12,11 @@ interface ChartToolbarProps {
   chartApiRef?: React.MutableRefObject<any>;
   isChangingSymbol?: boolean;
   isChangingGranularity?: boolean;
+  layoutId?: string;
   onDelete?: () => void;
   onSplitHorizontal?: () => void;
   onSplitVertical?: () => void;
+  onOpenSymbolManager?: () => void;
 }
 
 // Granularity options with proper labels
@@ -33,15 +36,23 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
   chartApiRef,
   isChangingSymbol = false,
   isChangingGranularity = false,
+  layoutId,
   onDelete,
   onSplitHorizontal,
   onSplitVertical,
+  onOpenSymbolManager,
 }) => {
   const {
+    symbols: allSymbols,
     activeSymbols,
     isLoading: symbolsLoading,
     error: symbolsError,
   } = useSymbols();
+  
+  const {
+    starredSymbols,
+    isLoading: starredLoading,
+  } = useStarredSymbols(layoutId);
 
   // Use chart settings context (read-only for UI display)
   const { settings } = useChartSettings(chartId);
@@ -53,176 +64,208 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
     error: indicatorsError,
   } = useIndicators(db);
 
-  // State for indicator dropdown
+  // State for dropdowns
   const [isIndicatorDropdownOpen, setIsIndicatorDropdownOpen] = useState(false);
+  const [isSymbolDropdownOpen, setIsSymbolDropdownOpen] = useState(false);
 
-  // Handle Esc key to close indicators menu
+  // Handle Esc key to close dropdowns
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isIndicatorDropdownOpen) {
-        setIsIndicatorDropdownOpen(false);
+      if (event.key === 'Escape') {
+        if (isIndicatorDropdownOpen) {
+          setIsIndicatorDropdownOpen(false);
+        }
+        if (isSymbolDropdownOpen) {
+          setIsSymbolDropdownOpen(false);
+        }
       }
     };
 
-    if (isIndicatorDropdownOpen) {
+    if (isIndicatorDropdownOpen || isSymbolDropdownOpen) {
       document.addEventListener('keydown', handleKeyDown);
     }
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isIndicatorDropdownOpen]);
+  }, [isIndicatorDropdownOpen, isSymbolDropdownOpen]);
 
-  // Fallback symbols if repository fails to load
-  const fallbackSymbols = [
-    {
-      id: "BTC-USD",
-      symbol: "BTC-USD",
-      baseAsset: "BTC",
-      quoteAsset: "USD",
-      exchangeId: "coinbase",
-      active: true,
-    },
-    {
-      id: "ETH-USD",
-      symbol: "ETH-USD",
-      baseAsset: "ETH",
-      quoteAsset: "USD",
-      exchangeId: "coinbase",
-      active: true,
-    },
-    {
-      id: "ADA-USD",
-      symbol: "ADA-USD",
-      baseAsset: "ADA",
-      quoteAsset: "USD",
-      exchangeId: "coinbase",
-      active: true,
-    },
-    {
-      id: "DOGE-USD",
-      symbol: "DOGE-USD",
-      baseAsset: "DOGE",
-      quoteAsset: "USD",
-      exchangeId: "coinbase",
-      active: true,
-    },
-    {
-      id: "SOL-USD",
-      symbol: "SOL-USD",
-      baseAsset: "SOL",
-      quoteAsset: "USD",
-      exchangeId: "coinbase",
-      active: true,
-    },
-    {
-      id: "AVAX-USD",
-      symbol: "AVAX-USD",
-      baseAsset: "AVAX",
-      quoteAsset: "USD",
-      exchangeId: "coinbase",
-      active: true,
-    },
-    {
-      id: "MATIC-USD",
-      symbol: "MATIC-USD",
-      baseAsset: "MATIC",
-      quoteAsset: "USD",
-      exchangeId: "coinbase",
-      active: true,
-    },
-    {
-      id: "DOT-USD",
-      symbol: "DOT-USD",
-      baseAsset: "DOT",
-      quoteAsset: "USD",
-      exchangeId: "coinbase",
-      active: true,
-    },
-    {
-      id: "LINK-USD",
-      symbol: "LINK-USD",
-      baseAsset: "LINK",
-      quoteAsset: "USD",
-      exchangeId: "coinbase",
-      active: true,
-    },
-    {
-      id: "UNI-USD",
-      symbol: "UNI-USD",
-      baseAsset: "UNI",
-      quoteAsset: "USD",
-      exchangeId: "coinbase",
-      active: true,
-    },
-  ];
+  // Default symbols to use when no symbols are starred (same as in SymbolManager)
+  const DEFAULT_SYMBOLS = ["BTC-USD", "ETH-USD", "SOL-USD", "DOGE-USD"];
+  
+  // Get symbols to display in the dropdown
+  const getDisplaySymbols = () => {
+    // If we have starred symbols, use those
+    if (starredSymbols.length > 0) {
+      // Map starred symbols to full symbol objects from allSymbols
+      return starredSymbols
+        .map(symbol => allSymbols.find(s => s.symbol === symbol))
+        .filter(Boolean); // Remove any undefined entries
+    }
+    
+    // Otherwise, show default symbols
+    return DEFAULT_SYMBOLS
+      .map(symbol => allSymbols.find(s => s.symbol === symbol))
+      .filter(Boolean);
+  };
 
-  // Filter symbols to get most popular trading pairs
-  const popularSymbols =
-    activeSymbols.length > 0
-      ? activeSymbols
-          .filter((s) => s.exchangeId === "coinbase")
-          .filter((s) => s.quoteAsset === "USD")
-          .sort((a, b) => {
-            // Sort by popularity (BTC, ETH first, then alphabetically)
-            const popularOrder = [
-              "BTC-USD",
-              "ETH-USD",
-              "ADA-USD",
-              "DOGE-USD",
-              "SOL-USD",
-            ];
-            const aIndex = popularOrder.indexOf(a.symbol);
-            const bIndex = popularOrder.indexOf(b.symbol);
-
-            if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
-            if (aIndex !== -1) return -1;
-            if (bIndex !== -1) return 1;
-
-            return a.symbol.localeCompare(b.symbol);
-          })
-          .slice(0, 50) // Limit to top 50 symbols for performance
-      : fallbackSymbols; // Use fallback if no symbols loaded
+  const displaySymbols = getDisplaySymbols();
 
   return (
     <div className="flex items-center justify-between">
       {/* Left side - Symbol and Granularity selectors */}
       <div className="flex items-center gap-3">
-        <select
-          value={settings.symbol}
-          onChange={(e) => {
-            // Call Chart API directly instead of context
-            if (chartApiRef?.current?.setSymbol) {
-              chartApiRef.current.setSymbol(e.target.value);
-            }
-          }}
-          disabled={isChangingSymbol || symbolsLoading}
-          className={`text-sm font-bold bg-transparent border-none outline-none cursor-pointer text-gray-100 hover:text-white transition-colors ${
-            isChangingSymbol || symbolsLoading
-              ? "opacity-50 cursor-not-allowed"
-              : ""
-          }`}
-        >
-          {symbolsLoading ? (
-            <option value={settings.symbol}>Loading symbols...</option>
-          ) : symbolsError ? (
-            <option value={settings.symbol}>Error loading symbols</option>
-          ) : (
-            <>
-              {/* Current symbol if not in popular list */}
-              {!popularSymbols.find((s) => s.symbol === settings.symbol) && (
-                <option value={settings.symbol}>{settings.symbol}</option>
-              )}
+        {/* Symbol Dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => setIsSymbolDropdownOpen(!isSymbolDropdownOpen)}
+            disabled={symbolsLoading || starredLoading || isChangingSymbol}
+            className={`flex items-center gap-1 px-2 py-1 text-sm font-bold text-gray-100 hover:text-white bg-transparent rounded hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              isChangingSymbol ? "opacity-50" : ""
+            }`}
+            title="Select Symbol"
+          >
+            {symbolsLoading || starredLoading ? (
+              "Loading..."
+            ) : symbolsError ? (
+              "Error"
+            ) : (
+              settings.symbol
+            )}
+            <svg
+              className={`w-3 h-3 transition-transform ${
+                isSymbolDropdownOpen ? "rotate-180" : ""
+              }`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </button>
 
-              {/* Popular symbols */}
-              {popularSymbols.map((s, index) => (
-                <option key={s.id} value={s.symbol}>
-                  {s.symbol}
-                </option>
-              ))}
-            </>
+          {/* Dropdown Menu */}
+          {isSymbolDropdownOpen && (
+            <div className="absolute left-0 top-full mt-1 min-w-[160px] bg-black border border-gray-700 rounded-md shadow-lg z-[100] max-h-96 overflow-y-auto">
+              {symbolsLoading || starredLoading ? (
+                <div className="p-3 text-gray-400 text-xs">
+                  Loading symbols...
+                </div>
+              ) : symbolsError ? (
+                <div className="p-3 text-red-400 text-xs">
+                  Error loading symbols
+                </div>
+              ) : (
+                <div className="py-1">
+                  {/* Display symbols (starred or defaults) */}
+                  {displaySymbols.map((symbol) => symbol && (
+                    <button
+                      key={symbol.id}
+                      onClick={() => {
+                        if (chartApiRef?.current?.setSymbol) {
+                          chartApiRef.current.setSymbol(symbol.symbol);
+                        }
+                        setIsSymbolDropdownOpen(false);
+                      }}
+                      className={`w-full px-4 py-2.5 text-left text-sm hover:bg-gray-900 transition-colors flex items-center justify-between ${
+                        settings.symbol === symbol.symbol
+                          ? "text-blue-400"
+                          : "text-gray-100"
+                      }`}
+                    >
+                      <span className="font-medium">{symbol.symbol}</span>
+                      {settings.symbol === symbol.symbol && (
+                        <svg
+                          className="w-3 h-3 flex-shrink-0 ml-2"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      )}
+                    </button>
+                  ))}
+                  
+                  {/* Current symbol if not in display list */}
+                  {!displaySymbols.find((s) => s?.symbol === settings.symbol) && (
+                    <button
+                      key={settings.symbol}
+                      onClick={() => {
+                        setIsSymbolDropdownOpen(false);
+                      }}
+                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-900 transition-colors flex items-center justify-between text-blue-400"
+                    >
+                      <span className="font-medium">{settings.symbol}</span>
+                      <svg
+                        className="w-3 h-3 flex-shrink-0 ml-2"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </button>
+                  )}
+                  
+                  {/* Separator */}
+                  <div className="h-px bg-gray-800 my-1"></div>
+                  
+                  {/* Manage Symbols option */}
+                  <button
+                    onClick={() => {
+                      if (onOpenSymbolManager) {
+                        onOpenSymbolManager();
+                      }
+                      setIsSymbolDropdownOpen(false);
+                    }}
+                    className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-900 transition-colors text-gray-300 hover:text-white flex items-center"
+                  >
+                    <svg
+                      className="w-3 h-3 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </svg>
+                    Manage Symbols
+                  </button>
+                </div>
+              )}
+            </div>
           )}
-        </select>
+
+          {/* Click outside to close */}
+          {isSymbolDropdownOpen && (
+            <div
+              className="fixed inset-0 z-[99]"
+              onClick={() => setIsSymbolDropdownOpen(false)}
+            />
+          )}
+        </div>
 
         <div className="h-4 w-px bg-gray-600"></div>
 
