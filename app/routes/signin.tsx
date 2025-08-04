@@ -1,5 +1,5 @@
 import type { MetaFunction } from "@remix-run/node";
-import { useNavigate } from "@remix-run/react";
+import { useNavigate, useSearchParams } from "@remix-run/react";
 import { useState, useEffect } from "react";
 import { signIn, getErrorMessage } from "~/lib/auth";
 import { useAuth } from "~/lib/auth-context";
@@ -16,6 +16,7 @@ export const meta: MetaFunction = () => {
 
 export default function SignIn() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
@@ -23,14 +24,18 @@ export default function SignIn() {
   });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Check if user came from pricing/payment flow
+  const fromPricing = searchParams.get('from') === 'pricing';
+  const redirectTo = searchParams.get('redirect') || '/';
 
   // Redirect if user is signed in
   useEffect(() => {
     if (user) {
-      console.log("Redirecting to / - user signed in");
-      navigate("/");
+      console.log(`Redirecting to ${redirectTo} - user signed in`);
+      navigate(redirectTo);
     }
-  }, [user, navigate]);
+  }, [user, navigate, redirectTo]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,7 +77,7 @@ export default function SignIn() {
             Or{" "}
             <Button
               asLink
-              to="/signup"
+              to={`/signup${fromPricing ? '?from=pricing&redirect=' + encodeURIComponent(redirectTo) : ''}`}
               variant="outline"
               size="sm"
               outlineColor="var(--color-accent-1)"
@@ -81,6 +86,14 @@ export default function SignIn() {
               create a new account
             </Button>
           </p>
+          {fromPricing && (
+            <div className="mt-4 p-4 bg-accent-1/10 border border-accent-1/30 rounded-lg">
+              <p className="text-center text-sm text-accent-1">
+                Welcome! Please sign in to continue with your subscription. 
+                New to Spot Canvas? Create an account to get started with your free trial.
+              </p>
+            </div>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-6">

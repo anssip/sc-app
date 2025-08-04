@@ -1,5 +1,5 @@
 import { useAuth } from "~/lib/auth-context";
-import { Navigate } from "@remix-run/react";
+import { Navigate, useLocation } from "@remix-run/react";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -8,6 +8,7 @@ interface ProtectedRouteProps {
 
 export default function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -18,7 +19,13 @@ export default function ProtectedRoute({ children, fallback }: ProtectedRoutePro
   }
 
   if (!user) {
-    return fallback || <Navigate to="/signin" replace />;
+    // If coming from payment-method page, add query params to indicate pricing flow
+    const isPricingFlow = location.pathname === '/payment-method';
+    const redirectUrl = isPricingFlow 
+      ? `/signin?from=pricing&redirect=${encodeURIComponent(location.pathname + location.search)}`
+      : '/signin';
+    
+    return fallback || <Navigate to={redirectUrl} replace />;
   }
 
   return <>{children}</>;

@@ -7,6 +7,7 @@ import { Elements } from "@stripe/react-stripe-js";
 import AccountMenu from "~/components/AccountMenu";
 import SimplePaymentForm from "~/components/SimplePaymentForm";
 import Footer from "~/components/Footer";
+import ProtectedRoute from "~/components/ProtectedRoute";
 
 export const meta: MetaFunction = () => {
   return [
@@ -50,8 +51,9 @@ export default function PaymentMethodPage() {
   }, [publishableKey]);
 
   return (
-    <>
-      <div className="min-h-screen bg-black relative overflow-hidden">
+    <ProtectedRoute>
+      <>
+        <div className="min-h-screen bg-black relative overflow-hidden">
       {/* Navigation */}
       <nav className="relative z-20 p-6 border-b border-gray-800">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -125,6 +127,7 @@ export default function PaymentMethodPage() {
 
     {/* Footer */}
     <Footer />
-  </>
+      </>
+    </ProtectedRoute>
   );
 }

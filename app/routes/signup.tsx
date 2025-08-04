@@ -1,5 +1,5 @@
 import type { MetaFunction } from "@remix-run/node";
-import { useNavigate } from "@remix-run/react";
+import { useNavigate, useSearchParams } from "@remix-run/react";
 import { useState, useEffect } from "react";
 import { signUp, getErrorMessage } from "~/lib/auth";
 import { useAuth } from "~/lib/auth-context";
@@ -16,6 +16,7 @@ export const meta: MetaFunction = () => {
 
 export default function SignUp() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
@@ -24,14 +25,18 @@ export default function SignUp() {
   });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Check if user came from pricing/payment flow
+  const fromPricing = searchParams.get('from') === 'pricing';
+  const redirectTo = searchParams.get('redirect') || '/';
 
   // Redirect if user is signed in
   useEffect(() => {
     if (user) {
-      console.log("Redirecting to / - user signed up");
-      navigate("/");
+      console.log(`Redirecting to ${redirectTo} - user signed up`);
+      navigate(redirectTo);
     }
-  }, [user, navigate]);
+  }, [user, navigate, redirectTo]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,12 +89,20 @@ export default function SignUp() {
           <p className="mt-2 text-center text-sm text-gray-300">
             Or{" "}
             <a
-              href="/signin"
+              href={`/signin${fromPricing ? '?from=pricing&redirect=' + encodeURIComponent(redirectTo) : ''}`}
               className="font-medium text-accent-1 hover:text-accent-2 transition-colors"
             >
               sign in to your existing account
             </a>
           </p>
+          {fromPricing && (
+            <div className="mt-4 p-4 bg-accent-1/10 border border-accent-1/30 rounded-lg">
+              <p className="text-center text-sm text-accent-1">
+                Welcome! Create your account to get started with your 7-day free trial. 
+                Already have an account? Sign in to continue.
+              </p>
+            </div>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-6">

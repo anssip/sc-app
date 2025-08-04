@@ -1,9 +1,13 @@
 import type { MetaFunction } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { useLoaderData, useNavigate } from "@remix-run/react";
+import { useState } from "react";
 import PricingCard from "~/components/PricingCard";
 import Navigation from "~/components/Navigation";
 import Footer from "~/components/Footer";
+import SubscriptionExistsModal from "~/components/SubscriptionExistsModal";
+import { useSubscription } from "~/contexts/SubscriptionContext";
+import { useAuth } from "~/lib/auth-context";
 
 export const meta: MetaFunction = () => {
   return [
@@ -70,10 +74,28 @@ export async function loader() {
 export default function PricingPage() {
   const { plans } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const subscription = useSubscription();
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   const handleGetStarted = (planName: string) => {
+    // Check if user is authenticated
+    if (!user) {
+      // If not authenticated, navigate to payment page which will redirect to signin
+      navigate(`/payment-method?plan=${encodeURIComponent(planName)}`);
+      return;
+    }
+
+    // Check if user has an existing subscription
+    if (subscription && subscription.status !== 'none' && 
+        subscription.status !== 'canceled' && 
+        subscription.status !== 'incomplete' && 
+        subscription.status !== 'incomplete_expired') {
+      setShowSubscriptionModal(true);
+      return;
+    }
+
     // Navigate to payment method creation page
-    // We'll pass the selected plan as a query parameter
     navigate(`/payment-method?plan=${encodeURIComponent(planName)}`);
   };
 
@@ -159,6 +181,14 @@ export default function PricingPage() {
 
     {/* Footer */}
     <Footer variant="dark" />
+
+    {/* Subscription Exists Modal */}
+    <SubscriptionExistsModal
+      isOpen={showSubscriptionModal}
+      onClose={() => setShowSubscriptionModal(false)}
+      subscriptionStatus={subscription?.status || 'none'}
+      currentPlan={subscription?.plan || 'none'}
+    />
   </>
   );
 }
