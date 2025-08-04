@@ -15,6 +15,7 @@ export default function PaymentForm({ priceId, selectedPlan, onSuccess }: Paymen
   const elements = useElements()
   const navigate = useNavigate()
   const [isProcessing, setIsProcessing] = useState(false)
+  const [processingMessage, setProcessingMessage] = useState<string>('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const handleSubmit = async (event: FormEvent) => {
@@ -26,21 +27,13 @@ export default function PaymentForm({ priceId, selectedPlan, onSuccess }: Paymen
 
     setIsProcessing(true)
     setErrorMessage(null)
+    setProcessingMessage('Processing payment...')
 
     try {
-      // First, submit the payment method to Stripe
-      const { error: submitError, paymentMethod } = await stripe.createPaymentMethod({
-        elements,
-      })
-
+      // Submit form to Stripe
+      const { error: submitError } = await elements.submit()
       if (submitError) {
-        setErrorMessage(submitError.message || 'Failed to process payment method')
-        setIsProcessing(false)
-        return
-      }
-
-      if (!paymentMethod) {
-        setErrorMessage('Failed to create payment method')
+        setErrorMessage(submitError.message || 'Failed to submit payment details')
         setIsProcessing(false)
         return
       }
@@ -56,7 +49,8 @@ export default function PaymentForm({ priceId, selectedPlan, onSuccess }: Paymen
 
       const idToken = await user.getIdToken()
 
-      // Create subscription with our backend API
+      // Step 1: Create subscription with our backend API
+      // The backend will create a SetupIntent or PaymentIntent for 3D Secure
       const response = await fetch('https://billing-server-346028322665.europe-west1.run.app/api/subscriptions/signup', {
         method: 'POST',
         headers: {
@@ -65,7 +59,6 @@ export default function PaymentForm({ priceId, selectedPlan, onSuccess }: Paymen
         },
         body: JSON.stringify({
           price_id: priceId,
-          payment_method_id: paymentMethod.id,
         }),
       })
 
@@ -73,6 +66,62 @@ export default function PaymentForm({ priceId, selectedPlan, onSuccess }: Paymen
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to create subscription')
+      }
+
+      // Step 2: Confirm the payment with Stripe
+      // This will handle 3D Secure authentication if required
+      const { client_secret, type } = data
+
+      setProcessingMessage('Authenticating payment...')
+
+      let result
+      if (type === 'setup_intent') {
+        // For subscriptions with trial or $0 first payment
+        result = await stripe.confirmSetup({
+          elements,
+          clientSecret: client_secret,
+          confirmParams: {
+            return_url: `${window.location.origin}/thank-you`,
+          },
+          redirect: 'if_required',
+        })
+      } else {
+        // For immediate payment
+        result = await stripe.confirmPayment({
+          elements,
+          clientSecret: client_secret,
+          confirmParams: {
+            return_url: `${window.location.origin}/thank-you`,
+          },
+          redirect: 'if_required',
+        })
+      }
+
+      if (result.error) {
+        // Show error to customer (e.g., insufficient funds, 3D Secure authentication failed)
+        throw new Error(result.error.message || 'Payment confirmation failed')
+      }
+
+      // Step 3: Confirm subscription activation with backend
+      setProcessingMessage('Activating subscription...')
+      
+      const confirmResponse = await fetch('https://billing-server-346028322665.europe-west1.run.app/api/subscriptions/confirm', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({
+          subscription_id: data.subscription_id,
+          payment_intent_id: result.paymentIntent?.id,
+          setup_intent_id: result.setupIntent?.id,
+        }),
+      })
+
+      const confirmData = await confirmResponse.json()
+
+      if (!confirmResponse.ok) {
+        throw new Error(confirmData.error || 'Failed to confirm subscription')
       }
 
       // Success! Redirect to thank you page
@@ -86,6 +135,7 @@ export default function PaymentForm({ priceId, selectedPlan, onSuccess }: Paymen
       setErrorMessage(error instanceof Error ? error.message : 'An unexpected error occurred')
     } finally {
       setIsProcessing(false)
+      setProcessingMessage('')
     }
   }
 
@@ -131,7 +181,7 @@ export default function PaymentForm({ priceId, selectedPlan, onSuccess }: Paymen
           fullWidth
           disabled={!stripe || isProcessing}
         >
-          {isProcessing ? 'Processing...' : 'Start Free Trial'}
+          {isProcessing ? (processingMessage || 'Processing...') : 'Start Free Trial'}
         </Button>
       </div>
 
