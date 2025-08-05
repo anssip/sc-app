@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Link } from "@remix-run/react";
+import { Link, useLocation } from "@remix-run/react";
 import { User, ChevronDown, Crown, Zap } from "lucide-react";
 import { useAuth } from "~/lib/auth-context";
 import { logOut } from "~/lib/auth";
@@ -10,9 +10,13 @@ import { useSubscription } from "~/contexts/SubscriptionContext";
 export default function AccountMenu() {
   const { user } = useAuth();
   const { status, plan, trialEndsAt } = useSubscription();
+  const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  
+  // Check if we're on the chart page
+  const isOnChartPage = location.pathname === '/chart';
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -89,13 +93,15 @@ export default function AccountMenu() {
                 )}
               </div>
               <div className="space-y-2">
-                <Link
-                  to="/chart"
-                  onClick={() => setIsOpen(false)}
-                  className="block w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-800 rounded-md transition-colors"
-                >
-                  Chart Dashboard
-                </Link>
+                {!isOnChartPage && (
+                  <Link
+                    to="/chart"
+                    onClick={() => setIsOpen(false)}
+                    className="block w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-800 rounded-md transition-colors"
+                  >
+                    Chart Dashboard
+                  </Link>
+                )}
                 <Link
                   to="/billing"
                   onClick={() => setIsOpen(false)}
