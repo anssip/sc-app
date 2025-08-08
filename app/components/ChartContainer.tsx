@@ -302,24 +302,6 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
     trendLines: initialState.trendLines
   });
 
-  /**
-   * Wait for Chart API to be available with retry mechanism
-   */
-  const waitForApi = async (): Promise<boolean> => {
-    let retries = 0;
-    const maxRetries = 10;
-
-    while (
-      (!chartRef.current || !chartRef.current.api) &&
-      retries < maxRetries
-    ) {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      retries++;
-    }
-
-    return !!(chartRef.current && chartRef.current.api);
-  };
-
   // Dummy handlers for split functionality (to be implemented later)
   const handleSplitHorizontal = () => {
     // TODO: Implement split functionality
