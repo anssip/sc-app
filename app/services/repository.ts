@@ -29,6 +29,7 @@ import type {
   LayoutNode,
   ChartLayoutNode,
   SplitLayoutNode,
+  TrendLine,
 } from "~/types";
 import { RepositoryError, NetworkError, ValidationError } from "~/types";
 
@@ -1069,6 +1070,125 @@ export class Repository implements IRepository {
     await this.updateLayout(layoutId, {
       starredSymbols: symbols
     });
+  }
+
+  // Trend Line Management - stored under charts
+  async getTrendLines(layoutId: string, chartId: string): Promise<TrendLine[]> {
+    this.ensureInitialized();
+    
+    try {
+      const trendLinesRef = collection(
+        db,
+        "settings",
+        this.userId,
+        "layouts",
+        layoutId,
+        "charts",
+        chartId,
+        "trendLines"
+      );
+      
+      const snapshot = await getDocs(trendLinesRef);
+      const trendLines: TrendLine[] = [];
+      
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        trendLines.push({
+          id: doc.id,
+          ...data
+        } as TrendLine);
+      });
+      
+      return trendLines;
+    } catch (error) {
+      console.error("Failed to get trend lines:", error);
+      throw new RepositoryError(
+        "Failed to get trend lines",
+        "TRENDLINE_FETCH_ERROR",
+        error
+      );
+    }
+  }
+  
+  async saveTrendLine(layoutId: string, chartId: string, trendLine: TrendLine): Promise<void> {
+    this.ensureInitialized();
+    
+    try {
+      const trendLineRef = doc(
+        db,
+        "settings",
+        this.userId,
+        "layouts",
+        layoutId,
+        "charts",
+        chartId,
+        "trendLines",
+        trendLine.id
+      );
+      
+      await setDoc(trendLineRef, trendLine);
+    } catch (error) {
+      console.error("Failed to save trend line:", error);
+      throw new RepositoryError(
+        "Failed to save trend line",
+        "TRENDLINE_SAVE_ERROR",
+        error
+      );
+    }
+  }
+  
+  async updateTrendLine(layoutId: string, chartId: string, trendLineId: string, updates: Partial<TrendLine>): Promise<void> {
+    this.ensureInitialized();
+    
+    try {
+      const trendLineRef = doc(
+        db,
+        "settings",
+        this.userId,
+        "layouts",
+        layoutId,
+        "charts",
+        chartId,
+        "trendLines",
+        trendLineId
+      );
+      
+      await updateDoc(trendLineRef, updates);
+    } catch (error) {
+      console.error("Failed to update trend line:", error);
+      throw new RepositoryError(
+        "Failed to update trend line",
+        "TRENDLINE_UPDATE_ERROR",
+        error
+      );
+    }
+  }
+  
+  async deleteTrendLine(layoutId: string, chartId: string, trendLineId: string): Promise<void> {
+    this.ensureInitialized();
+    
+    try {
+      const trendLineRef = doc(
+        db,
+        "settings",
+        this.userId,
+        "layouts",
+        layoutId,
+        "charts",
+        chartId,
+        "trendLines",
+        trendLineId
+      );
+      
+      await deleteDoc(trendLineRef);
+    } catch (error) {
+      console.error("Failed to delete trend line:", error);
+      throw new RepositoryError(
+        "Failed to delete trend line",
+        "TRENDLINE_DELETE_ERROR",
+        error
+      );
+    }
   }
 
   // Cleanup

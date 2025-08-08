@@ -311,6 +311,32 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
 
       {/* Right side */}
       <div className="flex items-center gap-3">
+        {/* Trend Line Button */}
+        <button
+          onClick={() => {
+            if (chartApiRef?.current?.activateTrendLineTool) {
+              chartApiRef.current.activateTrendLineTool();
+            }
+          }}
+          className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-300 hover:text-white bg-transparent rounded hover:bg-gray-700 transition-colors"
+          title="Draw Trend Line"
+        >
+          <svg
+            className="w-3 h-3"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M3 17l6-6 4 4 8-8"
+            />
+          </svg>
+          <span className="text-xs">Draw Line</span>
+        </button>
+
         {/* Indicator Dropdown */}
         <div className="relative">
           <button

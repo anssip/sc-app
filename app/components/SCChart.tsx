@@ -32,6 +32,8 @@ export interface SCChartRef {
   getSymbol: () => string;
   getGranularity: () => Granularity;
   api: ChartApi | null;
+  activateTrendLineTool: () => void;
+  deactivateTrendLineTool: () => void;
 }
 
 export const SCChart = forwardRef<SCChartRef, SCChartProps>(
@@ -39,6 +41,14 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
     { firestore, initialState, className, style, onReady, onError, chartId },
     ref
   ) => {
+    console.log(`📈 SCChart: Component initialized with initialState:`, {
+      hasInitialState: !!initialState,
+      symbol: initialState?.symbol,
+      granularity: initialState?.granularity,
+      trendLineCount: initialState?.trendLines?.length || 0,
+      trendLines: initialState?.trendLines,
+      chartId: chartId
+    });
     const containerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<any>(null);
     const appRef = useRef<any>(null);
@@ -51,6 +61,7 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
     const [isClient, setIsClient] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [initError, setInitError] = useState<string | null>(null);
+    const [isApiReady, setIsApiReady] = useState(false);
     const uniqueChartId = useRef(
       chartId || `chart-${Math.random().toString(36).substr(2, 9)}`
     );
@@ -203,6 +214,16 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
         getGranularity: () => {
           return apiRef.current?.getGranularity() || "ONE_HOUR";
         },
+        activateTrendLineTool: () => {
+          if (apiRef.current?.activateTrendLineTool) {
+            apiRef.current.activateTrendLineTool();
+          }
+        },
+        deactivateTrendLineTool: () => {
+          if (apiRef.current?.deactivateTrendLineTool) {
+            apiRef.current.deactivateTrendLineTool();
+          }
+        },
         get api() {
           return apiRef.current;
         },
@@ -324,6 +345,7 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
 
           // Always mark as initialized when ready
           isInitializedRef.current = true;
+          setIsApiReady(true); // Mark API as ready
 
           // Restore indicators from initial state after chart is ready
           if (
@@ -383,16 +405,21 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
     const reinitializeChart = useCallback(
       async (newSymbol: string, newGranularity: string) => {
         try {
-          // Get current visible indicators BEFORE cleanup
+          // Get current visible indicators and trend lines BEFORE cleanup
           const currentIndicators =
             apiRef.current?.getVisibleIndicators?.() || [];
           const visibleIndicatorIds = currentIndicators.map(
             (ind: any) => ind.id
           );
+          const currentTrendLines = apiRef.current?.getTrendLines?.() || [];
 
           console.log(
             "SCChart: Preserving indicators for reinit:",
             visibleIndicatorIds
+          );
+          console.log(
+            "SCChart: Preserving trend lines for reinit:",
+            currentTrendLines.length
           );
 
           // Clean up existing chart and event listeners
@@ -432,12 +459,21 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
           appRef.current = null;
           chartRef.current = null;
 
-          // Set new initial state - don't include indicators here
+          // Set new initial state - include trend lines but not indicators
           const newInitialState = {
             symbol: newSymbol,
             granularity: newGranularity,
+            trendLines: currentTrendLines, // Preserve trend lines
             // Don't pass indicators - they will be restored after chart is ready
           };
+          
+          console.log(`📈 SCChart: Reinitializing chart with preserved state:`, {
+            symbol: newInitialState.symbol,
+            granularity: newInitialState.granularity,
+            trendLineCount: newInitialState.trendLines.length,
+            trendLines: newInitialState.trendLines,
+            chartId: uniqueChartId.current
+          });
 
           // Find the container
           const container = document.querySelector(
@@ -496,6 +532,55 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
     useEffect(() => {
       setIsClient(true);
     }, []);
+
+    // Add trend lines to chart when BOTH API is available AND trend lines are present
+    useEffect(() => {
+      console.log(`📈 SCChart: TrendLine effect running - isApiReady: ${isApiReady}, apiRef.current: ${!!apiRef.current}, trendLines: ${initialState?.trendLines?.length || 0}`);
+      
+      // Only proceed if both conditions are met
+      if (!isApiReady || !apiRef.current || !initialState?.trendLines || initialState.trendLines.length === 0) {
+        return;
+      }
+      
+      // Both API and trend lines are available
+      if (isApiReady && apiRef.current && initialState?.trendLines && initialState.trendLines.length > 0) {
+        console.log(`📈 SCChart: Detected trend lines in initialState, adding ${initialState.trendLines.length} trend lines to chart`);
+        
+        // Check if addTrendLine method exists
+        if (!apiRef.current.addTrendLine) {
+          console.error(`📈 SCChart: addTrendLine method not available on API!`);
+          console.log(`📈 SCChart: Available API methods:`, Object.keys(apiRef.current));
+          return;
+        }
+        
+        // Get current trend lines in the chart
+        const currentTrendLines = apiRef.current.getTrendLines?.() || [];
+        const currentIds = new Set(currentTrendLines.map((line: any) => line.id));
+        
+        console.log(`📈 SCChart: Current trend lines in chart:`, currentTrendLines);
+        
+        // Add only new trend lines that aren't already in the chart
+        initialState.trendLines.forEach((trendLine: any) => {
+          if (!currentIds.has(trendLine.id)) {
+            try {
+              console.log(`📈 SCChart: Adding trend line ${trendLine.id} to chart:`, JSON.stringify(trendLine, null, 2));
+              const result = apiRef.current.addTrendLine(trendLine);
+              console.log(`📈 SCChart: Add trend line result:`, result);
+            } catch (error) {
+              console.error(`📈 SCChart: Failed to add trend line ${trendLine.id}:`, error);
+            }
+          } else {
+            console.log(`📈 SCChart: Trend line ${trendLine.id} already exists in chart`);
+          }
+        });
+        
+        // Verify trend lines were added
+        setTimeout(() => {
+          const updatedTrendLines = apiRef.current.getTrendLines?.();
+          console.log(`📈 SCChart: Verification - trend lines in chart after adding:`, updatedTrendLines);
+        }, 500);
+      }
+    }, [initialState?.trendLines, isApiReady]); // Watch both trend lines AND api readiness
 
     useEffect(() => {
       if (!isClient || appRef.current || isInitializingRef.current) {
@@ -564,12 +649,21 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
         chartRef.current = chartContainer;
         container.appendChild(chartContainer as HTMLElement);
 
-        // Don't pass indicators in initial state - they will be added after chart is ready
+        // Pass initial state including trend lines
         const chartInitState = {
           symbol: initialState?.symbol || "BTC-USD",
           granularity: initialState?.granularity || "ONE_HOUR",
-          // Remove indicators from initial state as it's not supported by the chart API
+          // Remove indicators from initial state as they're added after chart is ready
+          trendLines: initialState?.trendLines || [], // Include trend lines if provided
         };
+        
+        console.log(`📈 SCChart: Initializing chart with state:`, {
+          symbol: chartInitState.symbol,
+          granularity: chartInitState.granularity,
+          trendLineCount: chartInitState.trendLines.length,
+          trendLines: chartInitState.trendLines,
+          chartId: uniqueChartId.current
+        });
 
         const { app, api } = initChartWithApi(
           chartContainer as any,
@@ -583,6 +677,11 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
 
         appRef.current = app;
         apiRef.current = api;
+        
+        // Mark API as ready when it's assigned
+        if (api) {
+          console.log(`📈 SCChart: API initialized and assigned to apiRef`);
+        }
 
         // Set up event handlers
         setupEventHandlers(api, initialState);

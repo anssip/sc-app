@@ -1,5 +1,30 @@
 import type { Granularity } from "@anssipiirainen/sc-charts";
 
+// Trend line types
+export interface TrendLinePoint {
+  timestamp: number;
+  price: number;
+}
+
+export interface TrendLine {
+  id: string;
+  startPoint: TrendLinePoint;
+  endPoint: TrendLinePoint;
+  color?: string;
+  lineWidth?: number;
+  style?: 'solid' | 'dashed' | 'dotted';
+  extendLeft?: boolean;
+  extendRight?: boolean;
+}
+
+export interface TrendLineSettings {
+  color?: string;
+  lineWidth?: number;
+  style?: 'solid' | 'dashed' | 'dotted';
+  extendLeft?: boolean;
+  extendRight?: boolean;
+}
+
 // Chart configuration interface
 export interface ChartConfig {
   id: string;

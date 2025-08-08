@@ -5,6 +5,9 @@ import { SymbolManager } from "./SymbolManager";
 import { db } from "~/lib/firebase";
 import { useCharts } from "~/hooks/useRepository";
 import { useIndicators } from "~/hooks/useIndicators";
+import { getRepository } from "~/services/repository";
+import { useAuth } from "~/lib/auth-context";
+import type { TrendLine } from "~/types";
 import {
   ChartSettingsProvider,
   useChartSettings,
@@ -216,14 +219,88 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
   const [isChangingSymbol, setIsChangingSymbol] = useState(false);
   const [isChangingGranularity, setIsChangingGranularity] = useState(false);
   const [isSymbolManagerOpen, setIsSymbolManagerOpen] = useState(false);
+  const [trendLines, setTrendLines] = useState<TrendLine[]>([]);
+  const [trendLinesLoaded, setTrendLinesLoaded] = useState(false);
   const chartRef = useRef<SCChartRef>(null);
   const { settings } = useChartSettings(config.id);
+  const { user } = useAuth();
 
-  const initialState = {
+  // Load trend lines when layout and chart are available
+  useEffect(() => {
+    const loadTrendLines = async () => {
+      if (!layoutId || !config.id || !user?.email || trendLinesLoaded) return;
+      
+      try {
+        const repository = getRepository(user.email);
+        await repository.initialize();
+        const loadedTrendLines = await repository.getTrendLines(layoutId, config.id);
+        console.log(`📊 ChartContainer: Loaded ${loadedTrendLines.length} trend lines from Firestore for chart ${config.id}:`, loadedTrendLines);
+        
+        // Log detailed structure of each loaded trend line
+        loadedTrendLines.forEach((line, index) => {
+          console.log(`📊 ChartContainer: Loaded trend line ${index + 1} structure:`, {
+            id: line.id,
+            hasStartPoint: !!line.startPoint,
+            hasEndPoint: !!line.endPoint,
+            startPointTimestamp: line.startPoint?.timestamp,
+            startPointPrice: line.startPoint?.price,
+            endPointTimestamp: line.endPoint?.timestamp,
+            endPointPrice: line.endPoint?.price,
+            color: line.color,
+            lineWidth: line.lineWidth,
+            style: line.style,
+            fullStructure: line
+          });
+        });
+        
+        setTrendLines(loadedTrendLines);
+        setTrendLinesLoaded(true);
+        
+        // If chart API is already available, add trend lines immediately
+        if (chartRef.current?.api && loadedTrendLines.length > 0) {
+          const api = chartRef.current.api;
+          console.log(`📊 ChartContainer: Chart API is ready, adding ${loadedTrendLines.length} trend lines immediately`);
+          
+          loadedTrendLines.forEach((trendLine) => {
+            try {
+              console.log(`📊 ChartContainer: Adding trend line to chart via API:`, trendLine);
+              const result = api.addTrendLine?.(trendLine);
+              console.log(`📊 ChartContainer: Add trend line result:`, result);
+            } catch (error) {
+              console.error(`Failed to add trend line ${trendLine.id}:`, error);
+            }
+          });
+          
+          // Verify trend lines were added
+          setTimeout(() => {
+            const currentTrendLines = api.getTrendLines?.();
+            console.log(`📊 ChartContainer: Verification - trend lines in chart after adding:`, currentTrendLines);
+          }, 500);
+        }
+      } catch (error) {
+        console.error("Failed to load trend lines:", error);
+        setTrendLinesLoaded(true); // Mark as loaded even on error to prevent infinite retries
+      }
+    };
+    
+    loadTrendLines();
+  }, [layoutId, config.id, user?.email, trendLinesLoaded]);
+
+  // Create initial state with current trend lines (will be empty initially)
+  const initialState = useMemo(() => ({
     symbol: config.symbol,
     granularity: config.granularity,
     indicators: config.indicators || [],
-  };
+    trendLines: trendLines, // Include loaded trend lines
+  }), [config.symbol, config.granularity, config.indicators, trendLines]);
+  
+  console.log(`📊 ChartContainer: Passing initialState to SCChart for chart ${config.id}:`, {
+    symbol: initialState.symbol,
+    granularity: initialState.granularity,
+    indicatorCount: initialState.indicators.length,
+    trendLineCount: initialState.trendLines.length,
+    trendLines: initialState.trendLines
+  });
 
   /**
    * Wait for Chart API to be available with retry mechanism
@@ -319,7 +396,119 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
             style={{ width: "100%", height: "100%" }}
             className="trading-chart"
             chartId={config.id}
-            onReady={() => {}}
+            onReady={() => {
+              // Set up trend line event listeners when chart is ready
+              if (chartRef.current?.api && layoutId && config.id && user?.email) {
+                const api = chartRef.current.api;
+                let previousTrendLines: TrendLine[] = [];
+                const chartId = config.id;
+                
+                // Add loaded trend lines to the chart after it's ready (if they're already loaded)
+                if (trendLines.length > 0 && trendLinesLoaded) {
+                  console.log(`📊 ChartContainer: Chart ready, checking for addTrendLine API...`);
+                  console.log(`📊 ChartContainer: api.addTrendLine exists:`, !!api.addTrendLine);
+                  console.log(`📊 ChartContainer: Available API methods:`, Object.keys(api));
+                  
+                  if (api.addTrendLine) {
+                    console.log(`📊 ChartContainer: Adding ${trendLines.length} loaded trend lines to chart after ready`);
+                    trendLines.forEach((trendLine) => {
+                      console.log(`📊 ChartContainer: Adding trend line to chart:`, JSON.stringify(trendLine, null, 2));
+                      try {
+                        // Try to add with ID first, if that fails, add without ID
+                        const result = api.addTrendLine(trendLine);
+                        console.log(`📊 ChartContainer: Successfully added trend line, result:`, result);
+                        // Update previousTrendLines to include the loaded ones
+                        previousTrendLines.push(trendLine);
+                      } catch (error) {
+                        console.error(`Failed to add trend line ${trendLine.id}:`, error);
+                        // Try without ID if adding with ID failed
+                        try {
+                          const { id, ...trendLineWithoutId } = trendLine;
+                          const newId = api.addTrendLine(trendLineWithoutId);
+                          console.log(`Added trend line with new ID: ${newId}`);
+                        } catch (error2) {
+                          console.error(`Failed to add trend line even without ID:`, error2);
+                        }
+                      }
+                    });
+                    
+                    // Verify trend lines were added
+                    setTimeout(() => {
+                      const currentTrendLines = api.getTrendLines?.();
+                      console.log(`📊 ChartContainer: Verification - trend lines in chart after adding:`, currentTrendLines);
+                    }, 1000);
+                  } else {
+                    console.error(`📊 ChartContainer: addTrendLine API method not available!`);
+                  }
+                } else {
+                  console.log(`📊 ChartContainer: Chart ready but no trend lines to add yet (trendLines.length = ${trendLines.length}, trendLinesLoaded = ${trendLinesLoaded})`);
+                }
+                
+                // Periodically check for trend line changes and persist them
+                const checkAndSaveTrendLines = async () => {
+                  try {
+                    const currentTrendLines = api.getTrendLines?.() || [];
+                    
+                    // Check if trend lines have changed
+                    if (JSON.stringify(currentTrendLines) !== JSON.stringify(previousTrendLines)) {
+                      console.log('📊 ChartContainer: Current trend lines from API:', currentTrendLines);
+                      const repository = getRepository(user.email);
+                      await repository.initialize();
+                      
+                      // Save all trend lines (simple approach - replace all)
+                      for (const trendLine of currentTrendLines) {
+                        console.log('📊 ChartContainer: Saving trend line structure:', {
+                          id: trendLine.id,
+                          hasStartPoint: !!trendLine.startPoint,
+                          hasEndPoint: !!trendLine.endPoint,
+                          startPoint: trendLine.startPoint,
+                          endPoint: trendLine.endPoint,
+                          fullStructure: trendLine
+                        });
+                        await repository.saveTrendLine(layoutId, chartId, trendLine);
+                      }
+                      
+                      // Remove deleted trend lines
+                      for (const prevLine of previousTrendLines) {
+                        if (!currentTrendLines.find((line: TrendLine) => line.id === prevLine.id)) {
+                          await repository.deleteTrendLine(layoutId, chartId, prevLine.id);
+                        }
+                      }
+                      
+                      previousTrendLines = [...currentTrendLines];
+                      console.log('Trend lines synchronized:', currentTrendLines.length);
+                    }
+                  } catch (error) {
+                    console.error('Failed to synchronize trend lines:', error);
+                  }
+                };
+                
+                // Check for changes every 2 seconds
+                const intervalId = setInterval(checkAndSaveTrendLines, 2000);
+                
+                // Listen for trend line deletions (this event is documented)
+                api.on?.('trend-line-deleted', async (event: any) => {
+                  if (event.trendLineId) {
+                    try {
+                      const repository = getRepository(user.email);
+                      await repository.initialize();
+                      await repository.deleteTrendLine(layoutId, chartId, event.trendLineId);
+                      console.log('Trend line deleted:', event.trendLineId);
+                      
+                      // Update the previous trend lines cache
+                      previousTrendLines = previousTrendLines.filter(line => line.id !== event.trendLineId);
+                    } catch (error) {
+                      console.error('Failed to delete trend line:', error);
+                    }
+                  }
+                });
+                
+                // Clean up interval on unmount
+                return () => {
+                  clearInterval(intervalId);
+                };
+              }
+            }}
             onError={(error) => setChartError(error)}
           />
         )}
