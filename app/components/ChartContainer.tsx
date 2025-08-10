@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { SCChart, SCChartRef } from "./SCChart";
 import { ChartHeader } from "./ChartHeader";
+import { ChartLineToolbar } from "./ChartLineToolbar";
 import { SymbolManager } from "./SymbolManager";
 import { db } from "~/lib/firebase";
 import { useCharts } from "~/hooks/useRepository";
@@ -232,6 +233,8 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
   const [isSymbolManagerOpen, setIsSymbolManagerOpen] = useState(false);
   const [trendLines, setTrendLines] = useState<TrendLine[]>([]);
   const [trendLinesLoaded, setTrendLinesLoaded] = useState(false);
+  const [selectedTrendLine, setSelectedTrendLine] = useState<TrendLine | null>(null);
+  const [selectedTrendLineId, setSelectedTrendLineId] = useState<string | null>(null);
   const chartRef = useRef<SCChartRef>(null);
   const { settings } = useChartSettings(config.id);
   const { user } = useAuth();
@@ -352,6 +355,44 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
     console.log("Add chart - not yet implemented");
   };
 
+  // Handler for updating trend line settings
+  const handleUpdateTrendLineSettings = useCallback((settings: Partial<any>) => {
+    if (!selectedTrendLineId || !chartRef.current?.api) return;
+    
+    const api = chartRef.current.api;
+    
+    // Map our settings to the API's expected format
+    const updates: any = {};
+    if (settings.color !== undefined) updates.color = settings.color;
+    if (settings.style !== undefined) updates.style = settings.style;
+    if (settings.thickness !== undefined) updates.lineWidth = settings.thickness;
+    if (settings.extendLeft !== undefined) updates.extendLeft = settings.extendLeft;
+    if (settings.extendRight !== undefined) updates.extendRight = settings.extendRight;
+    
+    // Update via Chart API
+    api.updateTrendLineSettings?.(selectedTrendLineId, updates);
+    
+    // Update local state
+    if (selectedTrendLine) {
+      setSelectedTrendLine({
+        ...selectedTrendLine,
+        ...updates,
+      });
+    }
+  }, [selectedTrendLineId, selectedTrendLine]);
+
+  // Handler for deleting selected trend line
+  const handleDeleteTrendLine = useCallback(() => {
+    if (!selectedTrendLineId || !chartRef.current?.api) return;
+    
+    const api = chartRef.current.api;
+    api.removeTrendLine?.(selectedTrendLineId);
+    
+    // Clear selection
+    setSelectedTrendLine(null);
+    setSelectedTrendLineId(null);
+  }, [selectedTrendLineId]);
+
   return (
     <div className="h-full flex flex-col bg-gray-900 border border-gray-800 rounded-lg overflow-hidden relative">
       <ChartHeader
@@ -375,6 +416,13 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
 
       {/* Chart Content */}
       <div className="flex-1 relative">
+        {/* Trend Line Toolbar */}
+        <ChartLineToolbar
+          trendLine={selectedTrendLine}
+          onUpdateSettings={handleUpdateTrendLineSettings}
+          onDelete={handleDeleteTrendLine}
+          isVisible={!!selectedTrendLine}
+        />
         {chartError ? (
           <div className="flex items-center justify-center h-full bg-red-50 dark:bg-red-900/20">
             <div className="text-center p-4">
@@ -492,6 +540,32 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
                   console.log(
                     `📊 ChartContainer: Chart ready but no trend lines to add yet (trendLines.length = ${trendLines.length}, trendLinesLoaded = ${trendLinesLoaded})`
                   );
+                }
+
+                // Set up trend line selection event listeners
+                if (api.on) {
+                  // Listen for trend line selection
+                  api.on('trend-line-selected', (event: any) => {
+                    console.log('Trend line selected:', event);
+                    setSelectedTrendLineId(event.trendLineId);
+                    setSelectedTrendLine(event.trendLine);
+                  });
+
+                  // Listen for trend line deselection
+                  api.on('trend-line-deselected', () => {
+                    console.log('Trend line deselected');
+                    setSelectedTrendLineId(null);
+                    setSelectedTrendLine(null);
+                  });
+
+                  // Listen for trend line deletion (to clear selection if deleted line was selected)
+                  api.on('trend-line-deleted', (event: any) => {
+                    console.log('Trend line deleted:', event);
+                    if (event.trendLineId === selectedTrendLineId) {
+                      setSelectedTrendLineId(null);
+                      setSelectedTrendLine(null);
+                    }
+                  });
                 }
 
                 // Periodically check for trend line changes and persist them
