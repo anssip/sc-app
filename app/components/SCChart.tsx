@@ -47,7 +47,7 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
       granularity: initialState?.granularity,
       trendLineCount: initialState?.trendLines?.length || 0,
       trendLines: initialState?.trendLines,
-      chartId: chartId
+      chartId: chartId,
     });
     const containerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<any>(null);
@@ -362,11 +362,13 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
             // Show all indicators at once using setIndicators if available
             if (api.setIndicators) {
               // Convert string array to IndicatorConfig array
-              const indicatorConfigs = currentInitialState.indicators.map((indicatorId: string) => ({
-                id: indicatorId,
-                name: indicatorId.toUpperCase(),
-                visible: true,
-              }));
+              const indicatorConfigs = currentInitialState.indicators.map(
+                (indicatorId: string) => ({
+                  id: indicatorId,
+                  name: indicatorId.toUpperCase(),
+                  visible: true,
+                })
+              );
               api.setIndicators(indicatorConfigs);
             } else {
               // Fallback to showing indicators one by one
@@ -380,7 +382,10 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
                       visible: true,
                     });
                   } catch (error) {
-                    console.error(`SCChart: Failed to show indicator '${indicatorId}':`, error);
+                    console.error(
+                      `SCChart: Failed to show indicator '${indicatorId}':`,
+                      error
+                    );
                   }
                 }
               });
@@ -466,14 +471,17 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
             trendLines: currentTrendLines, // Preserve trend lines
             // Don't pass indicators - they will be restored after chart is ready
           };
-          
-          console.log(`📈 SCChart: Reinitializing chart with preserved state:`, {
-            symbol: newInitialState.symbol,
-            granularity: newInitialState.granularity,
-            trendLineCount: newInitialState.trendLines.length,
-            trendLines: newInitialState.trendLines,
-            chartId: uniqueChartId.current
-          });
+
+          console.log(
+            `📈 SCChart: Reinitializing chart with preserved state:`,
+            {
+              symbol: newInitialState.symbol,
+              granularity: newInitialState.granularity,
+              trendLineCount: newInitialState.trendLines.length,
+              trendLines: newInitialState.trendLines,
+              chartId: uniqueChartId.current,
+            }
+          );
 
           // Find the container
           const container = document.querySelector(
@@ -535,49 +543,89 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
 
     // Add trend lines to chart when BOTH API is available AND trend lines are present
     useEffect(() => {
-      console.log(`📈 SCChart: TrendLine effect running - isApiReady: ${isApiReady}, apiRef.current: ${!!apiRef.current}, trendLines: ${initialState?.trendLines?.length || 0}`);
-      
+      console.log(
+        `📈 SCChart: TrendLine effect running - isApiReady: ${isApiReady}, apiRef.current: ${!!apiRef.current}, trendLines: ${
+          initialState?.trendLines?.length || 0
+        }`
+      );
+
       // Only proceed if both conditions are met
-      if (!isApiReady || !apiRef.current || !initialState?.trendLines || initialState.trendLines.length === 0) {
+      if (
+        !isApiReady ||
+        !apiRef.current ||
+        !initialState?.trendLines ||
+        initialState.trendLines.length === 0
+      ) {
         return;
       }
-      
+
       // Both API and trend lines are available
-      if (isApiReady && apiRef.current && initialState?.trendLines && initialState.trendLines.length > 0) {
-        console.log(`📈 SCChart: Detected trend lines in initialState, adding ${initialState.trendLines.length} trend lines to chart`);
-        
+      if (
+        isApiReady &&
+        apiRef.current &&
+        initialState?.trendLines &&
+        initialState.trendLines.length > 0
+      ) {
+        console.log(
+          `📈 SCChart: Detected trend lines in initialState, adding ${initialState.trendLines.length} trend lines to chart`
+        );
+
         // Check if addTrendLine method exists
         if (!apiRef.current.addTrendLine) {
-          console.error(`📈 SCChart: addTrendLine method not available on API!`);
-          console.log(`📈 SCChart: Available API methods:`, Object.keys(apiRef.current));
+          console.error(
+            `📈 SCChart: addTrendLine method not available on API!`
+          );
+          console.log(
+            `📈 SCChart: Available API methods:`,
+            Object.keys(apiRef.current)
+          );
           return;
         }
-        
+
         // Get current trend lines in the chart
         const currentTrendLines = apiRef.current.getTrendLines?.() || [];
-        const currentIds = new Set(currentTrendLines.map((line: any) => line.id));
-        
-        console.log(`📈 SCChart: Current trend lines in chart:`, currentTrendLines);
-        
+        const currentIds = new Set(
+          currentTrendLines.map((line: any) => line.id)
+        );
+
+        console.log(
+          `📈 SCChart: Current trend lines in chart:`,
+          currentTrendLines
+        );
+
         // Add only new trend lines that aren't already in the chart
         initialState.trendLines.forEach((trendLine: any) => {
           if (!currentIds.has(trendLine.id)) {
             try {
-              console.log(`📈 SCChart: Adding trend line ${trendLine.id} to chart:`, JSON.stringify(trendLine, null, 2));
-              const result = apiRef.current.addTrendLine(trendLine);
+              console.log(
+                `📈 SCChart: Adding trend line ${trendLine.id} to chart:`,
+                JSON.stringify(trendLine, null, 2)
+              );
+              const result = apiRef.current?.addTrendLine({
+                ...trendLine,
+                selected: false, // trend lines from initial state should not be selected
+              });
               console.log(`📈 SCChart: Add trend line result:`, result);
             } catch (error) {
-              console.error(`📈 SCChart: Failed to add trend line ${trendLine.id}:`, error);
+              console.error(
+                `📈 SCChart: Failed to add trend line ${trendLine.id}:`,
+                error
+              );
             }
           } else {
-            console.log(`📈 SCChart: Trend line ${trendLine.id} already exists in chart`);
+            console.log(
+              `📈 SCChart: Trend line ${trendLine.id} already exists in chart`
+            );
           }
         });
-        
+
         // Verify trend lines were added
         setTimeout(() => {
           const updatedTrendLines = apiRef.current.getTrendLines?.();
-          console.log(`📈 SCChart: Verification - trend lines in chart after adding:`, updatedTrendLines);
+          console.log(
+            `📈 SCChart: Verification - trend lines in chart after adding:`,
+            updatedTrendLines
+          );
         }, 500);
       }
     }, [initialState?.trendLines, isApiReady]); // Watch both trend lines AND api readiness
@@ -656,13 +704,13 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
           // Remove indicators from initial state as they're added after chart is ready
           trendLines: initialState?.trendLines || [], // Include trend lines if provided
         };
-        
+
         console.log(`📈 SCChart: Initializing chart with state:`, {
           symbol: chartInitState.symbol,
           granularity: chartInitState.granularity,
           trendLineCount: chartInitState.trendLines.length,
           trendLines: chartInitState.trendLines,
-          chartId: uniqueChartId.current
+          chartId: uniqueChartId.current,
         });
 
         const { app, api } = initChartWithApi(
@@ -677,7 +725,7 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
 
         appRef.current = app;
         apiRef.current = api;
-        
+
         // Mark API as ready when it's assigned
         if (api) {
           console.log(`📈 SCChart: API initialized and assigned to apiRef`);
