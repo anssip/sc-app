@@ -17,9 +17,10 @@ function AccordionItem({ question, answer, isOpen, onToggle }: AccordionItemProp
       >
         <h3 className="text-lg font-medium text-white pr-4">{question}</h3>
         <ChevronDown
-          className={`w-5 h-5 text-gray-400 transition-transform ${
+          className={`w-7 h-7 text-accent-1 transition-transform ${
             isOpen ? "rotate-180" : ""
           }`}
+          strokeWidth={3}
         />
       </button>
       <div
