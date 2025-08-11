@@ -1,6 +1,7 @@
 import type { MetaFunction } from "@remix-run/node";
-import { Link } from "@remix-run/react";
+import { Link, useNavigate } from "@remix-run/react";
 import { useAuth } from "~/lib/auth-context";
+import { useSubscription } from "~/contexts/SubscriptionContext";
 import Button from "~/components/Button";
 import Navigation from "~/components/Navigation";
 import Accordion from "~/components/Accordion";
@@ -21,6 +22,33 @@ export const meta: MetaFunction = () => {
 
 export default function Index() {
   const { user, loading } = useAuth();
+  const { status: subscriptionStatus } = useSubscription();
+  const navigate = useNavigate();
+
+  // Determine CTA button behavior based on user state (same logic as Navigation)
+  const getCtaButtonConfig = () => {
+    if (!user) {
+      // User not logged in
+      return {
+        label: "Get started",
+        onClick: () => navigate("/signin"),
+      };
+    } else if (subscriptionStatus === 'active' || subscriptionStatus === 'trialing') {
+      // User is subscribed
+      return {
+        label: "Open Charts",
+        onClick: () => navigate("/chart"),
+      };
+    } else {
+      // User logged in but not subscribed
+      return {
+        label: "Get started",
+        onClick: () => navigate("/pricing"),
+      };
+    }
+  };
+
+  const ctaButtonConfig = getCtaButtonConfig();
 
   if (loading) {
     return (
@@ -59,18 +87,15 @@ export default function Index() {
                   >
                     Learn more
                   </Button>
-                  {user && (
-                    <Button
-                      asLink
-                      to="/chart"
-                      variant="outline"
-                      size="lg"
-                      outlineColor="var(--color-accent-1)"
-                      className="!px-8 !py-4 !text-base border-2 hover:!bg-accent-1/10 hover:!text-accent-1"
-                    >
-                      Open Charts
-                    </Button>
-                  )}
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    outlineColor="var(--color-accent-1)"
+                    className="!px-8 !py-4 !text-base border-2 hover:!bg-accent-1/10 hover:!text-accent-1"
+                    onClick={ctaButtonConfig.onClick}
+                  >
+                    {ctaButtonConfig.label}
+                  </Button>
                 </div>
               </div>
               <div className="lg:col-span-6 relative lg:-mr-6">
@@ -102,19 +127,19 @@ export default function Index() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <FeatureCard
               title="Technical Analysis & Indicators"
-              description="Analyze markets with essential drawing tools, prebuilt indicators, and flexible scripting features."
+              description="Analyze markets with essential drawing tools and prebuilt indicators."
               timeline="H1/2025"
               icon={<BarChart3 className="w-6 h-6" />}
             />
             <FeatureCard
-              title="Custom Extensions"
-              description="Extend charts with JavaScript, CSS, and Web Components. Build custom indicators using powerful APIs."
+              title="Multi-Chart Layouts"
+              description="Arrange several charts in a single layout to compare and analyze market trends. Save your favorite layouts for quick access at any time."
               timeline="H2/2025"
               icon={<Code2 className="w-6 h-6" />}
             />
             <FeatureCard
-              title="AI-Insights"
-              description="Gain deeper market understanding with AI-driven analysis of price movements and real-time alerts."
+              title="All Maror Crypto Markets in a clear UX"
+              description="We provide real-time data and analysis for all major crypto markets. We pride in providing the best User Experience in the market."
               timeline="H3/2025"
               icon={<Brain className="w-6 h-6" />}
             />

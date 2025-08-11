@@ -1,6 +1,8 @@
-import { Link, useLocation } from "@remix-run/react";
+import { Link, useLocation, useNavigate } from "@remix-run/react";
 import Button from "~/components/Button";
 import AccountMenu from "~/components/AccountMenu";
+import { useAuth } from "~/lib/auth-context";
+import { useSubscription } from "~/contexts/SubscriptionContext";
 
 interface NavigationProps {
   showGetStarted?: boolean;
@@ -8,10 +10,38 @@ interface NavigationProps {
 
 export default function Navigation({ showGetStarted = true }: NavigationProps) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { status: subscriptionStatus } = useSubscription();
   
   const isActive = (path: string) => {
     return location.pathname === path;
   };
+
+  // Determine button behavior based on user state
+  const getStartedButtonConfig = () => {
+    if (!user) {
+      // User not logged in
+      return {
+        label: "Get started",
+        onClick: () => navigate("/signin"),
+      };
+    } else if (subscriptionStatus === 'active' || subscriptionStatus === 'trialing') {
+      // User is subscribed
+      return {
+        label: "Open Charts",
+        onClick: () => navigate("/chart"),
+      };
+    } else {
+      // User logged in but not subscribed
+      return {
+        label: "Get started",
+        onClick: () => navigate("/pricing"),
+      };
+    }
+  };
+
+  const buttonConfig = getStartedButtonConfig();
 
   return (
     <nav className="relative z-20 p-6">
@@ -55,8 +85,12 @@ export default function Navigation({ showGetStarted = true }: NavigationProps) {
         
         <div className="flex items-center gap-4">
           {showGetStarted && (
-            <Button variant="primary" size="sm">
-              Get started
+            <Button 
+              variant="primary" 
+              size="sm"
+              onClick={buttonConfig.onClick}
+            >
+              {buttonConfig.label}
             </Button>
           )}
           <AccountMenu />
