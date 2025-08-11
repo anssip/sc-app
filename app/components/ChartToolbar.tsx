@@ -1,9 +1,12 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { Fragment } from "react";
 import { useSymbols } from "~/hooks/useRepository";
 import { useStarredSymbols } from "~/hooks/useStarredSymbols";
 import { useChartSettings } from "~/contexts/ChartSettingsContext";
 import { useIndicators } from "~/hooks/useIndicators";
 import { db } from "~/lib/firebase";
+import { Menu, Transition } from '@headlessui/react';
+import { ChevronDownIcon } from 'lucide-react';
+import { ToolbarButton, ToolbarDropdownButton } from './ToolbarButton';
 import type { Granularity } from "@anssipiirainen/sc-charts";
 import type { IndicatorConfig } from "~/contexts/ChartSettingsContext";
 
@@ -64,31 +67,7 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
     error: indicatorsError,
   } = useIndicators(db);
 
-  // State for dropdowns
-  const [isIndicatorDropdownOpen, setIsIndicatorDropdownOpen] = useState(false);
-  const [isSymbolDropdownOpen, setIsSymbolDropdownOpen] = useState(false);
-
-  // Handle Esc key to close dropdowns
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        if (isIndicatorDropdownOpen) {
-          setIsIndicatorDropdownOpen(false);
-        }
-        if (isSymbolDropdownOpen) {
-          setIsSymbolDropdownOpen(false);
-        }
-      }
-    };
-
-    if (isIndicatorDropdownOpen || isSymbolDropdownOpen) {
-      document.addEventListener('keydown', handleKeyDown);
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isIndicatorDropdownOpen, isSymbolDropdownOpen]);
+  // No longer need state for indicator dropdown - Menu component handles it internally
 
   // Default symbols to use when no symbols are starred (same as in SymbolManager)
   const DEFAULT_SYMBOLS = ["BTC-USD", "ETH-USD", "SOL-USD", "DOGE-USD"];
@@ -114,16 +93,14 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
   return (
     <div className="flex items-center justify-between">
       {/* Left side - Symbol and Granularity selectors */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1">
         {/* Symbol Dropdown */}
-        <div className="relative">
-          <button
-            onClick={() => setIsSymbolDropdownOpen(!isSymbolDropdownOpen)}
+        <Menu as="div" className="relative">
+          <Menu.Button 
+            as={ToolbarDropdownButton}
             disabled={symbolsLoading || starredLoading || isChangingSymbol}
-            className={`flex items-center gap-1 px-2 py-1 text-sm font-bold text-gray-100 hover:text-white bg-transparent rounded hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-              isChangingSymbol ? "opacity-50" : ""
-            }`}
             title="Select Symbol"
+            className="font-bold"
           >
             {symbolsLoading || starredLoading ? (
               "Loading..."
@@ -132,26 +109,19 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
             ) : (
               settings.symbol
             )}
-            <svg
-              className={`w-3 h-3 transition-transform ${
-                isSymbolDropdownOpen ? "rotate-180" : ""
-              }`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-          </button>
+            <ChevronDownIcon className="w-3 h-3" />
+          </Menu.Button>
 
-          {/* Dropdown Menu */}
-          {isSymbolDropdownOpen && (
-            <div className="absolute left-0 top-full mt-1 min-w-[160px] bg-black border border-gray-700 rounded-md shadow-lg z-[100] max-h-96 overflow-y-auto">
+          <Transition
+            as={Fragment}
+            enter="transition ease-out duration-100"
+            enterFrom="transform opacity-0 scale-95"
+            enterTo="transform opacity-100 scale-100"
+            leave="transition ease-in duration-75"
+            leaveFrom="transform opacity-100 scale-100"
+            leaveTo="transform opacity-0 scale-95"
+          >
+            <Menu.Items className="absolute left-0 mt-2 min-w-[160px] bg-black border border-gray-700 rounded-md shadow-lg z-[100] max-h-96 overflow-y-auto">
               {symbolsLoading || starredLoading ? (
                 <div className="p-3 text-gray-400 text-xs">
                   Loading symbols...
@@ -164,130 +134,164 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
                 <div className="py-1">
                   {/* Display symbols (starred or defaults) */}
                   {displaySymbols.map((symbol) => symbol && (
-                    <button
-                      key={symbol.id}
-                      onClick={() => {
-                        if (chartApiRef?.current?.setSymbol) {
-                          chartApiRef.current.setSymbol(symbol.symbol);
-                        }
-                        setIsSymbolDropdownOpen(false);
-                      }}
-                      className={`w-full px-4 py-2.5 text-left text-sm hover:bg-gray-900 transition-colors flex items-center justify-between ${
-                        settings.symbol === symbol.symbol
-                          ? "text-blue-400"
-                          : "text-gray-100"
-                      }`}
-                    >
-                      <span className="font-medium">{symbol.symbol}</span>
-                      {settings.symbol === symbol.symbol && (
-                        <svg
-                          className="w-3 h-3 flex-shrink-0 ml-2"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
+                    <Menu.Item key={symbol.id}>
+                      {({ active }) => (
+                        <button
+                          onClick={() => {
+                            if (chartApiRef?.current?.setSymbol) {
+                              chartApiRef.current.setSymbol(symbol.symbol);
+                            }
+                          }}
+                          className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center justify-between ${
+                            active ? 'bg-gray-900' : ''
+                          } ${
+                            settings.symbol === symbol.symbol
+                              ? "text-blue-400"
+                              : "text-gray-100"
+                          }`}
                         >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
+                          <span className="font-medium">{symbol.symbol}</span>
+                          {settings.symbol === symbol.symbol && (
+                            <svg
+                              className="w-3 h-3 flex-shrink-0 ml-2"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          )}
+                        </button>
                       )}
-                    </button>
+                    </Menu.Item>
                   ))}
                   
                   {/* Current symbol if not in display list */}
                   {!displaySymbols.find((s) => s?.symbol === settings.symbol) && (
-                    <button
-                      key={settings.symbol}
-                      onClick={() => {
-                        setIsSymbolDropdownOpen(false);
-                      }}
-                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-900 transition-colors flex items-center justify-between text-blue-400"
-                    >
-                      <span className="font-medium">{settings.symbol}</span>
-                      <svg
-                        className="w-3 h-3 flex-shrink-0 ml-2"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </button>
+                    <Menu.Item>
+                      {({ active }) => (
+                        <button
+                          key={settings.symbol}
+                          onClick={() => {
+                            // No action needed - current symbol already selected
+                          }}
+                          className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center justify-between text-blue-400 ${
+                            active ? 'bg-gray-900' : ''
+                          }`}
+                        >
+                          <span className="font-medium">{settings.symbol}</span>
+                          <svg
+                            className="w-3 h-3 flex-shrink-0 ml-2"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </button>
+                      )}
+                    </Menu.Item>
                   )}
                   
                   {/* Separator */}
                   <div className="h-px bg-gray-800 my-1"></div>
                   
                   {/* Manage Symbols option */}
-                  <button
-                    onClick={() => {
-                      if (onOpenSymbolManager) {
-                        onOpenSymbolManager();
-                      }
-                      setIsSymbolDropdownOpen(false);
-                    }}
-                    className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-900 transition-colors text-gray-300 hover:text-white flex items-center"
-                  >
-                    <svg
-                      className="w-3 h-3 mr-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
-                    </svg>
-                    Manage Symbols
-                  </button>
+                  <Menu.Item>
+                    {({ active }) => (
+                      <button
+                        onClick={() => {
+                          if (onOpenSymbolManager) {
+                            onOpenSymbolManager();
+                          }
+                        }}
+                        className={`w-full px-4 py-2.5 text-left text-sm transition-colors text-gray-300 hover:text-white flex items-center ${
+                          active ? 'bg-gray-900' : ''
+                        }`}
+                      >
+                        <svg
+                          className="w-3 h-3 mr-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                          />
+                        </svg>
+                        Manage Symbols
+                      </button>
+                    )}
+                  </Menu.Item>
                 </div>
               )}
-            </div>
-          )}
+            </Menu.Items>
+          </Transition>
+        </Menu>
 
-          {/* Click outside to close */}
-          {isSymbolDropdownOpen && (
-            <div
-              className="fixed inset-0 z-[99]"
-              onClick={() => setIsSymbolDropdownOpen(false)}
-            />
-          )}
-        </div>
+        {/* Granularity Dropdown */}
+        <Menu as="div" className="relative">
+          <Menu.Button 
+            as={ToolbarDropdownButton}
+            disabled={isChangingGranularity}
+            title="Select timeframe"
+          >
+            {GRANULARITY_OPTIONS.find(opt => opt.value === settings.granularity)?.label || settings.granularity}
+            <ChevronDownIcon className="w-3 h-3" />
+          </Menu.Button>
 
-        <div className="h-4 w-px bg-gray-600"></div>
-
-        <select
-          value={settings.granularity}
-          onChange={(e) => {
-            // Call Chart API directly instead of context
-            if (chartApiRef?.current?.setGranularity) {
-              chartApiRef.current.setGranularity(e.target.value as Granularity);
-            }
-          }}
-          disabled={isChangingGranularity}
-          className={`text-sm font-medium bg-transparent border-none outline-none cursor-pointer text-gray-300 hover:text-white transition-colors ${
-            isChangingGranularity ? "opacity-50 cursor-not-allowed" : ""
-          }`}
-        >
-          {GRANULARITY_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+          <Transition
+            as={Fragment}
+            enter="transition ease-out duration-100"
+            enterFrom="transform opacity-0 scale-95"
+            enterTo="transform opacity-100 scale-100"
+            leave="transition ease-in duration-75"
+            leaveFrom="transform opacity-100 scale-100"
+            leaveTo="transform opacity-0 scale-95"
+          >
+            <Menu.Items className="absolute left-0 mt-2 w-24 bg-black border border-gray-700 rounded-md shadow-lg z-[100]">
+              <div className="py-1">
+                {GRANULARITY_OPTIONS.map((option) => (
+                  <Menu.Item key={option.value}>
+                    {({ active }) => (
+                      <button
+                        onClick={() => {
+                          if (chartApiRef?.current?.setGranularity) {
+                            chartApiRef.current.setGranularity(option.value);
+                          }
+                        }}
+                        className={`w-full px-3 py-2 text-left text-sm transition-colors ${
+                          active ? 'bg-gray-900' : ''
+                        } ${
+                          settings.granularity === option.value
+                            ? "text-blue-400"
+                            : "text-gray-100"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    )}
+                  </Menu.Item>
+                ))}
+              </div>
+            </Menu.Items>
+          </Transition>
+        </Menu>
 
         {/* Status indicators */}
         {symbolsError && (
@@ -306,43 +310,35 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
         )}
       </div>
 
-      {/* Center separator */}
-      <div className="h-4 w-px bg-gray-600"></div>
-
       {/* Right side */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1 ml-1">
         {/* Trend Line Button */}
-        <button
+        <ToolbarButton
           onClick={() => {
             if (chartApiRef?.current?.activateTrendLineTool) {
               chartApiRef.current.activateTrendLineTool();
             }
           }}
-          className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-300 hover:text-white bg-transparent rounded hover:bg-gray-700 transition-colors"
           title="Draw Trend Line"
         >
           <svg
-            className="w-3 h-3"
+            className="w-4 h-4"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M3 17l6-6 4 4 8-8"
-            />
+            {/* Line with circles at both ends */}
+            <line x1="5" y1="19" x2="19" y2="5" strokeWidth={2} />
+            <circle cx="5" cy="19" r="2" fill="currentColor" />
+            <circle cx="19" cy="5" r="2" fill="currentColor" />
           </svg>
-          <span className="text-xs">Draw Line</span>
-        </button>
+        </ToolbarButton>
 
         {/* Indicator Dropdown */}
-        <div className="relative">
-          <button
-            onClick={() => setIsIndicatorDropdownOpen(!isIndicatorDropdownOpen)}
+        <Menu as="div" className="relative">
+          <Menu.Button
+            as={ToolbarDropdownButton}
             disabled={indicatorsLoading}
-            className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-300 hover:text-white bg-transparent rounded hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             title="Add Indicators"
           >
             <svg
@@ -358,26 +354,19 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
                 d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
               />
             </svg>
-            <svg
-              className={`w-3 h-3 transition-transform ${
-                isIndicatorDropdownOpen ? "rotate-180" : ""
-              }`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-          </button>
+            <ChevronDownIcon className="w-3 h-3" />
+          </Menu.Button>
 
-          {/* Dropdown Menu */}
-          {isIndicatorDropdownOpen && (
-            <div className="absolute left-0 top-full mt-1 min-w-[280px] bg-black border border-gray-700 rounded-md shadow-lg z-[100] max-h-96 overflow-y-auto">
+          <Transition
+            as={Fragment}
+            enter="transition ease-out duration-100"
+            enterFrom="transform opacity-0 scale-95"
+            enterTo="transform opacity-100 scale-100"
+            leave="transition ease-in duration-75"
+            leaveFrom="transform opacity-100 scale-100"
+            leaveTo="transform opacity-0 scale-95"
+          >
+            <Menu.Items className="absolute left-0 mt-2 min-w-[280px] bg-black border border-gray-700 rounded-md shadow-lg z-[100] max-h-96 overflow-y-auto">
               {indicatorsError ? (
                 <div className="p-3 text-red-400 text-xs">
                   Error loading indicators: {indicatorsError}
@@ -398,77 +387,74 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
                     );
 
                     return (
-                      <button
-                        key={indicator.id}
-                        onClick={() => {
-                          if (chartApiRef?.current?.api) {
-                            if (isVisible) {
-                              // Hide indicator
-                              chartApiRef.current.api.hideIndicator?.(indicator.id);
-                            } else {
-                              // Show indicator
-                              const apiIndicatorConfig = {
-                                id: indicator.id,
-                                name: indicator.name,
-                                visible: true,
-                                display:
-                                  indicator.display === "Overlay"
-                                    ? "main"
-                                    : "bottom",
-                                scale:
-                                  indicator.scale === "Price"
-                                    ? "value"
-                                    : "value",
-                                params: indicator.params || {},
-                              };
-                              chartApiRef.current.api.showIndicator?.(
-                                apiIndicatorConfig
-                              );
-                            }
-                          }
-                          // Don't close the menu to allow multiple indicator selection
-                        }}
-                        className={`w-full px-4 py-2.5 text-left text-sm hover:bg-gray-900 transition-colors flex items-center justify-between ${
-                          isVisible
-                            ? "text-blue-400"
-                            : "text-gray-100"
-                        }`}
-                      >
-                        <div>
-                          <div className="font-medium">{indicator.name}</div>
-                          <div className="text-gray-500 text-xs">
-                            {indicator.display}
-                          </div>
-                        </div>
-                        {isVisible && (
-                          <svg
-                            className="w-3 h-3 flex-shrink-0 ml-2"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
+                      <Menu.Item key={indicator.id}>
+                        {({ active }) => (
+                          <button
+                            onClick={() => {
+                              if (chartApiRef?.current?.api) {
+                                if (isVisible) {
+                                  // Hide indicator
+                                  chartApiRef.current.api.hideIndicator?.(indicator.id);
+                                } else {
+                                  // Show indicator
+                                  const apiIndicatorConfig = {
+                                    id: indicator.id,
+                                    name: indicator.name,
+                                    visible: true,
+                                    display:
+                                      indicator.display === "Overlay"
+                                        ? "main"
+                                        : "bottom",
+                                    scale:
+                                      indicator.scale === "Price"
+                                        ? "value"
+                                        : "value",
+                                    params: indicator.params || {},
+                                  };
+                                  chartApiRef.current.api.showIndicator?.(
+                                    apiIndicatorConfig
+                                  );
+                                }
+                              }
+                              // Don't close the menu to allow multiple indicator selection
+                            }}
+                            className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center justify-between ${
+                              active ? 'bg-gray-900' : ''
+                            } ${
+                              isVisible
+                                ? "text-blue-400"
+                                : "text-gray-100"
+                            }`}
                           >
-                            <path
-                              fillRule="evenodd"
-                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
+                            <div>
+                              <div className="font-medium">{indicator.name}</div>
+                              <div className="text-gray-500 text-xs">
+                                {indicator.display}
+                              </div>
+                            </div>
+                            {isVisible && (
+                              <svg
+                                className="w-3 h-3 flex-shrink-0 ml-2"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            )}
+                          </button>
                         )}
-                      </button>
+                      </Menu.Item>
                     );
                   })}
                 </div>
               )}
-            </div>
-          )}
-
-          {/* Click outside to close */}
-          {isIndicatorDropdownOpen && (
-            <div
-              className="fixed inset-0 z-[99]"
-              onClick={() => setIsIndicatorDropdownOpen(false)}
-            />
-          )}
-        </div>
+            </Menu.Items>
+          </Transition>
+        </Menu>
       </div>
     </div>
   );

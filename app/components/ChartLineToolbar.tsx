@@ -1,6 +1,7 @@
 import React, { useRef, Fragment, useState, useEffect } from 'react'
 import { Menu, Popover, Transition } from '@headlessui/react'
 import { ChevronDownIcon, GripVerticalIcon } from 'lucide-react'
+import { ToolbarButton, ToolbarDropdownButton } from './ToolbarButton'
 import type { TrendLine } from '~/types'
 
 export type LineStyle = 'solid' | 'dashed' | 'dotted'
@@ -147,7 +148,7 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
         <div className="flex items-center gap-2 px-2 py-1">
           {/* Line Color */}
           <Popover className="relative">
-            <Popover.Button className="flex items-center gap-2 px-2 py-1 text-sm bg-gray-800 border border-gray-700 rounded hover:bg-gray-700 text-white transition-colors">
+            <Popover.Button as={ToolbarDropdownButton} title="Line color">
               <span
                 className="h-4 w-4 rounded"
                 style={{ backgroundColor: currentSettings.color }}
@@ -199,7 +200,7 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
 
           {/* Line Style */}
           <Menu as="div" className="relative">
-            <Menu.Button className="flex items-center gap-1 px-2 py-1 text-sm bg-gray-800 border border-gray-700 rounded hover:bg-gray-700 text-white transition-colors" title={`Style: ${styleLabel(currentSettings.style)}`}>
+            <Menu.Button as={ToolbarDropdownButton} title={`Style: ${styleLabel(currentSettings.style)}`}>
               <LinePreview color={currentSettings.color} style={currentSettings.style} thickness={currentSettings.thickness} />
               <ChevronDownIcon className="h-4 w-4" />
             </Menu.Button>
@@ -240,7 +241,7 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
 
           {/* Thickness */}
           <Menu as="div" className="relative">
-            <Menu.Button className="flex items-center gap-1 px-2 py-1 text-sm bg-gray-800 border border-gray-700 rounded hover:bg-gray-700 text-white transition-colors" title={`Thickness: ${currentSettings.thickness}px`}>
+            <Menu.Button as={ToolbarDropdownButton} title={`Thickness: ${currentSettings.thickness}px`}>
               <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={currentSettings.thickness} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
               </svg>
@@ -284,7 +285,7 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
 
           {/* Extend */}
           <Menu as="div" className="relative">
-            <Menu.Button className="flex items-center gap-1 px-2 py-1 text-sm bg-gray-800 border border-gray-700 rounded hover:bg-gray-700 text-white transition-colors" title="Extend line">
+            <Menu.Button as={ToolbarDropdownButton} title="Extend line">
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
               </svg>
@@ -343,16 +344,15 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
         </Menu>
 
           {/* Delete */}
-          <button
+          <ToolbarButton
             onClick={onDelete}
-            className="px-2 py-1 text-sm bg-gray-800 border border-gray-700 rounded hover:bg-red-900 hover:border-red-700 text-white transition-colors"
-            aria-label="Delete line"
+            variant="danger"
             title="Delete line"
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
-          </button>
+          </ToolbarButton>
         </div>
         
         {/* Right Drag Handle */}
