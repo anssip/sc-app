@@ -6,7 +6,7 @@ import { getAuth } from "firebase/auth";
 import ProtectedRoute from "~/components/ProtectedRoute";
 import { useSubscription } from "~/contexts/SubscriptionContext";
 import Button from "~/components/Button";
-import AccountMenu from "~/components/AccountMenu";
+import Navigation from "~/components/Navigation";
 
 export const meta: MetaFunction = () => {
   return [
@@ -63,25 +63,9 @@ function BillingContent() {
   };
 
   return (
-    <div className="min-h-screen bg-black relative overflow-hidden">
+    <div className="min-h-screen bg-primary-dark relative overflow-hidden">
       {/* Navigation */}
-      <nav className="relative z-20 p-6 border-b border-gray-800">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-pricing-green rounded-sm"></div>
-            <span className="text-white font-bold text-xl">Spot Canvas</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate("/chart")}
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              Back to Charts
-            </button>
-            <AccountMenu />
-          </div>
-        </div>
-      </nav>
+      <Navigation />
 
       {/* Main Content */}
       <div className="relative z-10 max-w-4xl mx-auto px-6 pt-12 pb-20">

@@ -33,7 +33,10 @@ export default function Index() {
         label: "Get started",
         onClick: () => navigate("/signin"),
       };
-    } else if (subscriptionStatus === 'active' || subscriptionStatus === 'trialing') {
+    } else if (
+      subscriptionStatus === "active" ||
+      subscriptionStatus === "trialing"
+    ) {
       // User is subscribed
       return {
         label: "Open Charts",
@@ -121,7 +124,8 @@ export default function Index() {
               Features
             </h2>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-              Powerful tools and capabilities designed for professional traders
+              Powerful tools and capabilities designed for crypto enthusiasts
+              and traders.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -171,8 +175,9 @@ export default function Index() {
 const faqItems = [
   {
     question: "What's unique about Spot Canvas?",
-    answer:
-      "Spot Canvas combines AI/machine learning with developer-friendly customization, focusing on seamless user experience. Our platform offers cutting-edge charting tools with powerful APIs for building custom indicators and extensions.",
+    answer: `We have just gotten started with our journey to revolutionize the financial tooling. Our focus in cryptocurrencies trading and we are offering intuitive, easy-to-se use tools for this purpose. In the next phases we plan
+      to provide insights derived from the blockhains directly to the charts. AI-powered insights and predictions are obviously in the focus too.
+      `,
   },
   {
     question: "How does customer support work?",
@@ -187,11 +192,18 @@ const faqItems = [
   {
     question: "What's the development roadmap?",
     answer:
-      "Our roadmap includes: Q1/2025 - Technical Analysis & Indicators launch, H2/2025 - Custom Extensions with JavaScript/CSS/Web Components, H3/2025 - AI-Insights for market analysis, and H1/2026 - Advanced trading features and integrations.",
+      "Our roadmap includes: Q3-Q4/2025 - Blockchain Insights in the charts, Q1/2026 - Scriptable indicators, Q2/2026 - AI-powered market analysis and predictions",
   },
   {
     question: "How do I change my plan?",
-    answer:
-      "Upgrading and downgrading can be done easily in your personal Dashboard. Simply navigate to the billing section and select your desired plan. Changes take effect immediately.",
+    answer: (
+      <>
+        Upgrading and downgrading can be done easily in your personal{" "}
+        <Link to="/billing" className="text-accent-1 hover:text-accent-2 underline">
+          Billing page
+        </Link>
+        . Changes take effect immediately.
+      </>
+    ),
   },
 ];

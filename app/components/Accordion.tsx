@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 
 interface AccordionItemProps {
   question: string;
-  answer: string;
+  answer: string | ReactNode;
   isOpen: boolean;
   onToggle: () => void;
 }
@@ -27,7 +27,9 @@ function AccordionItem({ question, answer, isOpen, onToggle }: AccordionItemProp
           isOpen ? "max-h-96" : "max-h-0"
         }`}
       >
-        <div className="px-8 pb-6 text-gray-300 leading-relaxed">{answer}</div>
+        <div className="px-8 pb-6 text-gray-400 leading-relaxed" style={{ fontFamily: 'var(--font-secondary)' }}>
+          {answer}
+        </div>
       </div>
     </div>
   );
@@ -36,7 +38,7 @@ function AccordionItem({ question, answer, isOpen, onToggle }: AccordionItemProp
 interface AccordionProps {
   items: Array<{
     question: string;
-    answer: string;
+    answer: string | ReactNode;
   }>;
 }
 
