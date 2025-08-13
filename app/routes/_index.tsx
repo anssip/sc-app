@@ -83,9 +83,10 @@ export default function Index() {
                 </p>
                 <div className="flex gap-4">
                   <Button
-                    href="#features"
+                    to="/features"
                     variant="primary"
                     size="lg"
+                    asLink
                     className="inline-flex items-center gap-2"
                   >
                     Learn more

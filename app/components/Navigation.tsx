@@ -55,12 +55,14 @@ export default function Navigation({ showGetStarted = true }: NavigationProps) {
         </Link>
         
         <div className="hidden md:flex items-center gap-8">
-          <a
-            href="#features"
-            className="text-gray-400 hover:text-white transition-colors"
+          <Link
+            to="/features"
+            className={`transition-colors ${
+              isActive("/features") ? "text-white" : "text-gray-400 hover:text-white"
+            }`}
           >
             Features
-          </a>
+          </Link>
           <Link
             to="/pricing"
             className={`transition-colors ${
