@@ -311,7 +311,12 @@ export const ChartApp: React.FC<ChartAppProps> = ({
     );
   }
 
-  const hasActiveSubscription = subscriptionStatus === 'active' || subscriptionStatus === 'trialing';
+  // Calculate if trial has expired
+  const { trialEndsAt } = useSubscription();
+  const isTrialExpired = subscriptionStatus === 'trialing' && trialEndsAt && new Date(trialEndsAt) <= new Date();
+  
+  // User has access if they have an active subscription or are in a valid trial period
+  const hasActiveSubscription = subscriptionStatus === 'active' || (subscriptionStatus === 'trialing' && !isTrialExpired);
 
   return (
     <div className={`flex flex-col h-full bg-black ${className}`}>

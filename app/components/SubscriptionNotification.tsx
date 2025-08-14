@@ -37,34 +37,65 @@ export default function SubscriptionNotification() {
     return null;
   }
 
-  // Show trial ending warning
-  if (status === "trialing" && daysRemaining !== null && daysRemaining <= 3) {
-    return (
-      <div className="relative bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mb-4">
-        <button
-          onClick={() => setIsDismissed(true)}
-          className="absolute top-2 right-2 text-yellow-500/50 hover:text-yellow-500"
-        >
-          <X className="h-4 w-4" />
-        </button>
-        <div className="flex items-start gap-3">
-          <Clock className="h-5 w-5 text-yellow-500 mt-0.5" />
-          <div className="flex-1">
-            <h3 className="text-yellow-500 font-medium mb-1">
-              Your {plan} trial ends in {daysRemaining}{" "}
-              {daysRemaining === 1 ? "day" : "days"}
-            </h3>
-            <p className="text-gray-400 text-sm mb-3">
-              Choose your plan to continue using Spot Canvas after your trial
-              ends.
-            </p>
-            <Button asLink to="/pricing" variant="primary" size="sm">
-              Choose Plan
-            </Button>
+  // Show trial ending warning or trial ended message
+  if (status === "trialing" && daysRemaining !== null) {
+    // Trial has ended (negative or zero days)
+    if (daysRemaining <= 0) {
+      return (
+        <div className="relative bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-4">
+          <button
+            onClick={() => setIsDismissed(true)}
+            className="absolute top-2 right-2 text-red-500/50 hover:text-red-500"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-red-500 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="text-red-500 font-medium mb-1">
+                Your trial has ended
+              </h3>
+              <p className="text-gray-400 text-sm mb-3">
+                Choose a plan to continue using Spot Canvas.
+              </p>
+              <Button asLink to="/pricing" variant="primary" size="sm">
+                Choose Plan
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
-    );
+      );
+    }
+    
+    // Trial ending soon (1-3 days)
+    if (daysRemaining <= 3) {
+      return (
+        <div className="relative bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mb-4">
+          <button
+            onClick={() => setIsDismissed(true)}
+            className="absolute top-2 right-2 text-yellow-500/50 hover:text-yellow-500"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          <div className="flex items-start gap-3">
+            <Clock className="h-5 w-5 text-yellow-500 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="text-yellow-500 font-medium mb-1">
+                Your {plan} trial ends in {daysRemaining}{" "}
+                {daysRemaining === 1 ? "day" : "days"}
+              </h3>
+              <p className="text-gray-400 text-sm mb-3">
+                Choose your plan to continue using Spot Canvas after your trial
+                ends.
+              </p>
+              <Button asLink to="/pricing" variant="primary" size="sm">
+                Choose Plan
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
   }
 
   // Show no subscription warning
