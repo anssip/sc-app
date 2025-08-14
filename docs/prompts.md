@@ -172,3 +172,37 @@ Let's add a Symbol Manager modal dialog, which allows the user to add symbols to
 - Add a Manage Symbols menu item in the settings menu (see the image)
 - Make the menu look like in this image
 - There should be a max height in the menu section that shows the favorited symbols plus a scroll bar if necessary. This way the "Manage Symbols" item should always be visible at the bottom of the menu.
+
+# Trend line editing
+
+Add a line settings toolbar like in this screenshot that is shown when a line in any of the charts. The toolbar should be a floating one that is overlaid on top of the chart area just below the chart toolbar.
+
+You can find an example implementation of this component in GitHub and you should be able to read it with your Github MCP: https://github.com/Spot-Canvas/flaming-pricing-upgrade/blob/main/src/components/chart/ChartLineToolbar.tsx
+
+All the tools in the toolbar buttons have a popup menu that oppens. Add these as well similarily to how the example component does.
+
+You need to adapt the example implementation to fit with the architecture of this app.
+
+The toolbar actions should change the line using the chart API which is documented in docs/CHART_API_REFERENCE.md in section "Trend Line Control"
+
+# Features page
+
+I am preparing a features page to the website of the app. For this purpose, there are three screenshot images in public/screenshots directory.
+
+Can you prepare a markdown file that highlights the key features of the app. It should include the followin g keyfeatures:
+
+- Multi-chart layout management
+- Symbol management
+- Trend lines
+- Indicators
+- Any other features worth mentioning
+
+Consider the files in the docs folder when prepareing this. Make the descriptions in the markdown file concise and easy to understand.
+
+# Add the features page
+
+Add a features page to the app. There is an example implementation of this page in GitHub and you should be able to read it with your Github MCP: https://github.com/Spot-Canvas/flaming-pricing-upgrade/blob/main/src/pages/Features.tsx
+
+The example page is live at: https://flaming-pricing-upgrade.lovable.app/features
+
+Use the Navigation component also in this page.

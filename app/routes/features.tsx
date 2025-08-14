@@ -180,6 +180,7 @@ const Features = () => {
     homeHero: "/hero-home.webp",
     panningZooming: "/screenshots/panning-zooming.gif",
     blockchain: "/screenshots/roadmap-blockchain-abstract.webp",
+    layouts: "/screenshots/chart-layouts.gif",
   } as const;
 
   return (
@@ -213,7 +214,7 @@ const Features = () => {
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
           <FeatureCard
             title="Multi-Chart Layout Management"
-            src={IMAGES.multi}
+            src={IMAGES.layouts}
             alt="SpotCanvas multi-chart layouts in a 2x2 grid view with individual toolbars"
             items={[
               {
