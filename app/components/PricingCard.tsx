@@ -22,7 +22,7 @@ export default function PricingCard({
 }: PricingCardProps) {
   return (
     <div
-      className={`relative overflow-hidden transition-all duration-300 hover:scale-105 bg-black/60 backdrop-blur-sm border rounded-2xl p-8 ${
+      className={`relative overflow-hidden transition-all duration-300 hover:scale-105 bg-black/60 backdrop-blur-sm border rounded-2xl p-8 flex flex-col h-full ${
         popular ? "border-highlight shadow-glow-green" : "border-gray-500/30"
       }`}
     >
@@ -45,8 +45,8 @@ export default function PricingCard({
         </div>
       </div>
 
-      <div className="pt-6 border-t border-gray-800">
-        <ul className="space-y-4 mb-8">
+      <div className="pt-6 border-t border-gray-800 flex-1 flex flex-col">
+        <ul className="space-y-4 mb-8 flex-1">
           {features.map((feature, index) => (
             <li key={index} className="flex items-start gap-3">
               <Check className="h-5 w-5 mt-0.5 text-pricing-green flex-shrink-0" />
