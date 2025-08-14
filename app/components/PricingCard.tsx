@@ -28,10 +28,10 @@ export default function PricingCard({
     >
       {popular && (
         <div className="absolute top-0 left-0 z-10">
-          <div className="relative w-0 h-0 border-t-[90px] border-r-[90px] border-t-pricing-green border-r-transparent">
-            <div className="absolute top-[-65px] left-[8px] transform -rotate-45 text-black font-bold">
-              <div className="text-xs leading-tight">Most</div>
-              <div className="text-xs leading-tight">Popular</div>
+          <div className="relative w-0 h-0 border-t-[90px] border-r-[90px] border-t-gray-500 border-r-transparent">
+            <div className="absolute top-[-82px] left-[12px] transform -rotate-45 text-black text-center">
+              <div className="text-sm leading-tight">Most</div>
+              <div className="text-sm leading-tight">Popular</div>
             </div>
           </div>
         </div>

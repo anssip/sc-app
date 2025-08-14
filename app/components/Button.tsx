@@ -37,7 +37,7 @@ export default function Button({
     primary:
       "bg-gradient-primary text-black hover:shadow-glow-green hover:scale-105",
     secondary:
-      "bg-transparent border border-gray-600 text-white hover:border-pricing-green/50 hover:bg-pricing-green/10",
+      "bg-transparent border border-gray-600 text-white hover:border-pricing-green hover:bg-pricing-green hover:text-black",
     outline:
       "bg-transparent border-1 border-gray-500 text-white hover:bg-gray-500/10",
     blue: "bg-primary text-white hover:bg-primary/90 hover:scale-105 hover:shadow-lg",
