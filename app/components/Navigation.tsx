@@ -71,12 +71,14 @@ export default function Navigation({ showGetStarted = true }: NavigationProps) {
           >
             Pricing
           </Link>
-          <a
-            href="#blog"
-            className="text-gray-400 hover:text-white transition-colors"
+          <Link
+            to="/blog"
+            className={`transition-colors ${
+              isActive("/blog") ? "text-white" : "text-gray-400 hover:text-white"
+            }`}
           >
             Blog
-          </a>
+          </Link>
           <a
             href="#contact"
             className="text-gray-400 hover:text-white transition-colors"
