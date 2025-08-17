@@ -1,0 +1,41 @@
+{
+  "name": "functions",
+  "description": "Cloud Functions for Firebase",
+  "type": "module",
+  "scripts": {
+    "prebuild": "cp -r ../build ./",
+    "build": "echo 'Build files copied'",
+    "serve": "firebase emulators:start --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "20"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "@anssipiirainen/sc-charts": "file:./rs-charts",
+    "@headlessui/react": "^2.2.4",
+    "@remix-run/express": "^2.16.8",
+    "@remix-run/node": "^2.16.8",
+    "@remix-run/react": "^2.16.8",
+    "@stripe/react-stripe-js": "^3.8.1",
+    "@stripe/stripe-js": "^7.7.0",
+    "@use-gesture/vanilla": "^10.3.1",
+    "express": "^4.18.2",
+    "firebase": "^11.8.1",
+    "firebase-admin": "^12.0.0",
+    "firebase-functions": "^6.2.0",
+    "gray-matter": "^4.0.3",
+    "isbot": "^4.1.0",
+    "lucide-react": "^0.526.0",
+    "marked": "^16.1.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-resizable-panels": "^3.0.2",
+    "xinjs": "^0.7.3"
+  },
+  "private": true
+}
