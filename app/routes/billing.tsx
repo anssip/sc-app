@@ -1,7 +1,7 @@
 import type { MetaFunction } from "@remix-run/node";
 import { useState } from "react";
 import { useNavigate } from "@remix-run/react";
-import { Crown, Zap, ExternalLink, Loader2 } from "lucide-react";
+import { ExternalLink, Loader2 } from "lucide-react";
 import { getAuth } from "firebase/auth";
 import ProtectedRoute from "~/components/ProtectedRoute";
 import { useSubscription } from "~/contexts/SubscriptionContext";
@@ -88,9 +88,9 @@ function BillingContent() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   {plan === 'pro' ? (
-                    <Crown className="h-12 w-12 text-pricing-green" />
+                    <img src="/icon-crown.svg" alt="Pro Plan" className="h-12 w-12 text-pricing-green" style={{ filter: 'brightness(0) saturate(100%) invert(68%) sepia(97%) saturate(379%) hue-rotate(70deg) brightness(104%) contrast(98%)' }} />
                   ) : (
-                    <Zap className="h-12 w-12 text-blue-500" />
+                    <img src="/icon-zap.svg" alt="Basic Plan" className="h-12 w-12 text-blue-500" style={{ filter: 'brightness(0) saturate(100%) invert(49%) sepia(100%) saturate(2419%) hue-rotate(190deg) brightness(103%) contrast(102%)' }} />
                   )}
                   <div>
                     <h3 className="text-xl font-semibold text-white capitalize">{plan} Plan</h3>
