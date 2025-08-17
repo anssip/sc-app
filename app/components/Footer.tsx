@@ -8,7 +8,7 @@ export default function Footer({ variant = "default" }: FooterProps) {
   const isDark = variant === "dark";
   
   return (
-    <footer className={`${isDark ? "bg-black text-white border-t border-white/20" : "bg-accent-1 text-black rounded-t-3xl"}`}>
+    <footer id="contact" className={`${isDark ? "bg-black text-white border-t border-white/20" : "bg-accent-1 text-black rounded-t-3xl"}`}>
       <div className="max-w-7xl mx-auto px-6 py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Company Info */}

@@ -82,6 +82,10 @@ export default function Navigation({ showGetStarted = true }: NavigationProps) {
           <a
             href="#contact"
             className="text-gray-400 hover:text-white transition-colors"
+            onClick={(e) => {
+              e.preventDefault();
+              document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' });
+            }}
           >
             Contact
           </a>
