@@ -30,7 +30,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData>({
     status: 'none',
     plan: 'none',
-    isLoading: true,
+    isLoading: false, // Default to false for SSR
   })
 
   const refreshSubscription = async () => {

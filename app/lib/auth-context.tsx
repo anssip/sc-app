@@ -9,7 +9,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
-  loading: true,
+  loading: false, // Default to false for SSR
 });
 
 export const useAuth = () => {
@@ -26,16 +26,15 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isClient, setIsClient] = useState(false);
+  // Start with false for SSR, will become true only on client after mount
+  const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  useEffect(() => {
-    if (!isClient) return;
-
+    // Component has mounted, we're on the client
+    setMounted(true);
+    setLoading(true); // Now we can show loading while checking auth
+    
     console.log("Setting up auth state listener...");
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       console.log("Auth state changed:", user ? `User: ${user.email}` : "No user");
@@ -44,18 +43,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     });
 
     return () => unsubscribe();
-  }, [isClient]);
+  }, []);
 
   const value = {
     user,
-    loading: !isClient || loading,
+    loading,
   };
 
   // Debug logging
   console.log("AuthProvider render:", { 
     user: user ? user.email : null, 
-    loading: !isClient || loading,
-    isClient 
+    loading,
+    mounted 
   });
 
   return (
