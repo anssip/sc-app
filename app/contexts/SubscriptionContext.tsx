@@ -20,10 +20,10 @@ interface SubscriptionContextType extends SubscriptionData {
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined)
 
-// Map price IDs to plan names
+// Map price IDs to plan names using environment variables
 const PRICE_TO_PLAN: Record<string, PlanType> = {
-  'price_1Rnw6qS4gOnN3XylL2vxTZWd': 'starter',
-  'price_1RnwAnS4gOnN3Xyl1wfddJBD': 'pro',
+  [import.meta.env.VITE_STRIPE_PRICE_ID_STARTER]: 'starter',
+  [import.meta.env.VITE_STRIPE_PRICE_ID_PRO]: 'pro',
 }
 
 export function SubscriptionProvider({ children }: { children: ReactNode }) {

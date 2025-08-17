@@ -22,10 +22,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   const selectedPlan = url.searchParams.get("plan") || "pro";
   
-  // Map plan names to Stripe price IDs
+  // Map plan names to Stripe price IDs from environment variables
   const priceIds = {
-    starter: "price_1Rnw6qS4gOnN3XylL2vxTZWd", // $14/month
-    pro: "price_1RnwAnS4gOnN3Xyl1wfddJBD", // $39/month
+    starter: import.meta.env.VITE_STRIPE_PRICE_ID_STARTER, // $9/month
+    pro: import.meta.env.VITE_STRIPE_PRICE_ID_PRO, // $29/month
   };
   
   // Note: In a real implementation, you would create the Setup Intent server-side
