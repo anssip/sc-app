@@ -1,12 +1,14 @@
-import React, { Fragment } from "react";
+import React, { Fragment, useState } from "react";
 import { useSymbols } from "~/hooks/useRepository";
 import { useStarredSymbols } from "~/hooks/useStarredSymbols";
 import { useChartSettings } from "~/contexts/ChartSettingsContext";
+import { useSubscription } from "~/contexts/SubscriptionContext";
 import { useIndicators } from "~/hooks/useIndicators";
 import { db } from "~/lib/firebase";
 import { Menu, Transition } from '@headlessui/react';
 import { ChevronDownIcon } from 'lucide-react';
 import { ToolbarButton, ToolbarDropdownButton } from './ToolbarButton';
+import { UpgradePrompt } from './UpgradePrompt';
 import type { Granularity } from "@anssipiirainen/sc-charts";
 import type { IndicatorConfig } from "~/contexts/ChartSettingsContext";
 
@@ -60,6 +62,9 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
   // Use chart settings context (read-only for UI display)
   const { settings } = useChartSettings(chartId);
 
+  // Use subscription context for limitations
+  const { status, plan, canAddMoreIndicators, getIndicatorLimit } = useSubscription();
+
   // Load indicators from Firestore
   const {
     indicators: availableIndicators,
@@ -67,7 +72,8 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
     error: indicatorsError,
   } = useIndicators(db);
 
-  // No longer need state for indicator dropdown - Menu component handles it internally
+  // State for upgrade prompt
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
 
   // Default symbols to use when no symbols are starred (same as in SymbolManager)
   const DEFAULT_SYMBOLS = ["BTC-USD", "ETH-USD", "SOL-USD", "DOGE-USD"];
@@ -381,10 +387,23 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
                 </div>
               ) : (
                 <div className="py-1">
+                  {/* Show indicator limit info for Starter plan */}
+                  {status === 'active' && plan === 'starter' && (
+                    <div className="px-4 py-2 text-xs text-gray-400 border-b border-gray-700">
+                      <div>Starter Plan: {settings.indicators.filter(ind => ind.visible).length} / 2 indicators</div>
+                      {settings.indicators.filter(ind => ind.visible).length >= 2 && (
+                        <div className="text-orange-400 mt-1">Limit reached - Upgrade to Pro for unlimited</div>
+                      )}
+                    </div>
+                  )}
+                  
                   {availableIndicators.map((indicator) => {
                     const isVisible = settings.indicators.some(
                       (ind) => ind.id === indicator.id && ind.visible
                     );
+                    const visibleCount = settings.indicators.filter(ind => ind.visible).length;
+                    const canAdd = canAddMoreIndicators(visibleCount);
+                    const needsUpgrade = !isVisible && !canAdd && (status === 'active' || status === 'none' || status === 'canceled');
 
                     return (
                       <Menu.Item key={indicator.id}>
@@ -395,7 +414,7 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
                                 if (isVisible) {
                                   // Hide indicator
                                   chartApiRef.current.api.hideIndicator?.(indicator.id);
-                                } else {
+                                } else if (canAdd) {
                                   // Show indicator
                                   const apiIndicatorConfig = {
                                     id: indicator.id,
@@ -414,16 +433,22 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
                                   chartApiRef.current.api.showIndicator?.(
                                     apiIndicatorConfig
                                   );
+                                } else if (needsUpgrade) {
+                                  // Show upgrade prompt
+                                  setShowUpgradePrompt(true);
                                 }
                               }
                               // Don't close the menu to allow multiple indicator selection
                             }}
+                            disabled={!isVisible && needsUpgrade}
                             className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center justify-between ${
                               active ? 'bg-gray-900' : ''
                             } ${
                               isVisible
                                 ? "text-blue-400"
-                                : "text-gray-100"
+                                : needsUpgrade 
+                                  ? "text-gray-500 cursor-not-allowed"
+                                  : "text-gray-100"
                             }`}
                           >
                             <div>
@@ -456,6 +481,14 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
           </Transition>
         </Menu>
       </div>
+      
+      {/* Upgrade Prompt Modal */}
+      {showUpgradePrompt && (
+        <UpgradePrompt 
+          feature="indicators" 
+          onClose={() => setShowUpgradePrompt(false)} 
+        />
+      )}
     </div>
   );
 };

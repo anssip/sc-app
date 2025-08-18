@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useLayouts } from '~/hooks/useRepository';
+import { useSubscription } from '~/contexts/SubscriptionContext';
 import { convertToChartPanelLayout, convertFromChartPanelLayout } from '~/utils/layoutConverter';
 import { ChartPanel } from './ChartPanel';
+import { UpgradePrompt } from './UpgradePrompt';
 import type { PanelLayout } from './ChartPanel';
 import type { SavedLayout, ChartConfig } from '~/types';
 
@@ -11,10 +13,12 @@ interface LayoutManagerProps {
 
 export const LayoutManager: React.FC<LayoutManagerProps> = ({ className = '' }) => {
   const { layouts, isLoading, error, saveLayout, deleteLayout, getLayout } = useLayouts();
+  const { status, plan, canAddMoreLayouts, getLayoutLimit } = useSubscription();
   const [currentLayout, setCurrentLayout] = useState<PanelLayout | null>(null);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [layoutName, setLayoutName] = useState('');
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
 
   // Handle layout changes from ChartPanel
   const handleLayoutChange = (layout: PanelLayout) => {
@@ -25,6 +29,13 @@ export const LayoutManager: React.FC<LayoutManagerProps> = ({ className = '' }) 
   const handleSaveLayout = async () => {
     if (!currentLayout || !layoutName.trim()) {
       setSaveError('Please enter a layout name');
+      return;
+    }
+
+    // Check if user can add more layouts
+    if (!canAddMoreLayouts(layouts.length)) {
+      setSaveModalOpen(false);
+      setShowUpgradePrompt(true);
       return;
     }
 
@@ -165,7 +176,14 @@ export const LayoutManager: React.FC<LayoutManagerProps> = ({ className = '' }) 
         <div className="flex items-center gap-2">
           {/* Save Layout Button */}
           <button
-            onClick={() => setSaveModalOpen(true)}
+            onClick={() => {
+              // Check if user can add more layouts before opening modal
+              if (!canAddMoreLayouts(layouts.length)) {
+                setShowUpgradePrompt(true);
+              } else {
+                setSaveModalOpen(true);
+              }
+            }}
             disabled={!currentLayout}
             className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -186,7 +204,11 @@ export const LayoutManager: React.FC<LayoutManagerProps> = ({ className = '' }) 
       {layouts.length > 0 && (
         <div className="p-4 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Saved Layouts ({layouts.length})
+            Saved Layouts ({layouts.length}
+            {getLayoutLimit() !== null && ` / ${getLayoutLimit()}`})
+            {status === 'active' && plan === 'starter' && layouts.length >= 2 && (
+              <span className="ml-2 text-xs text-orange-500">Limit reached</span>
+            )}
           </h3>
           <div className="flex flex-wrap gap-2">
             {layouts.map((layout) => (
@@ -284,6 +306,14 @@ export const LayoutManager: React.FC<LayoutManagerProps> = ({ className = '' }) 
             </div>
           </div>
         </div>
+      )}
+      
+      {/* Upgrade Prompt Modal */}
+      {showUpgradePrompt && (
+        <UpgradePrompt 
+          feature="layouts" 
+          onClose={() => setShowUpgradePrompt(false)} 
+        />
       )}
     </div>
   );

@@ -17,6 +17,10 @@ interface SubscriptionData {
 
 interface SubscriptionContextType extends SubscriptionData {
   refreshSubscription: () => Promise<void>
+  canAddMoreLayouts: (currentCount: number) => boolean
+  canAddMoreIndicators: (currentCount: number) => boolean
+  getLayoutLimit: () => number | null
+  getIndicatorLimit: () => number | null
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined)
@@ -31,7 +35,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData>({
     status: 'none',
     plan: 'none',
-    isLoading: false, // Default to false for SSR
+    isLoading: true, // Start with loading true to wait for auth check
   })
 
   const refreshSubscription = async () => {
@@ -40,6 +44,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       const user = auth.currentUser
       
       if (!user) {
+        console.log('No authenticated user found')
         setSubscriptionData({
           status: 'none',
           plan: 'none',
@@ -47,6 +52,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         })
         return
       }
+      
+      console.log('Fetching subscription for user:', user.uid)
 
       const idToken = await user.getIdToken()
       
@@ -64,6 +71,13 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       const data = await response.json()
       const subscriptions = data.subscriptions || []
       
+      console.log('Subscriptions from API:', subscriptions)
+      console.log('Price to plan mapping:', PRICE_TO_PLAN)
+      console.log('Environment variables:', {
+        starter: import.meta.env.VITE_STRIPE_PRICE_ID_STARTER,
+        pro: import.meta.env.VITE_STRIPE_PRICE_ID_PRO
+      })
+      
       // Find the most relevant subscription (prioritize active/trialing, then any other)
       const activeSubscription = subscriptions.find(
         (sub: any) => sub.status === 'active' || sub.status === 'trialing'
@@ -72,9 +86,36 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       if (activeSubscription) {
         const plan = PRICE_TO_PLAN[activeSubscription.price_id] || 'none'
         
+        // If we have a subscription but plan mapping failed, try to infer from price
+        let finalPlan = plan
+        if (plan === 'none' && activeSubscription.price_id) {
+          // Check if price_id contains hints about the plan
+          if (activeSubscription.price_id.toLowerCase().includes('starter') || 
+              activeSubscription.price_id.toLowerCase().includes('basic')) {
+            finalPlan = 'starter'
+            console.log('Inferred starter plan from price_id')
+          } else if (activeSubscription.price_id.toLowerCase().includes('pro') || 
+                     activeSubscription.price_id.toLowerCase().includes('premium')) {
+            finalPlan = 'pro'
+            console.log('Inferred pro plan from price_id')
+          } else {
+            // Default to starter if we have ANY active subscription but can't determine the plan
+            // This ensures users with active subscriptions at least get starter limits
+            console.warn('Could not determine plan from price_id, defaulting to starter:', activeSubscription.price_id)
+            finalPlan = 'starter'
+          }
+        }
+        
+        console.log('Setting subscription data:', {
+          status: activeSubscription.status,
+          plan: finalPlan,
+          price_id: activeSubscription.price_id,
+          mapped_plan: plan
+        })
+        
         setSubscriptionData({
           status: activeSubscription.status,
-          plan,
+          plan: finalPlan,
           subscriptionId: activeSubscription.subscription_id,
           trialEndsAt: activeSubscription.trial_end ? new Date(activeSubscription.trial_end * 1000) : undefined,
           isLoading: false,
@@ -146,8 +187,105 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     return unsubscribe
   }, [])
 
+  // Helper functions for checking plan limitations
+  const canAddMoreLayouts = (currentCount: number): boolean => {
+    // During trial, both plans have unlimited access
+    if (subscriptionData.status === 'trialing') {
+      return true
+    }
+    
+    // Active, past_due, incomplete subscription with Starter plan has limit of 2 layouts
+    // Include incomplete to handle payment processing states
+    const hasStarterAccess = ['active', 'past_due', 'incomplete'].includes(subscriptionData.status) && subscriptionData.plan === 'starter'
+    if (hasStarterAccess) {
+      return currentCount < 2
+    }
+    
+    // Pro plan has unlimited layouts
+    const hasProAccess = ['active', 'past_due', 'incomplete'].includes(subscriptionData.status) && subscriptionData.plan === 'pro'
+    if (hasProAccess) {
+      return true
+    }
+    
+    // No subscription, canceled, or expired - should prompt to subscribe
+    return false
+  }
+
+  const canAddMoreIndicators = (currentCount: number): boolean => {
+    // During trial, both plans have unlimited access
+    if (subscriptionData.status === 'trialing') {
+      return true
+    }
+    
+    // Active, past_due, incomplete subscription with Starter plan has limit of 2 indicators per chart
+    const hasStarterAccess = ['active', 'past_due', 'incomplete'].includes(subscriptionData.status) && subscriptionData.plan === 'starter'
+    if (hasStarterAccess) {
+      return currentCount < 2
+    }
+    
+    // Pro plan has unlimited indicators
+    const hasProAccess = ['active', 'past_due', 'incomplete'].includes(subscriptionData.status) && subscriptionData.plan === 'pro'
+    if (hasProAccess) {
+      return true
+    }
+    
+    // No subscription, canceled, or expired - should prompt to subscribe
+    return false
+  }
+
+  const getLayoutLimit = (): number | null => {
+    console.log('getLayoutLimit called with:', {
+      status: subscriptionData.status,
+      plan: subscriptionData.plan,
+      isLoading: subscriptionData.isLoading
+    })
+    
+    if (subscriptionData.status === 'trialing') {
+      return null // unlimited during trial
+    }
+    
+    const hasStarterAccess = ['active', 'past_due', 'incomplete'].includes(subscriptionData.status) && subscriptionData.plan === 'starter'
+    if (hasStarterAccess) {
+      console.log('Returning limit 2 for Starter plan')
+      return 2
+    }
+    
+    const hasProAccess = ['active', 'past_due', 'incomplete'].includes(subscriptionData.status) && subscriptionData.plan === 'pro'
+    if (hasProAccess) {
+      return null // unlimited for pro
+    }
+    
+    console.log('No subscription detected, returning 0')
+    return 0 // no subscription
+  }
+
+  const getIndicatorLimit = (): number | null => {
+    if (subscriptionData.status === 'trialing') {
+      return null // unlimited during trial
+    }
+    
+    const hasStarterAccess = ['active', 'past_due', 'incomplete'].includes(subscriptionData.status) && subscriptionData.plan === 'starter'
+    if (hasStarterAccess) {
+      return 2
+    }
+    
+    const hasProAccess = ['active', 'past_due', 'incomplete'].includes(subscriptionData.status) && subscriptionData.plan === 'pro'
+    if (hasProAccess) {
+      return null // unlimited for pro
+    }
+    
+    return 0 // no subscription
+  }
+
   return (
-    <SubscriptionContext.Provider value={{ ...subscriptionData, refreshSubscription }}>
+    <SubscriptionContext.Provider value={{ 
+      ...subscriptionData, 
+      refreshSubscription,
+      canAddMoreLayouts,
+      canAddMoreIndicators,
+      getLayoutLimit,
+      getIndicatorLimit
+    }}>
       {children}
     </SubscriptionContext.Provider>
   )

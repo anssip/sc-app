@@ -1,18 +1,24 @@
 import React, { useState } from "react";
 import { Dialog } from "@headlessui/react";
-import { Trash2 } from "lucide-react";
+import { Trash2, AlertCircle } from "lucide-react";
+import { Link } from "@remix-run/react";
 import type { PanelLayout } from "./ChartPanel";
 import { LAYOUT_PRESETS } from "./ChartPanel";
+import type { SubscriptionStatus, PlanType } from "~/contexts/SubscriptionContext";
 
 interface LayoutSelectorModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSaveLayout: (name: string, layout: PanelLayout) => Promise<void>;
+  onSaveLayout: (name: string, layout: PanelLayout) => Promise<boolean>;
   onSelectLayout: (layoutId: string) => void;
   onDeleteLayout?: (layoutId: string) => Promise<void>;
   layouts: { id: string; name: string }[];
   activeLayoutId: string | null;
   loading: boolean;
+  canAddMoreLayouts: boolean;
+  layoutLimit: number | null;
+  subscriptionStatus: SubscriptionStatus;
+  subscriptionPlan: PlanType;
 }
 
 const LayoutPresetButton: React.FC<{
@@ -41,6 +47,10 @@ export const LayoutSelectorModal: React.FC<LayoutSelectorModalProps> = ({
   layouts,
   activeLayoutId,
   loading,
+  canAddMoreLayouts,
+  layoutLimit,
+  subscriptionStatus,
+  subscriptionPlan,
 }) => {
   const [newLayoutName, setNewLayoutName] = useState("");
   const [addLayoutAccordionOpen, setAddLayoutAccordionOpen] = useState(false);
@@ -52,10 +62,21 @@ export const LayoutSelectorModal: React.FC<LayoutSelectorModalProps> = ({
       setError("Layout name cannot be empty.");
       return;
     }
+    
+    if (!canAddMoreLayouts) {
+      setError("Layout limit reached. Please upgrade to create more layouts.");
+      return;
+    }
+    
     setError(null);
-    await onSaveLayout(newLayoutName, preset);
-    setNewLayoutName("");
-    setAddLayoutAccordionOpen(false);
+    const success = await onSaveLayout(newLayoutName, preset);
+    
+    if (success) {
+      setNewLayoutName("");
+      setAddLayoutAccordionOpen(false);
+    } else {
+      setError("Failed to save layout. Please try again.");
+    }
   };
 
   const handleDelete = async (layoutId: string) => {
@@ -162,8 +183,13 @@ export const LayoutSelectorModal: React.FC<LayoutSelectorModalProps> = ({
           <div className="p-6 max-h-[60vh] overflow-y-auto">
             {/* Saved Layouts List */}
             <div className="mb-6">
-              <h3 className="text-sm font-semibold text-white mb-3">
-                Saved Layouts
+              <h3 className="text-sm font-semibold text-white mb-3 flex items-center justify-between">
+                <span>Saved Layouts</span>
+                {!loading && layoutLimit !== null && (
+                  <span className={`text-xs font-normal ${layouts.length >= layoutLimit ? 'text-orange-400' : 'text-gray-400'}`}>
+                    {layouts.length} / {layoutLimit}
+                  </span>
+                )}
               </h3>
               {layouts.length > 0 ? (
                 <ul className="space-y-2">
@@ -239,6 +265,32 @@ export const LayoutSelectorModal: React.FC<LayoutSelectorModalProps> = ({
               </button>
               {addLayoutAccordionOpen && (
                 <div className="mt-2 p-4 bg-gray-800 border border-gray-700 rounded-lg">
+                  {/* Show limit warning for Starter plan */}
+                  {!canAddMoreLayouts && (
+                    <div className="mb-4 p-3 bg-orange-900/20 border border-orange-600/50 rounded-lg flex items-start gap-2">
+                      <AlertCircle className="w-5 h-5 text-orange-500 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <p className="text-sm text-orange-400 font-medium">
+                          Layout Limit Reached
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {['active', 'past_due', 'incomplete'].includes(subscriptionStatus) && subscriptionPlan === 'starter' 
+                            ? `Starter plan allows ${layoutLimit} saved layouts. `
+                            : 'Subscribe to save layouts. '}
+                          {['active', 'past_due', 'incomplete'].includes(subscriptionStatus) && subscriptionPlan === 'starter' ? (
+                            <Link to="/billing" className="text-blue-400 hover:underline">
+                              Upgrade to Pro for unlimited layouts
+                            </Link>
+                          ) : (
+                            <Link to="/pricing" className="text-blue-400 hover:underline">
+                              View pricing plans
+                            </Link>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
                   <label
                     htmlFor="new-layout-name"
                     className="block text-sm font-medium text-gray-300 mb-2"
@@ -254,7 +306,8 @@ export const LayoutSelectorModal: React.FC<LayoutSelectorModalProps> = ({
                       if (error) setError(null);
                     }}
                     placeholder="e.g., 'My Trading Setup'"
-                    className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-md text-white placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-md text-white placeholder-gray-500 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={!canAddMoreLayouts}
                   />
                   {error && (
                     <p className="text-red-500 text-xs mt-1">{error}</p>
@@ -270,7 +323,7 @@ export const LayoutSelectorModal: React.FC<LayoutSelectorModalProps> = ({
                         name={config.name}
                         onClick={() => handleSave(config.layout)}
                         icon={config.icon}
-                        disabled={loading || !newLayoutName.trim()}
+                        disabled={loading || !newLayoutName.trim() || !canAddMoreLayouts}
                       />
                     ))}
                   </div>

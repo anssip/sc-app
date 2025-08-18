@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { LayoutSelectorModal } from "./LayoutSelectorModal";
 import { useLayouts, useUserSettings } from "~/hooks/useRepository";
+import { useSubscription } from "~/contexts/SubscriptionContext";
 import type { PanelLayout } from "./ChartPanel";
 import {
   convertFromChartPanelLayout,
@@ -93,10 +94,18 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
 }) => {
   const { layouts, saveLayout, deleteLayout, isLoading } = useLayouts();
   const { setActiveLayout } = useUserSettings();
+  const { status, plan, canAddMoreLayouts, getLayoutLimit, isLoading: subscriptionLoading } = useSubscription();
   const [modalOpen, setModalOpen] = useState(false);
 
   const handleSaveLayout = async (name: string, presetLayout: PanelLayout) => {
     console.log("Creating new layout:", name);
+    
+    // Check if user can add more layouts
+    if (!canAddMoreLayouts(layouts.length)) {
+      console.error("Cannot add more layouts - limit reached");
+      // Return false to indicate failure
+      return false;
+    }
 
     // 1. Find the first chart in the current layout to use as defaults
     const defaultChart = findFirstChart(currentLayout);
@@ -140,9 +149,12 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
         onLayoutChange(finalLayout, savedLayout.id);
         setModalOpen(false);
       }, 100);
+      
+      return true; // Success
     } catch (error) {
       console.error("Failed to save new layout:", error);
       // Don't close modal on error so user can retry
+      return false; // Failure
     }
   };
 
@@ -201,7 +213,11 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
         onDeleteLayout={deleteLayout}
         layouts={layouts}
         activeLayoutId={currentLayoutId}
-        loading={isLoading}
+        loading={isLoading || subscriptionLoading}
+        canAddMoreLayouts={canAddMoreLayouts(layouts.length)}
+        layoutLimit={getLayoutLimit()}
+        subscriptionStatus={status}
+        subscriptionPlan={plan}
       />
     </>
   );
