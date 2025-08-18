@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { getAuth } from 'firebase/auth'
+import { getFirestore, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore'
 
 export type SubscriptionStatus = 'none' | 'trialing' | 'active' | 'past_due' | 'canceled' | 'incomplete' | 'incomplete_expired'
 export type PlanType = 'starter' | 'pro' | 'none'
@@ -63,10 +64,10 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       const data = await response.json()
       const subscriptions = data.subscriptions || []
       
-      // Find the active or trialing subscription
+      // Find the most relevant subscription (prioritize active/trialing, then any other)
       const activeSubscription = subscriptions.find(
         (sub: any) => sub.status === 'active' || sub.status === 'trialing'
-      ) || subscriptions[0] // fallback to first subscription
+      ) || subscriptions[0] // fallback to first subscription (including canceled)
 
       if (activeSubscription) {
         const plan = PRICE_TO_PLAN[activeSubscription.price_id] || 'none'
@@ -79,6 +80,40 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
           isLoading: false,
         })
       } else {
+        // If no subscription from API, check Firestore directly for canceled subscriptions
+        
+        const db = getFirestore()
+        const subscriptionsRef = collection(db, 'subscriptions')
+        const q = query(
+          subscriptionsRef,
+          where('firebase_uid', '==', user.uid),
+          orderBy('created_at', 'desc'),
+          limit(1)
+        )
+        
+        try {
+          const querySnapshot = await getDocs(q)
+          if (!querySnapshot.empty) {
+            const doc = querySnapshot.docs[0]
+            const subData = doc.data()
+            if (subData.status === 'canceled') {
+              const plan = PRICE_TO_PLAN[subData.price_id] || 'none'
+              
+              setSubscriptionData({
+                status: 'canceled',
+                plan,
+                subscriptionId: subData.subscription_id,
+                trialEndsAt: subData.trial_end ? new Date(subData.trial_end * 1000) : undefined,
+                isLoading: false,
+              })
+              return
+            }
+          }
+        } catch (firestoreError) {
+          console.error('Error querying Firestore:', firestoreError)
+        }
+        
+        // If still no subscription found, set to none
         setSubscriptionData({
           status: 'none',
           plan: 'none',

@@ -17,9 +17,62 @@ export const meta: MetaFunction = () => {
 
 function BillingContent() {
   const navigate = useNavigate();
-  const { status, plan, trialEndsAt, subscriptionId } = useSubscription();
+  const { status, plan, trialEndsAt, subscriptionId, refreshSubscription } = useSubscription();
   const [isLoading, setIsLoading] = useState(false);
+  const [isActivating, setIsActivating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleActivateSubscription = async () => {
+    if (!subscriptionId) {
+      setError('No subscription ID found');
+      return;
+    }
+
+    setIsActivating(true);
+    setError(null);
+
+    try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('You must be logged in to activate subscription');
+      }
+
+      const idToken = await user.getIdToken();
+
+      // Call the activate endpoint
+      const response = await fetch(`https://billing-server-346028322665.europe-west1.run.app/api/subscriptions/${subscriptionId}/activate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to activate subscription');
+      }
+
+      // If there's a client secret, we need to handle payment confirmation
+      if (data.client_secret) {
+        // For now, just inform the user that payment is required
+        setError('Payment confirmation required. Please use the Manage Billing option to update your payment method.');
+      } else {
+        // Subscription activated successfully
+        await refreshSubscription(); // Refresh subscription status
+        setError(null);
+        // Show success message
+        alert('Subscription activated successfully!')
+      }
+    } catch (error) {
+      console.error('Activation error:', error);
+      setError(error instanceof Error ? error.message : 'Failed to activate subscription');
+    } finally {
+      setIsActivating(false);
+    }
+  };
 
   const handleManageBilling = async () => {
     setIsLoading(true);
@@ -110,6 +163,33 @@ function BillingContent() {
                   )}
                   {status === 'active' && (
                     <span className="text-pricing-green font-medium">Active</span>
+                  )}
+                  {status === 'canceled' && (
+                    <div className="flex flex-col items-end gap-2">
+                      <span className="text-red-500 font-medium">Canceled</span>
+                      <Button
+                        onClick={handleActivateSubscription}
+                        variant="primary"
+                        disabled={isActivating}
+                        size="sm"
+                        className="inline-flex items-center gap-2"
+                      >
+                        {isActivating ? (
+                          <>
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            Activating...
+                          </>
+                        ) : (
+                          'Activate'
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                  {status === 'past_due' && (
+                    <span className="text-orange-500 font-medium">Past Due</span>
+                  )}
+                  {status === 'incomplete' && (
+                    <span className="text-yellow-500 font-medium">Incomplete</span>
                   )}
                 </div>
               </div>

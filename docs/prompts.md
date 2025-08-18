@@ -126,14 +126,14 @@ The chart should show a notification if the user is not subscribed and offer opt
 
 Change it to use the following fonts.
 
-1. CSS variables
+1.  CSS variables
 
-   --font-primary: "Plus Jakarta Sans", serif;
+    --font-primary: "Plus Jakarta Sans", serif;
     --font-secondary:
-        "Lexend", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-        Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    "Lexend", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
 
-2. font links to index.html
+2.  font links to index.html
 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -158,7 +158,7 @@ Make the home page look like this: https://www.spotcanvas.com/
 
 # Chart page look and feel
 
- Change the chart dashboard look like in this attached screenshot:
+Change the chart dashboard look like in this attached screenshot:
 
 - The page should be mostly black but still usable.
 - The header section should not waste as much screen estate as it does currently: Combine the two horizontal bars into one and fit the controls into one area. Remove the Chart Dashboard label, and "Repository Online" should be replaced with one indicator light. Layout selector button should look more slick like in the screenshot.
@@ -206,3 +206,11 @@ Add a features page to the app. There is an example implementation of this page 
 The example page is live at: https://flaming-pricing-upgrade.lovable.app/features
 
 Use the Navigation component also in this page.
+
+# Plan limits
+
+Let implement plan specific limitations to the functionality of the app. These are the following:
+
+- When the subcription is in trial mode, for both the Starter and Pro plans, the user has access to all features.
+- When the subscription is active (trial expired), the Starter plan has the following limitations: Only two saved layouts can be created, and only two indicators per chart can be added.
+- The existing logic applies when there is no active subscription and no trial in progress: It prompts to subscribe to a plan.
