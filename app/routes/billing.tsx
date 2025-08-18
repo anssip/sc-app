@@ -17,14 +17,15 @@ export const meta: MetaFunction = () => {
 
 function BillingContent() {
   const navigate = useNavigate();
-  const { status, plan, trialEndsAt, subscriptionId, refreshSubscription } = useSubscription();
+  const { status, plan, trialEndsAt, subscriptionId, refreshSubscription } =
+    useSubscription();
   const [isLoading, setIsLoading] = useState(false);
   const [isActivating, setIsActivating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleActivateSubscription = async () => {
     if (!subscriptionId) {
-      setError('No subscription ID found');
+      setError("No subscription ID found");
       return;
     }
 
@@ -35,40 +36,49 @@ function BillingContent() {
       const auth = getAuth();
       const user = auth.currentUser;
       if (!user) {
-        throw new Error('You must be logged in to activate subscription');
+        throw new Error("You must be logged in to activate subscription");
       }
 
       const idToken = await user.getIdToken();
 
       // Call the activate endpoint
-      const response = await fetch(`https://billing-server-346028322665.europe-west1.run.app/api/subscriptions/${subscriptionId}/activate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`,
-        },
-      });
+      const response = await fetch(
+        `https://billing-server-346028322665.europe-west1.run.app/api/subscriptions/${subscriptionId}/activate`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
+        }
+      );
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to activate subscription');
+        throw new Error(data.error || "Failed to activate subscription");
       }
 
       // If there's a client secret, we need to handle payment confirmation
       if (data.client_secret) {
         // For now, just inform the user that payment is required
-        setError('Payment confirmation required. Please use the Manage Billing option to update your payment method.');
+        setError(
+          "Payment confirmation required. Please use the Manage Billing option to update your payment method."
+        );
       } else {
         // Subscription activated successfully
         await refreshSubscription(); // Refresh subscription status
         setError(null);
         // Show success message
-        alert('Subscription activated successfully!')
+        alert("Subscription activated successfully!");
       }
     } catch (error) {
-      console.error('Activation error:', error);
-      setError(error instanceof Error ? error.message : 'Failed to activate subscription');
+      console.error("Activation error:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to activate subscription"
+      );
     } finally {
       setIsActivating(false);
     }
@@ -88,16 +98,19 @@ function BillingContent() {
       const idToken = await user.getIdToken();
 
       // Create customer portal session
-      const response = await fetch("https://billing-server-346028322665.europe-west1.run.app/api/customer/portal", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({
-          return_url: window.location.href,
-        }),
-      });
+      const response = await fetch(
+        "https://billing-server-346028322665.europe-west1.run.app/api/customer/portal",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({
+            return_url: window.location.href,
+          }),
+        }
+      );
 
       const data = await response.json();
 
@@ -109,7 +122,9 @@ function BillingContent() {
       window.location.href = data.url;
     } catch (error) {
       console.error("Billing portal error:", error);
-      setError(error instanceof Error ? error.message : "Failed to open billing portal");
+      setError(
+        error instanceof Error ? error.message : "Failed to open billing portal"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -122,15 +137,21 @@ function BillingContent() {
 
       {/* Main Content */}
       <div className="relative z-10 max-w-4xl mx-auto px-6 pt-12 pb-20">
-        <h1 className="text-4xl font-bold mb-8 text-white">Billing & Subscription</h1>
+        <h1 className="text-4xl font-bold mb-8 text-white">
+          Billing & Subscription
+        </h1>
 
         {/* Current Plan */}
         <div className="bg-black/60 backdrop-blur-sm border border-gray-500/30 rounded-2xl p-8 mb-8">
-          <h2 className="text-2xl font-semibold mb-6 text-white">Current Plan</h2>
-          
-          {status === 'none' ? (
+          <h2 className="text-2xl font-semibold mb-6 text-white">
+            Current Plan
+          </h2>
+
+          {status === "none" ? (
             <div className="text-center py-8">
-              <p className="text-gray-400 mb-6">You don't have an active subscription.</p>
+              <p className="text-gray-400 mb-6">
+                You don't have an active subscription.
+              </p>
               <Button asLink to="/pricing" variant="primary">
                 View Plans
               </Button>
@@ -140,31 +161,53 @@ function BillingContent() {
               {/* Plan Details */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  {plan === 'pro' ? (
-                    <img src="/icon-crown.svg" alt="Pro Plan" className="h-12 w-12 text-pricing-green" style={{ filter: 'brightness(0) saturate(100%) invert(68%) sepia(97%) saturate(379%) hue-rotate(70deg) brightness(104%) contrast(98%)' }} />
+                  {plan === "pro" ? (
+                    <img
+                      src="/icon-crown.svg"
+                      alt="Pro Plan"
+                      className="h-12 w-12 text-pricing-green"
+                      style={{
+                        filter:
+                          "brightness(0) saturate(100%) invert(68%) sepia(97%) saturate(379%) hue-rotate(70deg) brightness(104%) contrast(98%)",
+                      }}
+                    />
                   ) : (
-                    <img src="/icon-zap.svg" alt="Basic Plan" className="h-12 w-12 text-blue-500" style={{ filter: 'brightness(0) saturate(100%) invert(49%) sepia(100%) saturate(2419%) hue-rotate(190deg) brightness(103%) contrast(102%)' }} />
+                    <img
+                      src="/icon-zap.svg"
+                      alt="Basic Plan"
+                      className="h-12 w-12 text-blue-500"
+                      style={{
+                        filter:
+                          "brightness(0) saturate(100%) invert(49%) sepia(100%) saturate(2419%) hue-rotate(190deg) brightness(103%) contrast(102%)",
+                      }}
+                    />
                   )}
                   <div>
-                    <h3 className="text-xl font-semibold text-white capitalize">{plan} Plan</h3>
+                    <h3 className="text-xl font-semibold text-white capitalize">
+                      {plan} Plan
+                    </h3>
                     <p className="text-gray-400">
-                      {plan === 'pro' ? '$39/month' : '$14/month'}
+                      {plan === "pro" ? "$39/month" : "$14/month"}
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  {status === 'trialing' && trialEndsAt && (
+                  {status === "trialing" && trialEndsAt && (
                     <div>
-                      <p className="text-yellow-500 font-medium">Trial Period</p>
+                      <p className="text-yellow-500 font-medium">
+                        Trial Period
+                      </p>
                       <p className="text-gray-400 text-sm">
                         Ends {new Date(trialEndsAt).toLocaleDateString()}
                       </p>
                     </div>
                   )}
-                  {status === 'active' && (
-                    <span className="text-pricing-green font-medium">Active</span>
+                  {status === "active" && (
+                    <span className="text-pricing-green font-medium">
+                      Active
+                    </span>
                   )}
-                  {status === 'canceled' && (
+                  {status === "canceled" && (
                     <div className="flex flex-col items-end gap-2">
                       <span className="text-red-500 font-medium">Canceled</span>
                       <Button
@@ -180,25 +223,31 @@ function BillingContent() {
                             Activating...
                           </>
                         ) : (
-                          'Activate'
+                          "Activate"
                         )}
                       </Button>
                     </div>
                   )}
-                  {status === 'past_due' && (
-                    <span className="text-orange-500 font-medium">Past Due</span>
+                  {status === "past_due" && (
+                    <span className="text-orange-500 font-medium">
+                      Past Due
+                    </span>
                   )}
-                  {status === 'incomplete' && (
-                    <span className="text-yellow-500 font-medium">Incomplete</span>
+                  {status === "incomplete" && (
+                    <span className="text-yellow-500 font-medium">
+                      Incomplete
+                    </span>
                   )}
                 </div>
               </div>
 
               {/* Plan Features */}
               <div className="border-t border-gray-800 pt-6">
-                <h4 className="text-lg font-medium mb-4 text-white">Your plan includes:</h4>
+                <h4 className="text-lg font-medium mb-4 text-white">
+                  Your plan includes:
+                </h4>
                 <ul className="space-y-2">
-                  {plan === 'pro' ? (
+                  {plan === "pro" ? (
                     <>
                       <li className="flex items-center gap-2 text-gray-300">
                         <span className="text-pricing-green">✓</span>
@@ -220,16 +269,16 @@ function BillingContent() {
                   ) : (
                     <>
                       <li className="flex items-center gap-2 text-gray-300">
-                        <span className="text-blue-500">✓</span>
-                        4 trading symbols
+                        <span className="text-blue-500">✓</span>4 trading
+                        symbols
                       </li>
                       <li className="flex items-center gap-2 text-gray-300">
                         <span className="text-blue-500">✓</span>
                         Basic indicators
                       </li>
                       <li className="flex items-center gap-2 text-gray-300">
-                        <span className="text-blue-500">✓</span>
-                        2 charts per layout
+                        <span className="text-blue-500">✓</span>2 charts per
+                        layout
                       </li>
                     </>
                   )}
@@ -240,10 +289,12 @@ function BillingContent() {
         </div>
 
         {/* Billing Management */}
-        {status !== 'none' && (
+        {status !== "none" && (
           <div className="bg-black/60 backdrop-blur-sm border border-gray-500/30 rounded-2xl p-8">
-            <h2 className="text-2xl font-semibold mb-6 text-white">Manage Billing</h2>
-            
+            <h2 className="text-2xl font-semibold mb-6 text-white">
+              Manage Subscription
+            </h2>
+
             {error && (
               <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-6">
                 <p className="text-red-400 text-sm">{error}</p>
@@ -251,8 +302,8 @@ function BillingContent() {
             )}
 
             <p className="text-gray-400 mb-6">
-              Access the Stripe Customer Portal to update your payment method, download invoices, 
-              change your plan, or cancel your subscription.
+              Access the Stripe Customer Portal to update your payment method,
+              download invoices, change your plan, or cancel your subscription.
             </p>
 
             <Button

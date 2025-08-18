@@ -1,4 +1,5 @@
 import React, { Fragment, useState } from "react";
+import { Link } from "@remix-run/react";
 import { useSymbols } from "~/hooks/useRepository";
 import { useStarredSymbols } from "~/hooks/useStarredSymbols";
 import { useChartSettings } from "~/contexts/ChartSettingsContext";
@@ -392,7 +393,9 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
                     <div className="px-4 py-2 text-xs text-gray-400 border-b border-gray-700">
                       <div>Starter Plan: {settings.indicators.filter(ind => ind.visible).length} / 2 indicators</div>
                       {settings.indicators.filter(ind => ind.visible).length >= 2 && (
-                        <div className="text-orange-400 mt-1">Limit reached - Upgrade to Pro for unlimited</div>
+                        <div className="text-orange-400 mt-1">
+                          Limit reached - <Link to="/billing" className="text-blue-400 hover:underline">Upgrade to Pro</Link> for unlimited
+                        </div>
                       )}
                     </div>
                   )}
