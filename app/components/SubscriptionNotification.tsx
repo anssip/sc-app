@@ -8,7 +8,6 @@ export default function SubscriptionNotification() {
   const { status, plan, trialEndsAt, isLoading } = useSubscription();
   const [isDismissed, setIsDismissed] = useState(false);
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
-  const [hasInitialized, setHasInitialized] = useState(false);
 
   useEffect(() => {
     if (status === "trialing" && trialEndsAt) {
@@ -20,15 +19,8 @@ export default function SubscriptionNotification() {
     }
   }, [status, trialEndsAt]);
 
-  // Track when subscription has been loaded at least once
-  useEffect(() => {
-    if (!isLoading && !hasInitialized) {
-      setHasInitialized(true);
-    }
-  }, [isLoading, hasInitialized]);
-
-  // Don't show anything until fully initialized
-  if (!hasInitialized || isLoading) {
+  // Don't show anything while loading
+  if (isLoading) {
     return null;
   }
 

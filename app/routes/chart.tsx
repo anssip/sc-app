@@ -1,8 +1,11 @@
-import type { MetaFunction } from "@remix-run/node";
+import type { MetaFunction, LoaderFunctionArgs } from "@remix-run/node";
+import { json } from "@remix-run/node";
+import { useLoaderData } from "@remix-run/react";
 import ProtectedRoute from "~/components/ProtectedRoute";
 import Login from "~/components/Login";
 import { ChartApp } from "~/components/ChartApp";
 import SubscriptionNotification from "~/components/SubscriptionNotification";
+import SubscriptionLoader from "~/components/SubscriptionLoader";
 
 export const meta: MetaFunction = () => {
   return [
@@ -11,16 +14,26 @@ export const meta: MetaFunction = () => {
   ];
 };
 
+export async function loader({ request }: LoaderFunctionArgs) {
+  // Return minimal data - actual subscription fetching happens client-side
+  // This loader ensures the route is ready before rendering
+  return json({ ready: true });
+}
+
 function ChartContent() {
+  const data = useLoaderData<typeof loader>();
+  
   return (
-    <div className="h-screen flex flex-col bg-primary-dark">
-      <div className="h-full flex flex-col">
-        <div className="px-6 pt-4">
-          <SubscriptionNotification />
+    <SubscriptionLoader>
+      <div className="h-screen flex flex-col bg-primary-dark">
+        <div className="h-full flex flex-col">
+          <div className="px-6 pt-4">
+            <SubscriptionNotification />
+          </div>
+          <ChartApp className="flex-1" />
         </div>
-        <ChartApp className="flex-1" />
       </div>
-    </div>
+    </SubscriptionLoader>
   );
 }
 
