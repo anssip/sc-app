@@ -6,6 +6,7 @@ import Button from "~/components/Button";
 import AccountMenu from "~/components/AccountMenu";
 import Footer from "~/components/Footer";
 import { useSubscription } from "~/contexts/SubscriptionContext";
+import { trackPurchaseComplete } from "~/lib/analytics";
 
 export const meta: MetaFunction = () => {
   return [
@@ -22,6 +23,16 @@ export default function ThankYouPage() {
   useEffect(() => {
     refreshSubscription();
   }, []);
+
+  // Track purchase completion when landing on thank-you page
+  useEffect(() => {
+    if (plan && plan !== 'none') {
+      const price = plan.toLowerCase() === 'starter' ? 9 : 29;
+      // Generate a transaction ID based on timestamp for tracking
+      const transactionId = `trial_${Date.now()}`;
+      trackPurchaseComplete(plan, price, transactionId);
+    }
+  }, [plan]);
 
   return (
     <>

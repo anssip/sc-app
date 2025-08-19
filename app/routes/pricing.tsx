@@ -1,7 +1,7 @@
 import type { MetaFunction } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { useLoaderData, useNavigate } from "@remix-run/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PricingCard from "~/components/PricingCard";
 import Navigation from "~/components/Navigation";
 import Footer from "~/components/Footer";
@@ -9,6 +9,7 @@ import SubscriptionExistsModal from "~/components/SubscriptionExistsModal";
 import Accordion from "~/components/Accordion";
 import { useSubscription } from "~/contexts/SubscriptionContext";
 import { useAuth } from "~/lib/auth-context";
+import { trackPricingView, trackStartTrialClick } from "~/lib/analytics";
 
 export const meta: MetaFunction = () => {
   return [
@@ -98,7 +99,17 @@ export default function PricingPage() {
   const subscription = useSubscription();
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
+  // Track pricing page view
+  useEffect(() => {
+    trackPricingView();
+  }, []);
+
   const handleGetStarted = (planName: string) => {
+    // Track the Start Trial click with plan details
+    const plan = plans.find(p => p.name === planName);
+    const price = plan ? parseInt(plan.price.replace('$', '')) : 0;
+    trackStartTrialClick(planName, price);
+
     // Check if user is authenticated
     if (!user) {
       // If not authenticated, navigate to payment page which will redirect to signin

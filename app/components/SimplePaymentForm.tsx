@@ -3,6 +3,7 @@ import { useStripe, useElements, CardElement } from '@stripe/react-stripe-js'
 import { useNavigate } from '@remix-run/react'
 import Button from './Button'
 import { getAuth } from 'firebase/auth'
+import { trackPurchaseClick } from '~/lib/analytics'
 
 interface SimplePaymentFormProps {
   priceId: string
@@ -41,6 +42,10 @@ export default function SimplePaymentForm({ priceId, selectedPlan, onSuccess }: 
     if (!stripe || !elements) {
       return
     }
+
+    // Track purchase button click
+    const price = selectedPlan.toLowerCase() === 'starter' ? 9 : 29
+    trackPurchaseClick(selectedPlan, price)
 
     setIsProcessing(true)
     setErrorMessage(null)

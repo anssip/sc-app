@@ -4,10 +4,13 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useLocation,
 } from "@remix-run/react";
 import type { LinksFunction } from "@remix-run/node";
 import { AuthProvider } from "~/lib/auth-context";
 import { SubscriptionProvider } from "~/contexts/SubscriptionContext";
+import { useEffect } from "react";
+import { initGA, logPageView } from "~/lib/analytics";
 
 import "./tailwind.css";
 
@@ -72,6 +75,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  const location = useLocation();
+
+  useEffect(() => {
+    initGA();
+  }, []);
+
+  useEffect(() => {
+    logPageView(location.pathname + location.search);
+  }, [location]);
+
   return (
     <AuthProvider>
       <SubscriptionProvider>

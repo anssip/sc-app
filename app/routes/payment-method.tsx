@@ -10,6 +10,7 @@ import Footer from "~/components/Footer";
 import ProtectedRoute from "~/components/ProtectedRoute";
 import { useSubscription } from "~/contexts/SubscriptionContext";
 import Button from "~/components/Button";
+import { trackPaymentMethodView } from "~/lib/analytics";
 
 export const meta: MetaFunction = () => {
   return [
@@ -52,6 +53,12 @@ export default function PaymentMethodPage() {
       setStripePromise(loadStripe(publishableKey));
     }
   }, [publishableKey]);
+
+  // Track payment method page view
+  useEffect(() => {
+    const price = selectedPlan.toLowerCase() === 'starter' ? 9 : 29;
+    trackPaymentMethodView(selectedPlan, price);
+  }, [selectedPlan]);
 
   // Check if user has an active subscription
   const hasActiveSubscription = subscription && 
