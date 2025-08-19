@@ -10,7 +10,7 @@ export default function Footer({ variant = "default" }: FooterProps) {
   return (
     <footer id="contact" className={`${isDark ? "bg-black text-white border-t border-white/20" : "bg-accent-1 text-black rounded-t-3xl"}`}>
       <div className="max-w-7xl mx-auto px-6 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Company Info */}
           <div>
             <h3 className={`${isDark ? "text-white" : "text-black"} font-bold mb-4`}>Contact</h3>
@@ -64,6 +64,21 @@ export default function Footer({ variant = "default" }: FooterProps) {
                 className={`block ${isDark ? "text-gray-300 hover:text-white" : "text-black/80 hover:text-black"} font-medium transition-colors text-sm`}
               >
                 Join Waitlist
+              </a>
+            </nav>
+          </div>
+
+          {/* Community */}
+          <div>
+            <h3 className={`${isDark ? "text-white" : "text-black"} font-bold mb-4`}>Community</h3>
+            <nav className="space-y-2">
+              <a
+                href="https://discord.gg/wXcRQ7M8Ey"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`block ${isDark ? "text-gray-300 hover:text-white" : "text-black/80 hover:text-black"} font-medium transition-colors text-sm`}
+              >
+                Discord
               </a>
             </nav>
           </div>
