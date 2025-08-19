@@ -11,6 +11,11 @@ bun run build
 echo "Copying build files to functions..."
 cp -r build functions/
 
+# Copy blog content files to functions
+echo "Copying blog content files..."
+mkdir -p functions/app/content
+cp -r app/content/blog functions/app/content/ 2>/dev/null || true
+
 # Copy the local sc-charts package to functions
 echo "Copying sc-charts package..."
 mkdir -p functions/rs-charts
