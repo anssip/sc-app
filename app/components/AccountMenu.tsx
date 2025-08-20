@@ -49,7 +49,7 @@ export default function AccountMenu() {
         className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-300 hover:text-white transition-colors"
       >
         <User className="h-5 w-5" />
-        <span>{user ? user.email : "Account"}</span>
+        <span className="hidden md:inline">{user ? user.email : "Account"}</span>
         <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
       </button>
 

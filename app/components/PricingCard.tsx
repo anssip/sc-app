@@ -22,7 +22,7 @@ export default function PricingCard({
 }: PricingCardProps) {
   return (
     <div
-      className={`relative overflow-hidden transition-all duration-300 hover:scale-105 bg-black/60 backdrop-blur-sm border rounded-2xl p-8 flex flex-col h-full ${
+      className={`relative z-10 overflow-hidden transition-all duration-300 hover:scale-105 bg-black/60 backdrop-blur-sm border rounded-2xl p-8 flex flex-col h-full ${
         popular ? "border-highlight shadow-glow-green" : "border-gray-500/30"
       }`}
     >
