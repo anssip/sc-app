@@ -11,11 +11,10 @@ import { BarChart3, Code2, Brain } from "lucide-react";
 
 export const meta: MetaFunction = () => {
   return [
-    { title: "Spot Canvas - Trading Charts Reimagined" },
+    { title: "Spot Canvas - Trading charts for the on-chain generation" },
     {
       name: "description",
-      content:
-        "Cutting-edge charting tools for traders seeking the ultimate market advantage",
+      content: "Trading charts for the on-chain generation",
     },
   ];
 };
@@ -78,8 +77,7 @@ export default function Index() {
                   </p>
                 </h1>
                 <p className="text-xl text-gray-200 my-8 leading-relaxed">
-                  Cutting-edge charting tools for traders seeking the ultimate
-                  market advantage.
+                  Trading charts, reimagined for the on-chain world.
                 </p>
                 <div className="flex gap-4">
                   <Button
@@ -87,7 +85,7 @@ export default function Index() {
                     variant="primary"
                     size="lg"
                     asLink
-                    className="inline-flex items-center gap-2"
+                    className="inline-flex text-center gap-2"
                   >
                     Learn more
                   </Button>
@@ -200,7 +198,10 @@ const faqItems = [
     answer: (
       <>
         Upgrading and downgrading can be done easily in your personal{" "}
-        <Link to="/billing" className="text-accent-1 hover:text-accent-2 underline">
+        <Link
+          to="/billing"
+          className="text-accent-1 hover:text-accent-2 underline"
+        >
           Billing page
         </Link>
         . Changes take effect immediately.
