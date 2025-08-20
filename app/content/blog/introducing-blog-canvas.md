@@ -1,15 +1,15 @@
 ---
 title: "Introducing Spot Canvas: Professional Crypto Charting is Here"
+excerpt: "We are excited to introduce Spot Canvas - a pro cryptocurrency charting platform with multi-chart layouts, real-time data, technical indicators, and powerful analysis tools."
 date: "2025-01-19"
 author: "Spot Canvas Team"
 description: "We are excited to announce the immediate availability of Spot Canvas - a professional cryptocurrency charting platform with multi-chart layouts, real-time data, technical indicators, and powerful analysis tools."
 tags: ["announcement", "product launch", "crypto", "charting", "technical analysis"]
 featured: true
+category: "Product Updates"
 ---
 
-<img src="/logo/icon/light-green.svg" alt="Spot Canvas Logo" style="width: 70%; height: auto;" />
-
-# Introducing Spot Canvas: Professional Crypto Charting is Here
+<img src="/icon-logo-accent-1.svg" alt="Spot Canvas Logo" style="width: 70%; height: auto;" class="mb-8" />
 
 We are happy to announce the immediate availability of the Spot Canvas service! After a year of intense development we are finally here and we are inviting all traders and crypto enthusiasts to sign up and start kicking the tyres.
 
