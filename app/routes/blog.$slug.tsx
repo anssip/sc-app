@@ -5,6 +5,7 @@ import Navigation from "~/components/Navigation";
 import Footer from "~/components/Footer";
 import Button from "~/components/Button";
 import { getBlogPost, type BlogPost } from "~/lib/blog.server";
+import { getCacheHeaders, CacheProfiles } from "~/lib/cache.server";
 import { ArrowLeft } from "lucide-react";
 
 interface LoaderData {
@@ -24,7 +25,12 @@ export const loader: LoaderFunction = async ({ params }) => {
     return redirect("/blog");
   }
 
-  return json<LoaderData>({ post });
+  return json<LoaderData>(
+    { post },
+    {
+      headers: getCacheHeaders(CacheProfiles.BLOG_POST),
+    }
+  );
 };
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => {

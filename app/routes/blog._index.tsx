@@ -5,6 +5,7 @@ import Navigation from "~/components/Navigation";
 import Footer from "~/components/Footer";
 import BlogCard from "~/components/BlogCard";
 import { getAllBlogPosts, type BlogPostMeta } from "~/lib/blog.server";
+import { getCacheHeaders, CacheProfiles } from "~/lib/cache.server";
 
 export const meta: MetaFunction = () => {
   return [
@@ -37,7 +38,12 @@ interface LoaderData {
 
 export const loader: LoaderFunction = async () => {
   const posts = await getAllBlogPosts();
-  return json<LoaderData>({ posts });
+  return json<LoaderData>(
+    { posts },
+    {
+      headers: getCacheHeaders(CacheProfiles.BLOG_INDEX),
+    }
+  );
 };
 
 export default function BlogIndex() {

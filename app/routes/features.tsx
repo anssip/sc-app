@@ -1,9 +1,20 @@
 import { useEffect, useState } from "react";
 import { Link } from "@remix-run/react";
-import type { MetaFunction } from "@remix-run/node";
+import type { MetaFunction, LoaderFunction } from "@remix-run/node";
+import { json } from "@remix-run/node";
 import Navigation from "~/components/Navigation";
 import Button from "~/components/Button";
 import Footer from "~/components/Footer";
+import { getCacheHeaders, CacheProfiles } from "~/lib/cache.server";
+
+export const loader: LoaderFunction = async () => {
+  return json(
+    {},
+    {
+      headers: getCacheHeaders(CacheProfiles.STATIC),
+    }
+  );
+};
 
 export const meta: MetaFunction = () => {
   return [

@@ -1,4 +1,5 @@
-import type { MetaFunction } from "@remix-run/node";
+import type { MetaFunction, LoaderFunction } from "@remix-run/node";
+import { json } from "@remix-run/node";
 import { Link, useNavigate } from "@remix-run/react";
 import { useAuth } from "~/lib/auth-context";
 import { useSubscription } from "~/contexts/SubscriptionContext";
@@ -7,7 +8,17 @@ import Navigation from "~/components/Navigation";
 import Accordion from "~/components/Accordion";
 import FeatureCard from "~/components/FeatureCard";
 import Footer from "~/components/Footer";
+import { getCacheHeaders, CacheProfiles } from "~/lib/cache.server";
 import { BarChart3, Code2, Brain } from "lucide-react";
+
+export const loader: LoaderFunction = async () => {
+  return json(
+    {},
+    {
+      headers: getCacheHeaders(CacheProfiles.HOMEPAGE),
+    }
+  );
+};
 
 export const meta: MetaFunction = () => {
   return [

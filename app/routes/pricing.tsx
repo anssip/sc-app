@@ -10,6 +10,7 @@ import Accordion from "~/components/Accordion";
 import { useSubscription } from "~/contexts/SubscriptionContext";
 import { useAuth } from "~/lib/auth-context";
 import { trackPricingView, trackStartTrialClick } from "~/lib/analytics";
+import { getCacheHeaders, CacheProfiles } from "~/lib/cache.server";
 
 export const meta: MetaFunction = () => {
   return [
@@ -62,7 +63,12 @@ export async function loader() {
     },
   ];
 
-  return json({ plans });
+  return json(
+    { plans },
+    {
+      headers: getCacheHeaders(CacheProfiles.PRICING),
+    }
+  );
 }
 
 const faqItems = [
