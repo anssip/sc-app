@@ -22,9 +22,9 @@ interface ChartLineToolbarProps {
   isVisible: boolean
 }
 
-const LinePreview: React.FC<{ color: string; style: LineStyle; thickness: number }> = ({ color, style, thickness }) => (
+const LinePreview: React.FC<{ color: string; style: LineStyle; thickness: number; compact?: boolean }> = ({ color, style, thickness, compact = false }) => (
   <div
-    className="w-12"
+    className={compact ? "w-6" : "w-12"}
     style={{
       borderTopColor: color,
       borderTopWidth: thickness,
@@ -41,13 +41,28 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
 }) => {
   const colorInputRef = useRef<HTMLInputElement>(null)
   const toolbarRef = useRef<HTMLDivElement>(null)
+  const [isMobile, setIsMobile] = useState(false)
   const [position, setPosition] = useState({ x: 50, y: 12 }) // Default position (centered horizontally, 12px from top)
   const [isDragging, setIsDragging] = useState(false)
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
   const [startPosition, setStartPosition] = useState({ x: 0, y: 0 })
 
+  // Check for mobile screen and set initial position
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 640
+      setIsMobile(mobile)
+      if (mobile) {
+        setPosition({ x: 12, y: 12 }) // Position at left edge on mobile
+      }
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  useEffect(() => {
+    const handleMove = (clientX: number, clientY: number) => {
       if (!isDragging || !toolbarRef.current) return
 
       const parent = toolbarRef.current.parentElement
@@ -57,8 +72,8 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
       const toolbarRect = toolbarRef.current.getBoundingClientRect()
       
       // Calculate new position relative to parent
-      const deltaX = e.clientX - dragStart.x
-      const deltaY = e.clientY - dragStart.y
+      const deltaX = clientX - dragStart.x
+      const deltaY = clientY - dragStart.y
       
       let newX = startPosition.x + deltaX
       let newY = startPosition.y + deltaY
@@ -75,25 +90,45 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
       setPosition({ x: newX, y: newY })
     }
 
-    const handleMouseUp = () => {
+    const handleMouseMove = (e: MouseEvent) => {
+      handleMove(e.clientX, e.clientY)
+    }
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        e.preventDefault() // Prevent scrolling while dragging
+        const touch = e.touches[0]
+        handleMove(touch.clientX, touch.clientY)
+      }
+    }
+
+    const handleEnd = () => {
       setIsDragging(false)
     }
 
     if (isDragging) {
       document.addEventListener('mousemove', handleMouseMove)
-      document.addEventListener('mouseup', handleMouseUp)
+      document.addEventListener('mouseup', handleEnd)
+      document.addEventListener('touchmove', handleTouchMove, { passive: false })
+      document.addEventListener('touchend', handleEnd)
       
       return () => {
         document.removeEventListener('mousemove', handleMouseMove)
-        document.removeEventListener('mouseup', handleMouseUp)
+        document.removeEventListener('mouseup', handleEnd)
+        document.removeEventListener('touchmove', handleTouchMove)
+        document.removeEventListener('touchend', handleEnd)
       }
     }
   }, [isDragging, dragStart, startPosition])
 
-  const handleDragStart = (e: React.MouseEvent) => {
+  const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault()
     setIsDragging(true)
-    setDragStart({ x: e.clientX, y: e.clientY })
+    
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
+    
+    setDragStart({ x: clientX, y: clientY })
     setStartPosition(position)
   }
 
@@ -139,22 +174,23 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
             isDragging ? 'cursor-grabbing bg-gray-800' : 'cursor-grab'
           }`}
           onMouseDown={handleDragStart}
+          onTouchStart={handleDragStart}
           title="Drag to reposition"
         >
           <GripVerticalIcon className={`h-4 w-4 ${isDragging ? 'text-gray-300' : 'text-gray-400 hover:text-gray-300'}`} />
         </div>
         
         {/* Toolbar Controls */}
-        <div className="flex items-center gap-2 px-2 py-1">
+        <div className={`flex items-center ${isMobile ? 'gap-1 px-1' : 'gap-2 px-2'} py-1`}>
           {/* Line Color */}
           <Popover className="relative">
-            <Popover.Button as={ToolbarDropdownButton} title="Line color">
+            <Popover.Button as={ToolbarDropdownButton} title="Line color" className={isMobile ? 'px-1' : ''}>
               <span
                 className="h-4 w-4 rounded"
                 style={{ backgroundColor: currentSettings.color }}
                 aria-label="Current line color"
               />
-              <span className="hidden sm:inline">Color</span>
+              {!isMobile && <span className="hidden sm:inline">Color</span>}
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
               </svg>
@@ -200,8 +236,8 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
 
           {/* Line Style */}
           <Menu as="div" className="relative">
-            <Menu.Button as={ToolbarDropdownButton} title={`Style: ${styleLabel(currentSettings.style)}`}>
-              <LinePreview color={currentSettings.color} style={currentSettings.style} thickness={currentSettings.thickness} />
+            <Menu.Button as={ToolbarDropdownButton} title={`Style: ${styleLabel(currentSettings.style)}`} className={isMobile ? 'px-1' : ''}>
+              <LinePreview color={currentSettings.color} style={currentSettings.style} thickness={currentSettings.thickness} compact={isMobile} />
               <ChevronDownIcon className="h-4 w-4" />
             </Menu.Button>
 
@@ -241,11 +277,11 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
 
           {/* Thickness */}
           <Menu as="div" className="relative">
-            <Menu.Button as={ToolbarDropdownButton} title={`Thickness: ${currentSettings.thickness}px`}>
+            <Menu.Button as={ToolbarDropdownButton} title={`Thickness: ${currentSettings.thickness}px`} className={isMobile ? 'px-1' : ''}>
               <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={currentSettings.thickness} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
               </svg>
-              <span className="text-xs">{currentSettings.thickness}</span>
+              {!isMobile && <span className="text-xs">{currentSettings.thickness}</span>}
               <ChevronDownIcon className="h-4 w-4" />
             </Menu.Button>
 
@@ -285,7 +321,7 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
 
           {/* Extend */}
           <Menu as="div" className="relative">
-            <Menu.Button as={ToolbarDropdownButton} title="Extend line">
+            <Menu.Button as={ToolbarDropdownButton} title="Extend line" className={isMobile ? 'px-1' : ''}>
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
               </svg>
@@ -361,6 +397,7 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
             isDragging ? 'cursor-grabbing bg-gray-800' : 'cursor-grab'
           }`}
           onMouseDown={handleDragStart}
+          onTouchStart={handleDragStart}
           title="Drag to reposition"
         >
           <GripVerticalIcon className={`h-4 w-4 ${isDragging ? 'text-gray-300' : 'text-gray-400 hover:text-gray-300'}`} />
