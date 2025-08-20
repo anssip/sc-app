@@ -128,7 +128,7 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
             leaveFrom="transform opacity-100 scale-100"
             leaveTo="transform opacity-0 scale-95"
           >
-            <Menu.Items className="absolute left-0 mt-2 min-w-[160px] bg-black border border-gray-700 rounded-md shadow-lg z-[100] max-h-96 overflow-y-auto">
+            <Menu.Items className="absolute left-0 mt-2 min-w-[160px] bg-black border border-gray-700 rounded-md shadow-lg z-[200] max-h-96 overflow-y-auto">
               {symbolsLoading || starredLoading ? (
                 <div className="p-3 text-gray-400 text-xs">
                   Loading symbols...
@@ -271,7 +271,7 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
             leaveFrom="transform opacity-100 scale-100"
             leaveTo="transform opacity-0 scale-95"
           >
-            <Menu.Items className="absolute left-0 mt-2 w-24 bg-black border border-gray-700 rounded-md shadow-lg z-[100]">
+            <Menu.Items className="absolute left-0 mt-2 w-24 bg-black border border-gray-700 rounded-md shadow-lg z-[200]">
               <div className="py-1">
                 {GRANULARITY_OPTIONS.map((option) => (
                   <Menu.Item key={option.value}>
@@ -373,7 +373,7 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
             leaveFrom="transform opacity-100 scale-100"
             leaveTo="transform opacity-0 scale-95"
           >
-            <Menu.Items className="absolute left-0 mt-2 min-w-[280px] bg-black border border-gray-700 rounded-md shadow-lg z-[100] max-h-96 overflow-y-auto">
+            <Menu.Items className="absolute left-0 mt-2 min-w-[280px] bg-black border border-gray-700 rounded-md shadow-lg z-[200] max-h-96 overflow-y-auto">
               {indicatorsError ? (
                 <div className="p-3 text-red-400 text-xs">
                   Error loading indicators: {indicatorsError}

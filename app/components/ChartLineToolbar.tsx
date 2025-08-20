@@ -205,7 +205,7 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
               leaveFrom="opacity-100 translate-y-0"
               leaveTo="opacity-0 translate-y-1"
             >
-              <Popover.Panel className="absolute left-0 mt-2 w-56 bg-gray-800 border border-gray-700 rounded-md shadow-xl">
+              <Popover.Panel className="absolute left-0 mt-2 w-56 bg-gray-800 border border-gray-700 rounded-md shadow-xl z-[200]">
                 <div className="p-3 space-y-3">
                   <div className="text-xs text-gray-300">Pick color</div>
                   <div className="grid grid-cols-7 gap-2">
@@ -250,7 +250,7 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
             leaveFrom="transform opacity-100 scale-100"
             leaveTo="transform opacity-0 scale-95"
           >
-            <Menu.Items className="absolute left-0 mt-2 w-40 bg-gray-800 border border-gray-700 rounded-md shadow-xl">
+            <Menu.Items className="absolute left-0 mt-2 w-40 bg-gray-800 border border-gray-700 rounded-md shadow-xl z-[200]">
               <div className="p-1">
                 <div className="px-2 py-1 text-xs text-gray-400">Line style</div>
                 {(['solid', 'dashed', 'dotted'] as LineStyle[]).map((s) => (
@@ -294,7 +294,7 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
             leaveFrom="transform opacity-100 scale-100"
             leaveTo="transform opacity-0 scale-95"
           >
-            <Menu.Items className="absolute left-0 mt-2 w-32 bg-gray-800 border border-gray-700 rounded-md shadow-xl">
+            <Menu.Items className="absolute left-0 mt-2 w-32 bg-gray-800 border border-gray-700 rounded-md shadow-xl z-[200]">
               <div className="p-1">
                 <div className="px-2 py-1 text-xs text-gray-400">Line thickness</div>
                 {[1, 2, 3, 4].map((t) => (
@@ -337,7 +337,7 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
             leaveFrom="transform opacity-100 scale-100"
             leaveTo="transform opacity-0 scale-95"
           >
-            <Menu.Items className="absolute left-0 mt-2 w-40 bg-gray-800 border border-gray-700 rounded-md shadow-xl">
+            <Menu.Items className="absolute left-0 mt-2 w-40 bg-gray-800 border border-gray-700 rounded-md shadow-xl z-[200]">
               <div className="p-1">
                 <div className="px-2 py-1 text-xs text-gray-400">Extend line</div>
                 <Menu.Item>
