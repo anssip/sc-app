@@ -71,7 +71,8 @@ export const ChartApp: React.FC<ChartAppProps> = ({
     isLoading: settingsLoading,
   } = useUserSettings();
   const { user } = useAuth();
-  const { status: subscriptionStatus, isLoading: subscriptionLoading } = useSubscription();
+  const { status: subscriptionStatus, isLoading: subscriptionLoading } =
+    useSubscription();
   const [currentLayout, setCurrentLayout] = useState<PanelLayout | null>(
     initialLayout || null
   );
@@ -123,8 +124,13 @@ export const ChartApp: React.FC<ChartAppProps> = ({
           try {
             // Load all charts referenced in the layout
             const charts = new Map<string, ChartConfig>();
-            await loadChartsForLayout(activeLayout.layout, charts, repository, activeLayout.id);
-            
+            await loadChartsForLayout(
+              activeLayout.layout,
+              charts,
+              repository,
+              activeLayout.id
+            );
+
             const panelLayout = convertToChartPanelLayout(
               activeLayout.layout,
               charts
@@ -187,17 +193,17 @@ export const ChartApp: React.FC<ChartAppProps> = ({
         layout: repositoryLayout,
       });
     } catch (error) {
-      console.error('Auto-save failed:', error);
+      console.error("Auto-save failed:", error);
     }
   }, [currentLayout, currentLayoutId, repository, updateLayout]);
 
   // Handle layout changes from ChartPanel with auto-save
   const handleLayoutChange = useCallback(
     (layout: PanelLayout, changeType: LayoutChangeType = "unknown") => {
-      console.log('ChartApp: handleLayoutChange called', {
+      console.log("ChartApp: handleLayoutChange called", {
         changeType,
         currentLayoutId,
-        hasLayout: !!layout
+        hasLayout: !!layout,
       });
 
       setCurrentLayout(layout);
@@ -205,20 +211,26 @@ export const ChartApp: React.FC<ChartAppProps> = ({
       // Clear existing timeout
       if (autoSaveTimeoutRef.current) {
         clearTimeout(autoSaveTimeoutRef.current);
-        console.log('ChartApp: Cleared existing auto-save timeout');
+        console.log("ChartApp: Cleared existing auto-save timeout");
       }
 
       // Only auto-save for structural changes (panel resizes, splits)
       // Chart data changes are handled by ChartContainer
       if (currentLayoutId && changeType === "structure") {
-        console.log('ChartApp: Setting auto-save timeout for structural change');
+        console.log(
+          "ChartApp: Setting auto-save timeout for structural change"
+        );
         autoSaveTimeoutRef.current = setTimeout(() => {
-          console.log('ChartApp: Auto-save timeout triggered');
+          console.log("ChartApp: Auto-save timeout triggered");
           autoSaveLayout();
         }, 1000); // Auto-save 1 second after resize stops
       } else {
-        console.log('ChartApp: Auto-save not triggered', {
-          reason: !currentLayoutId ? 'No currentLayoutId' : changeType !== 'structure' ? 'Not structure change' : 'Other'
+        console.log("ChartApp: Auto-save not triggered", {
+          reason: !currentLayoutId
+            ? "No currentLayoutId"
+            : changeType !== "structure"
+            ? "Not structure change"
+            : "Other",
         });
       }
     },
@@ -256,9 +268,7 @@ export const ChartApp: React.FC<ChartAppProps> = ({
       <div className={`flex items-center justify-center h-full ${className}`}>
         <div className="flex items-center gap-2">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-          <span className="text-gray-600 dark:text-gray-400">
-            Loading chart application...
-          </span>
+          <span className="text-gray-600 dark:text-gray-400">Loading...</span>
         </div>
       </div>
     );
@@ -313,10 +323,15 @@ export const ChartApp: React.FC<ChartAppProps> = ({
 
   // Calculate if trial has expired
   const { trialEndsAt } = useSubscription();
-  const isTrialExpired = subscriptionStatus === 'trialing' && trialEndsAt && new Date(trialEndsAt) <= new Date();
-  
+  const isTrialExpired =
+    subscriptionStatus === "trialing" &&
+    trialEndsAt &&
+    new Date(trialEndsAt) <= new Date();
+
   // User has access if they have an active subscription or are in a valid trial period
-  const hasActiveSubscription = subscriptionStatus === 'active' || (subscriptionStatus === 'trialing' && !isTrialExpired);
+  const hasActiveSubscription =
+    subscriptionStatus === "active" ||
+    (subscriptionStatus === "trialing" && !isTrialExpired);
 
   return (
     <div className={`flex flex-col h-full bg-black ${className}`}>
@@ -326,25 +341,36 @@ export const ChartApp: React.FC<ChartAppProps> = ({
           {/* Left side - Logo, AccountMenu, Status */}
           <div className="flex items-center gap-4">
             {/* Logo */}
-            <img 
-              src="/full-logo-accent-1.svg" 
-              alt="Spot Canvas" 
+            <img
+              src="/full-logo-accent-1.svg"
+              alt="Spot Canvas"
               className="h-6 w-auto"
             />
-            
+
             {/* Account Menu */}
             <AccountMenu />
-            
+
             {/* Status indicator light */}
             {repository && (
-              <div className="flex items-center gap-2" title={repository.isOnline() ? "Repository Online" : "Repository Offline"}>
-                <div className={`h-2 w-2 rounded-full ${repository.isOnline() ? 'bg-green-500' : 'bg-red-500'}`}></div>
+              <div
+                className="flex items-center gap-2"
+                title={
+                  repository.isOnline()
+                    ? "Repository Online"
+                    : "Repository Offline"
+                }
+              >
+                <div
+                  className={`h-2 w-2 rounded-full ${
+                    repository.isOnline() ? "bg-green-500" : "bg-red-500"
+                  }`}
+                ></div>
                 <span className="text-xs text-gray-400 hidden sm:inline">
                   {repository.isOnline() ? "Online" : "Offline"}
                 </span>
               </div>
             )}
-            
+
             {migrationStatus && (
               <div className="text-xs text-blue-400 bg-blue-900/20 px-2 py-1 rounded border border-blue-800">
                 {migrationStatus}
@@ -370,32 +396,33 @@ export const ChartApp: React.FC<ChartAppProps> = ({
           onLayoutChange={handleLayoutChange}
           className="h-full"
         />
-        
+
         {/* Subscription Overlay - dims charts and blocks interaction when no subscription */}
         {!subscriptionLoading && !hasActiveSubscription && (
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="text-center p-8 bg-gray-900/90 rounded-lg border border-gray-700 max-w-md">
-              <svg 
+              <svg
                 className="w-16 h-16 mx-auto mb-4 text-yellow-500"
-                fill="none" 
-                stroke="currentColor" 
+                fill="none"
+                stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={2} 
-                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" 
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
                 />
               </svg>
               <h2 className="text-xl font-semibold text-white mb-3">
                 Subscription Required
               </h2>
               <p className="text-gray-400 mb-6">
-                To access live charts and trading features, please subscribe to one of our plans.
+                To access live charts and trading features, please subscribe to
+                one of our plans.
               </p>
-              <a 
-                href="/pricing" 
+              <a
+                href="/pricing"
                 className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
               >
                 View Pricing Plans

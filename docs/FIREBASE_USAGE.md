@@ -123,7 +123,7 @@ export const ChartComponent: React.FC<ChartComponentProps> = ({ firebaseConfig }
     };
   }, [firebaseConfig]);
 
-  if (loading) return <div>Loading chart...</div>;
+  if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
 
   return (
@@ -178,7 +178,7 @@ try {
 
 ### 3. "Failed to initialize Firestore"
 **Cause**: Firebase project doesn't have Firestore enabled or network issues
-**Solution**: 
+**Solution**:
 - Enable Firestore in your Firebase console
 - Check network connectivity
 - Verify Firebase project ID is correct
@@ -192,10 +192,10 @@ try {
 The API now exports proper types for Firebase configuration:
 
 ```typescript
-import { 
-  initChartWithApi, 
+import {
+  initChartWithApi,
   FirebaseConfigOrApp,
-  ChartApi 
+  ChartApi
 } from '@anssipiirainen/sc-charts';
 
 // Type-safe Firebase config
@@ -209,7 +209,7 @@ const config: FirebaseConfigOrApp = {
 };
 
 const { app, api }: { app: App; api: ChartApi } = await initChartWithApi(
-  chartContainer, 
+  chartContainer,
   config
 );
 ```
