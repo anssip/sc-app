@@ -1,9 +1,9 @@
 import type { MetaFunction } from "@remix-run/node";
 import { useNavigate, useSearchParams } from "@remix-run/react";
 import { useState, useEffect } from "react";
-import { signUp, getErrorMessage } from "~/lib/auth";
+import { getAuth } from "firebase/auth";
+import { signUp, signInWithGoogle, getErrorMessage, saveUserPreferences } from "~/lib/auth";
 import { useAuth } from "~/lib/auth-context";
-import GoogleSignInButton from "~/components/GoogleSignInButton";
 import Button from "~/components/Button";
 import Navigation from "~/components/Navigation";
 
@@ -22,6 +22,8 @@ export default function SignUp() {
     email: "",
     password: "",
     confirmPassword: "",
+    marketingConsent: false,
+    termsAccepted: false,
   });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -30,18 +32,26 @@ export default function SignUp() {
   const fromPricing = searchParams.get('from') === 'pricing';
   const redirectTo = searchParams.get('redirect') || '/';
 
-  // Redirect if user is signed in
+  // Don't auto-redirect on signup - we want to show verify-email page
+  // Only redirect if user is already signed in when they visit this page
   useEffect(() => {
-    if (user) {
-      console.log(`Redirecting to ${redirectTo} - user signed up`);
+    if (user && !isSubmitting) {
+      // User is already signed in, redirect them away from signup
+      console.log(`User already signed in, redirecting to ${redirectTo}`);
       navigate(redirectTo);
     }
-  }, [user, navigate, redirectTo]);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
+
+    if (!formData.termsAccepted) {
+      setError("Please accept the Terms of Service and Privacy Policy to continue.");
+      setIsSubmitting(false);
+      return;
+    }
 
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match.");
@@ -58,23 +68,67 @@ export default function SignUp() {
     console.log("Client-side sign-up attempt with email:", formData.email);
 
     try {
-      await signUp({ email: formData.email, password: formData.password });
+      const newUser = await signUp({ email: formData.email, password: formData.password });
       console.log("Client-side sign-up successful");
-      // Navigation will happen automatically via useEffect when user state changes
+      
+      // Store user preferences in Firestore
+      try {
+        await saveUserPreferences(newUser.uid, formData.email, formData.marketingConsent);
+        console.log("User preferences saved");
+      } catch (prefError) {
+        console.error("Failed to save user preferences:", prefError);
+        // Continue anyway - don't block the user
+      }
+      
+      // Redirect to email verification page
+      navigate(`/verify-email?email=${encodeURIComponent(formData.email)}&marketing=${formData.marketingConsent}`);
     } catch (signUpError) {
       console.error("Client-side sign-up failed:", signUpError);
       setError(getErrorMessage(signUpError));
-    } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: type === 'checkbox' ? checked : value,
     }));
+  };
+
+  const handleGoogleSignIn = async () => {
+    // Check terms acceptance first
+    if (!formData.termsAccepted) {
+      setError("Please accept the Terms of Service and Privacy Policy to continue.");
+      return;
+    }
+    
+    // Clear any previous errors
+    setError(null);
+    
+    try {
+      await signInWithGoogle();
+      
+      // Save user preferences after successful Google sign-in
+      const auth = getAuth();
+      const user = auth.currentUser;
+      if (user) {
+        try {
+          await saveUserPreferences(user.uid, user.email || '', formData.marketingConsent);
+          console.log("User preferences saved after Google sign-in");
+        } catch (error) {
+          console.error("Failed to save user preferences:", error);
+        }
+        // Redirect to verify-email page (Google users may already be verified)
+        navigate(`/verify-email?email=${encodeURIComponent(user.email || '')}&marketing=${formData.marketingConsent}`);
+      }
+    } catch (error: any) {
+      const errorMessage = error.code === 'auth/popup-closed-by-user' 
+        ? 'Sign-in cancelled' 
+        : error.message || 'Failed to sign in with Google';
+      setError(errorMessage);
+    }
   };
 
   return (
@@ -124,7 +178,32 @@ export default function SignUp() {
           )}
 
           <div>
-            <GoogleSignInButton onError={setError} disabled={isSubmitting} />
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              disabled={isSubmitting}
+              className="w-full flex justify-center items-center px-4 py-2 border border-gray-500 rounded-md text-sm font-medium text-white bg-transparent hover:bg-gray-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-primary-dark focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                <path
+                  fill="#4285f4"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                />
+                <path
+                  fill="#34a853"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                />
+                <path
+                  fill="#fbbc05"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                />
+                <path
+                  fill="#ea4335"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                />
+              </svg>
+              {isSubmitting ? "Signing in..." : "Continue with Google"}
+            </button>
           </div>
 
           <div className="relative">
@@ -180,6 +259,48 @@ export default function SignUp() {
                 placeholder="Confirm your password"
                 disabled={isSubmitting}
               />
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-start">
+              <input
+                id="marketingConsent"
+                name="marketingConsent"
+                type="checkbox"
+                checked={formData.marketingConsent}
+                onChange={handleInputChange}
+                className="mt-1 h-4 w-4 text-accent-1 border-gray-500 rounded focus:ring-accent-1"
+                disabled={isSubmitting}
+              />
+              <label htmlFor="marketingConsent" className="ml-2 block text-sm text-gray-300">
+                I'd like to receive helpful tips, product updates, and exclusive offers
+                <span className="block text-xs text-gray-400 mt-1">You can unsubscribe at any time</span>
+              </label>
+            </div>
+            
+            <div className="flex items-start">
+              <input
+                id="termsAccepted"
+                name="termsAccepted"
+                type="checkbox"
+                checked={formData.termsAccepted}
+                onChange={handleInputChange}
+                className="mt-1 h-4 w-4 text-accent-1 border-gray-500 rounded focus:ring-accent-1"
+                disabled={isSubmitting}
+                required
+              />
+              <label htmlFor="termsAccepted" className="ml-2 block text-sm text-gray-300">
+                I agree to the{' '}
+                <a href="/terms" target="_blank" className="text-accent-1 hover:text-accent-2 underline">
+                  Terms of Service
+                </a>
+                {' '}and{' '}
+                <a href="/privacy" target="_blank" className="text-accent-1 hover:text-accent-2 underline">
+                  Privacy Policy
+                </a>
+                <span className="text-red-500 ml-1">*</span>
+              </label>
             </div>
           </div>
 

@@ -1,10 +1,11 @@
 import type { MetaFunction } from "@remix-run/node";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "@remix-run/react";
 import { ExternalLink, Loader2 } from "lucide-react";
 import { getAuth } from "firebase/auth";
 import ProtectedRoute from "~/components/ProtectedRoute";
 import { useSubscription } from "~/contexts/SubscriptionContext";
+import { useAuth } from "~/lib/auth-context";
 import Button from "~/components/Button";
 import Navigation from "~/components/Navigation";
 
@@ -17,13 +18,28 @@ export const meta: MetaFunction = () => {
 
 function BillingContent() {
   const navigate = useNavigate();
+  const { user, emailVerified } = useAuth();
   const { status, plan, trialEndsAt, subscriptionId, refreshSubscription } =
     useSubscription();
   const [isLoading, setIsLoading] = useState(false);
   const [isActivating, setIsActivating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Check email verification status
+  useEffect(() => {
+    if (user && !emailVerified) {
+      // User is not verified, show warning or redirect
+      console.log("User email not verified, billing features restricted");
+    }
+  }, [user, emailVerified]);
+
   const handleActivateSubscription = async () => {
+    // Check email verification first
+    if (!emailVerified) {
+      setError("Please verify your email address before activating your subscription");
+      return;
+    }
+
     if (!subscriptionId) {
       setError("No subscription ID found");
       return;
@@ -85,6 +101,12 @@ function BillingContent() {
   };
 
   const handleManageBilling = async () => {
+    // Check email verification first
+    if (!emailVerified) {
+      setError("Please verify your email address before managing billing");
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -140,6 +162,33 @@ function BillingContent() {
         <h1 className="text-4xl font-bold mb-8 text-white">
           Billing & Subscription
         </h1>
+
+        {/* Email Verification Warning */}
+        {user && !emailVerified && (
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-8">
+            <div className="flex items-start">
+              <svg className="h-5 w-5 text-yellow-500 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <div>
+                <p className="text-yellow-500 font-medium">Email verification required</p>
+                <p className="text-yellow-500/80 text-sm mt-1">
+                  Please verify your email address before managing billing. Check your inbox for the verification link.
+                </p>
+                <Button
+                  asLink
+                  to="/verify-email"
+                  variant="secondary"
+                  className="mt-3"
+                  size="sm"
+                >
+                  Go to Verification
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Current Plan */}
         <div className="bg-black/60 backdrop-blur-sm border border-gray-500/30 rounded-2xl p-8 mb-8">

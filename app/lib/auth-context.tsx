@@ -1,15 +1,21 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, onAuthStateChanged } from 'firebase/auth';
-import { auth } from './firebase';
+import { User, onAuthStateChanged, reload } from 'firebase/auth';
+import { auth, db } from './firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { updateEmailVerificationStatus } from './auth';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  emailVerified: boolean;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
-  loading: false, // Default to false for SSR
+  loading: true, // Default to true - we're loading until proven otherwise
+  emailVerified: false,
+  refreshUser: async () => {},
 });
 
 export const useAuth = () => {
@@ -26,34 +32,103 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  // Start with false for SSR, will become true only on client after mount
-  const [loading, setLoading] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
+  // Start with true - we're loading until we know auth state
+  // This prevents premature redirects on routes that check for user
+  const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
 
+  // Function to refresh user data and check email verification
+  const refreshUser = async () => {
+    if (!user) return;
+    
+    try {
+      await reload(user);
+      setEmailVerified(user.emailVerified);
+      
+      // Update Firestore if verification status changed
+      if (user.emailVerified) {
+        await updateEmailVerificationStatus(user.uid, true);
+      }
+      
+      console.log("User refreshed, emailVerified:", user.emailVerified);
+    } catch (error) {
+      console.error("Failed to refresh user:", error);
+    }
+  };
+
   useEffect(() => {
+    // Only run on client side
+    if (typeof window === 'undefined') {
+      return;
+    }
+    
     // Component has mounted, we're on the client
     setMounted(true);
-    setLoading(true); // Now we can show loading while checking auth
     
     console.log("Setting up auth state listener...");
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       console.log("Auth state changed:", user ? `User: ${user.email}` : "No user");
       setUser(user);
+      
+      if (user) {
+        setEmailVerified(user.emailVerified);
+        
+        // Set up a periodic check for email verification
+        if (!user.emailVerified) {
+          const intervalId = setInterval(async () => {
+            await reload(user);
+            if (user.emailVerified) {
+              setEmailVerified(true);
+              await updateEmailVerificationStatus(user.uid, true);
+              clearInterval(intervalId);
+              console.log("Email verified!");
+            }
+          }, 30000); // Check every 30 seconds
+          
+          // Clean up interval on unmount
+          return () => clearInterval(intervalId);
+        }
+      } else {
+        setEmailVerified(false);
+      }
+      
       setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
+  // Listen to Firestore user document for real-time updates
+  useEffect(() => {
+    if (!user) return;
+
+    const userDocRef = doc(db, 'users', user.uid);
+    const unsubscribe = onSnapshot(userDocRef, (docSnapshot) => {
+      if (docSnapshot.exists()) {
+        const userData = docSnapshot.data();
+        console.log("User document updated:", userData);
+        // You can use this data for additional user preferences
+      }
+    }, (error) => {
+      console.error("Error listening to user document:", error);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
   const value = {
     user,
     loading,
+    emailVerified,
+    refreshUser,
   };
 
   // Debug logging
   console.log("AuthProvider render:", { 
     user: user ? user.email : null, 
     loading,
+    emailVerified,
     mounted 
   });
 
