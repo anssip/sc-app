@@ -53,7 +53,28 @@ export default function Welcome() {
           console.log("Email is verified, updating Firestore and tracking");
           const { updateEmailVerificationStatus } = await import("~/lib/auth");
           await updateEmailVerificationStatus(user.uid, true);
-          await customerIO.trackEmailVerified(user.uid, user.email || "");
+          
+          // Check if user has marketing consent from Firestore
+          const { doc, getDoc } = await import("firebase/firestore");
+          const { db } = await import("~/lib/firebase");
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          const userData = userDoc.data();
+          
+          if (userData?.marketingConsent) {
+            // User gave consent - update their verification status in Customer.io
+            await customerIO.identify({
+              userId: user.uid,
+              email: user.email || "",
+              emailVerified: true,
+              verifiedAt: Math.floor(Date.now() / 1000),
+            });
+            await customerIO.trackEmailVerified(user.uid, user.email || "");
+            console.log("Updated verification status in Customer.io");
+          } else {
+            // User didn't give marketing consent initially but is now verified
+            // We can track them for transactional purposes only
+            console.log("User verified but no marketing consent - not sending to Customer.io");
+          }
         } catch (error) {
           console.error("Failed to update verification status:", error);
         }
