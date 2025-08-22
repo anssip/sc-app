@@ -69,17 +69,7 @@ export default function Footer({ variant = "default" }: FooterProps) {
             </h3>
             <nav className="space-y-2">
               <Link
-                to="/pricing"
-                className={`block ${
-                  isDark
-                    ? "text-gray-300 hover:text-white"
-                    : "text-black/80 hover:text-black"
-                } font-medium transition-colors text-sm`}
-              >
-                Plans
-              </Link>
-              <a
-                href="#features"
+                to="/features"
                 className={`block ${
                   isDark
                     ? "text-gray-300 hover:text-white"
@@ -87,7 +77,27 @@ export default function Footer({ variant = "default" }: FooterProps) {
                 } font-medium transition-colors text-sm`}
               >
                 Features
-              </a>
+              </Link>
+              <Link
+                to="/pricing"
+                className={`block ${
+                  isDark
+                    ? "text-gray-300 hover:text-white"
+                    : "text-black/80 hover:text-black"
+                } font-medium transition-colors text-sm`}
+              >
+                Pricing
+              </Link>
+              <Link
+                to="/blog"
+                className={`block ${
+                  isDark
+                    ? "text-gray-300 hover:text-white"
+                    : "text-black/80 hover:text-black"
+                } font-medium transition-colors text-sm`}
+              >
+                Blog
+              </Link>
               <a
                 href="mailto:anssi@spotcanvas.com"
                 className={`block ${
@@ -98,16 +108,17 @@ export default function Footer({ variant = "default" }: FooterProps) {
               >
                 Contact Us
               </a>
-              <a
-                href="/waitlist"
+
+              <Link
+                to="/terms"
                 className={`block ${
                   isDark
                     ? "text-gray-300 hover:text-white"
                     : "text-black/80 hover:text-black"
                 } font-medium transition-colors text-sm`}
               >
-                Join Waitlist
-              </a>
+                Terms of Service
+              </Link>
             </nav>
           </div>
 
