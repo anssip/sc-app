@@ -219,3 +219,36 @@ body {
   font-family: var(--font-secondary);
   min-height: 100vh;
 }
+
+/* Dynamic viewport height utilities for mobile Safari */
+@layer utilities {
+  .h-screen-dvh {
+    height: 100vh;
+  }
+  
+  @supports (height: 100dvh) {
+    .h-screen-dvh {
+      height: 100dvh;
+    }
+  }
+  
+  .min-h-screen-dvh {
+    min-height: 100vh;
+  }
+  
+  @supports (min-height: 100dvh) {
+    .min-h-screen-dvh {
+      min-height: 100dvh;
+    }
+  }
+  
+  .h-full-dvh {
+    height: 100vh;
+  }
+  
+  @supports (height: 100dvh) {
+    .h-full-dvh {
+      height: 100dvh;
+    }
+  }
+}

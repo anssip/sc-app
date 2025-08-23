@@ -30,7 +30,7 @@ function ChartContent() {
   
   return (
     <SubscriptionLoader>
-      <div className="h-screen flex flex-col bg-primary-dark">
+      <div className="h-screen-dvh flex flex-col bg-primary-dark">
         <div className="h-full flex flex-col">
           <div className="px-6 pt-4">
             <SubscriptionNotification />
@@ -46,7 +46,7 @@ export default function ChartRoute() {
   return (
     <ProtectedRoute
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-primary-dark">
+        <div className="min-h-screen-dvh flex items-center justify-center bg-primary-dark">
           <div className="max-w-md w-full">
             <Login
               title="Authentication Required"
