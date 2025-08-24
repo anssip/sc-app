@@ -269,6 +269,17 @@ export const ChartApp: React.FC<ChartAppProps> = ({
     return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
   }, []);
 
+  // Detect if running as PWA (standalone mode)
+  const isPWA = useCallback(() => {
+    return window.matchMedia('(display-mode: standalone)').matches || 
+           (window.navigator as any).standalone === true;
+  }, []);
+
+  // Detect if iPhone specifically (not iPad)
+  const isIPhone = useCallback(() => {
+    return /iPhone/.test(navigator.userAgent) && !(window as any).MSStream;
+  }, []);
+
   // Handle fullscreen toggle
   const toggleFullscreen = useCallback(() => {
     if (isIOS()) {
@@ -281,6 +292,12 @@ export const ChartApp: React.FC<ChartAppProps> = ({
         const header = document.querySelector('.flex-shrink-0.px-4.py-2.bg-gray-900');
         if (header) {
           (header as HTMLElement).style.display = 'none';
+        }
+        
+        // Also hide the PWA spacer if present
+        const pwaSpcer = document.querySelector('.flex-shrink-0.h-11.bg-gray-900');
+        if (pwaSpcer) {
+          (pwaSpcer as HTMLElement).style.display = 'none';
         }
         
         // Scroll to hide address bar
@@ -296,6 +313,12 @@ export const ChartApp: React.FC<ChartAppProps> = ({
         const header = document.querySelector('.flex-shrink-0.px-4.py-2.bg-gray-900');
         if (header) {
           (header as HTMLElement).style.display = '';
+        }
+        
+        // Also show the PWA spacer if it should be present
+        const pwaSpcer = document.querySelector('.flex-shrink-0.h-11.bg-gray-900');
+        if (pwaSpcer) {
+          (pwaSpcer as HTMLElement).style.display = '';
         }
         
         // Scroll back to top
@@ -430,6 +453,11 @@ export const ChartApp: React.FC<ChartAppProps> = ({
 
   return (
     <div className={`flex flex-col h-full bg-black ${className}`}>
+      {/* PWA Header Spacer for iPhone - pushes content below the notch */}
+      {isIPhone() && isPWA() && !isFullscreen && (
+        <div className="flex-shrink-0 h-11 bg-gray-900" />
+      )}
+      
       {/* Compact Header */}
       <div className="flex-shrink-0 px-4 py-2 bg-gray-900 border-b border-gray-800">
         <div className="flex items-center justify-between flex-wrap gap-2">
