@@ -161,7 +161,7 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
   return (
     <div 
       ref={toolbarRef}
-      className="absolute z-50 pointer-events-none"
+      className="absolute z-[60] pointer-events-none"
       style={{
         left: `${position.x}px`,
         top: `${position.y}px`,

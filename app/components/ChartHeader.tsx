@@ -25,7 +25,7 @@ export const ChartHeader: React.FC<ChartHeaderProps> = ({
   onOpenSymbolManager,
 }) => {
   return (
-    <div className="flex items-center justify-between p-2 bg-gray-900 border-b border-gray-800 relative z-10 overflow-visible">
+    <div className="flex items-center justify-end px-4 py-2 bg-gray-900 border-b border-gray-800 relative z-10 overflow-visible">
       <ChartToolbar
         chartId={chartId}
         chartApiRef={chartApiRef}

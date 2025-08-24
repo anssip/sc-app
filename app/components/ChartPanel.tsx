@@ -235,7 +235,16 @@ export const ChartPanel: React.FC<ChartPanelProps> = ({
   );
 
   return (
-    <div className={`h-full w-full ${className}`}>
+    <div className={`h-full w-full relative ${className}`}>
+      {/* Touch area for vertical scrolling - only visible on mobile devices */}
+      <div
+        className="absolute left-0 top-0 bottom-0 z-20 bg-gray-800/20 backdrop-blur-sm md:hidden"
+        style={{
+          width: '44px', // Finger-width touch area
+          touchAction: 'pan-y', // Allow vertical scrolling
+          overscrollBehavior: 'none'
+        }}
+      />
       <PanelGroup
         direction={layout.direction || "horizontal"}
         onLayout={handleLayoutChange}
