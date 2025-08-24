@@ -11,9 +11,16 @@ export const meta: MetaFunction = () => {
   return [
     { title: "Chart - Spot Canvas App" },
     { name: "description", content: "Financial chart view" },
-    { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" },
+    {
+      name: "viewport",
+      content:
+        "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover",
+    },
     { name: "apple-mobile-web-app-capable", content: "yes" },
-    { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+    {
+      name: "apple-mobile-web-app-status-bar-style",
+      content: "black-translucent",
+    },
     { name: "mobile-web-app-capable", content: "yes" },
     { name: "theme-color", content: "#0F1117" },
   ];
@@ -27,16 +34,26 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 function ChartContent() {
   const data = useLoaderData<typeof loader>();
-  
+
   return (
     <SubscriptionLoader>
-      <div className="h-screen-dvh flex flex-col bg-primary-dark">
-        <div className="h-full flex flex-col">
+      <div
+        className="flex flex-col bg-primary-dark"
+        style={{ minHeight: "calc(100vh + 1px)" }}
+      >
+        <div className="flex flex-col" style={{ height: "100vh" }}>
           <div className="px-6 pt-4">
             <SubscriptionNotification />
           </div>
           <ChartApp className="flex-1" />
         </div>
+
+        {/* Invisible spacer to enable scroll for Safari address bar hiding */}
+        <div
+          style={{ height: "1px" }}
+          className="bg-transparent pointer-events-none"
+          aria-hidden="true"
+        />
       </div>
     </SubscriptionLoader>
   );
