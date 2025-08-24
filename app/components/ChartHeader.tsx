@@ -11,6 +11,8 @@ interface ChartHeaderProps {
   onSplitHorizontal?: () => void;
   onSplitVertical?: () => void;
   onOpenSymbolManager?: () => void;
+  onToggleFullscreen?: () => void;
+  isFullscreen?: boolean;
 }
 
 export const ChartHeader: React.FC<ChartHeaderProps> = ({
@@ -23,6 +25,8 @@ export const ChartHeader: React.FC<ChartHeaderProps> = ({
   onSplitHorizontal,
   onSplitVertical,
   onOpenSymbolManager,
+  onToggleFullscreen,
+  isFullscreen,
 }) => {
   return (
     <div className="flex items-center justify-end px-4 py-2 bg-gray-900 border-b border-gray-800 relative z-10 overflow-visible">
@@ -36,6 +40,8 @@ export const ChartHeader: React.FC<ChartHeaderProps> = ({
         onSplitHorizontal={onSplitHorizontal}
         onSplitVertical={onSplitVertical}
         onOpenSymbolManager={onOpenSymbolManager}
+        onToggleFullscreen={onToggleFullscreen}
+        isFullscreen={isFullscreen}
       />
     </div>
   );

@@ -235,6 +235,8 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
   const [trendLinesLoaded, setTrendLinesLoaded] = useState(false);
   const [selectedTrendLine, setSelectedTrendLine] = useState<TrendLine | null>(null);
   const [selectedTrendLineId, setSelectedTrendLineId] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<SCChartRef>(null);
   const { settings } = useChartSettings(config.id);
   const { user } = useAuth();
@@ -355,6 +357,44 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
     console.log("Add chart - not yet implemented");
   };
 
+  // Handle fullscreen toggle for individual chart
+  const handleToggleFullscreen = useCallback(() => {
+    if (!isFullscreen) {
+      // Enter fullscreen
+      setIsFullscreen(true);
+      
+      // Add fullscreen styles to container
+      if (containerRef.current) {
+        containerRef.current.style.position = 'fixed';
+        containerRef.current.style.top = '0';
+        containerRef.current.style.left = '0';
+        containerRef.current.style.right = '0';
+        containerRef.current.style.bottom = '0';
+        containerRef.current.style.zIndex = '9999';
+        containerRef.current.style.width = '100vw';
+        containerRef.current.style.height = '100vh';
+      }
+    } else {
+      // Exit fullscreen
+      setIsFullscreen(false);
+      
+      // Remove fullscreen styles
+      if (containerRef.current) {
+        containerRef.current.style.position = '';
+        containerRef.current.style.top = '';
+        containerRef.current.style.left = '';
+        containerRef.current.style.right = '';
+        containerRef.current.style.bottom = '';
+        containerRef.current.style.zIndex = '';
+        containerRef.current.style.width = '';
+        containerRef.current.style.height = '';
+      }
+    }
+    
+    // Trigger resize event for chart to recalculate
+    window.dispatchEvent(new Event('resize'));
+  }, [isFullscreen]);
+
   // Handler for updating trend line settings
   const handleUpdateTrendLineSettings = useCallback((settings: Partial<any>) => {
     if (!selectedTrendLineId || !chartRef.current?.api) return;
@@ -394,7 +434,10 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
   }, [selectedTrendLineId]);
 
   return (
-    <div className="h-full flex flex-col bg-gray-900 border border-gray-800 rounded-lg overflow-hidden relative">
+    <div 
+      ref={containerRef}
+      className="h-full flex flex-col bg-gray-900 border border-gray-800 rounded-lg overflow-hidden relative"
+    >
       <ChartHeader
         chartId={config.id}
         chartApiRef={chartRef}
@@ -404,6 +447,8 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
         onSplitHorizontal={handleSplitHorizontal}
         onSplitVertical={handleSplitVertical}
         onOpenSymbolManager={() => setIsSymbolManagerOpen(true)}
+        onToggleFullscreen={handleToggleFullscreen}
+        isFullscreen={isFullscreen}
         layoutId={layoutId}
       />
 

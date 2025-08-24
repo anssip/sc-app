@@ -39,7 +39,9 @@ function ChartContent() {
     <SubscriptionLoader>
       <div
         className="flex flex-col bg-primary-dark"
-        style={{ minHeight: "calc(100vh + 1px)" }}
+        style={{ 
+          minHeight: "calc(100vh + 1px)",
+        }}
       >
         <div className="flex flex-col" style={{ height: "100vh" }}>
           <div className="px-6 pt-4">
