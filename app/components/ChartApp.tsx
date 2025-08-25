@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ChartPanel } from "./ChartPanel";
 import { LayoutSelector } from "./LayoutSelector";
 import AccountMenu from "./AccountMenu";
+import PWAInstallBanner from "./PWAInstallBanner";
 import {
   useRepository,
   useLayouts,
@@ -79,7 +80,6 @@ export const ChartApp: React.FC<ChartAppProps> = ({
   const [currentLayoutId, setCurrentLayoutId] = useState<string | null>(null);
   const [migrationStatus, setMigrationStatus] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastChangeTypeRef = useRef<LayoutChangeType>("unknown");
   const isChartDataUpdateRef = useRef(false);
@@ -280,105 +280,10 @@ export const ChartApp: React.FC<ChartAppProps> = ({
     return /iPhone/.test(navigator.userAgent) && !(window as any).MSStream;
   }, []);
 
-  // Handle fullscreen toggle
-  const toggleFullscreen = useCallback(() => {
-    if (isIOS()) {
-      // Simplified iOS approach
-      if (!isFullscreen) {
-        // Enter "fullscreen" mode on iOS
-        setIsFullscreen(true);
-        
-        // Hide the header
-        const header = document.querySelector('.flex-shrink-0.px-4.py-2.bg-gray-900');
-        if (header) {
-          (header as HTMLElement).style.display = 'none';
-        }
-        
-        // Also hide the PWA spacer if present
-        const pwaSpcer = document.querySelector('.flex-shrink-0.h-11.bg-gray-900');
-        if (pwaSpcer) {
-          (pwaSpcer as HTMLElement).style.display = 'none';
-        }
-        
-        // Scroll to hide address bar
-        window.scrollTo(0, 1);
-        
-        // Trigger resize for chart to recalculate
-        window.dispatchEvent(new Event('resize'));
-      } else {
-        // Exit "fullscreen" mode on iOS
-        setIsFullscreen(false);
-        
-        // Show the header again
-        const header = document.querySelector('.flex-shrink-0.px-4.py-2.bg-gray-900');
-        if (header) {
-          (header as HTMLElement).style.display = '';
-        }
-        
-        // Also show the PWA spacer if it should be present
-        const pwaSpcer = document.querySelector('.flex-shrink-0.h-11.bg-gray-900');
-        if (pwaSpcer) {
-          (pwaSpcer as HTMLElement).style.display = '';
-        }
-        
-        // Scroll back to top
-        window.scrollTo(0, 0);
-        
-        // Trigger resize for chart to recalculate
-        window.dispatchEvent(new Event('resize'));
-      }
-    } else {
-      // Standard Fullscreen API for non-iOS devices
-      if (!document.fullscreenElement) {
-        // Request fullscreen
-        const elem = document.documentElement;
-        if (elem.requestFullscreen) {
-          elem.requestFullscreen();
-        } else if ((elem as any).webkitRequestFullscreen) {
-          // Safari/old WebKit
-          (elem as any).webkitRequestFullscreen();
-        } else if ((elem as any).msRequestFullscreen) {
-          // IE11
-          (elem as any).msRequestFullscreen();
-        }
-        setIsFullscreen(true);
-      } else {
-        // Exit fullscreen
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        } else if ((document as any).webkitExitFullscreen) {
-          // Safari/old WebKit
-          (document as any).webkitExitFullscreen();
-        } else if ((document as any).msExitFullscreen) {
-          // IE11
-          (document as any).msExitFullscreen();
-        }
-        setIsFullscreen(false);
-      }
-    }
-  }, [isFullscreen, isIOS]);
-
-  // Listen for fullscreen changes
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
-    document.addEventListener("msfullscreenchange", handleFullscreenChange);
-
-    return () => {
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
-      document.removeEventListener(
-        "webkitfullscreenchange",
-        handleFullscreenChange
-      );
-      document.removeEventListener(
-        "msfullscreenchange",
-        handleFullscreenChange
-      );
-    };
+  // Detect if mobile device
+  const isMobile = useCallback(() => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+           window.innerWidth < 768;
   }, []);
 
   if (repoLoading) {
@@ -454,9 +359,12 @@ export const ChartApp: React.FC<ChartAppProps> = ({
   return (
     <div className={`flex flex-col h-full bg-black ${className}`}>
       {/* PWA Header Spacer for iPhone - pushes content below the notch */}
-      {isIPhone() && isPWA() && !isFullscreen && (
+      {isIPhone() && isPWA() && (
         <div className="flex-shrink-0 h-11 bg-gray-900" />
       )}
+      
+      {/* PWA Install Banner - shows only once for mobile users */}
+      <PWAInstallBanner />
       
       {/* Compact Header */}
       <div className="flex-shrink-0 px-4 py-2 bg-gray-900 border-b border-gray-800">
@@ -507,46 +415,8 @@ export const ChartApp: React.FC<ChartAppProps> = ({
             )}
           </div>
 
-          {/* Right side - Fullscreen toggle and Layout Selector */}
+          {/* Right side - Layout Selector */}
           <div className="flex items-center gap-2">
-            {/* Fullscreen Toggle Button */}
-            <button
-              onClick={toggleFullscreen}
-              className="p-2 text-gray-400 hover:text-white transition-colors"
-              title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-              aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-            >
-              {isFullscreen ? (
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25"
-                  />
-                </svg>
-              ) : (
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
-                  />
-                </svg>
-              )}
-            </button>
-
             {/* Layout Selector */}
             <LayoutSelector
               currentLayout={currentLayout}
@@ -559,36 +429,13 @@ export const ChartApp: React.FC<ChartAppProps> = ({
       </div>
 
       {/* Chart Panel */}
-      <div className="flex-1 relative bg-black">
+      <div className={`flex-1 relative bg-black ${isMobile() ? 'pb-5' : ''}`}>
         <ChartPanel
           layout={currentLayout}
           layoutId={currentLayoutId || undefined}
           onLayoutChange={handleLayoutChange}
           className="h-full"
         />
-        
-        {/* Floating exit button for iOS when in fullscreen */}
-        {isIOS() && isFullscreen && (
-          <button
-            onClick={toggleFullscreen}
-            className="fixed top-4 left-4 z-[100] p-2 bg-gray-800 bg-opacity-90 text-white rounded-lg shadow-lg hover:bg-gray-700"
-            aria-label="Exit fullscreen"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25"
-              />
-            </svg>
-          </button>
-        )}
 
         {/* Subscription Overlay - dims charts and blocks interaction when no subscription */}
         {!subscriptionLoading && !hasActiveSubscription && (

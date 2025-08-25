@@ -357,43 +357,109 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
     console.log("Add chart - not yet implemented");
   };
 
+  // Detect if iOS
+  const isIOS = useCallback(() => {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+  }, []);
+
+  // Detect if running as PWA (standalone mode)
+  const isPWA = useCallback(() => {
+    return window.matchMedia('(display-mode: standalone)').matches || 
+           (window.navigator as any).standalone === true;
+  }, []);
+
+  // Detect if iPhone specifically (not iPad)
+  const isIPhone = useCallback(() => {
+    return /iPhone/.test(navigator.userAgent) && !(window as any).MSStream;
+  }, []);
+
   // Handle fullscreen toggle for individual chart
   const handleToggleFullscreen = useCallback(() => {
-    if (!isFullscreen) {
-      // Enter fullscreen
-      setIsFullscreen(true);
-      
-      // Add fullscreen styles to container
-      if (containerRef.current) {
-        containerRef.current.style.position = 'fixed';
-        containerRef.current.style.top = '0';
-        containerRef.current.style.left = '0';
-        containerRef.current.style.right = '0';
-        containerRef.current.style.bottom = '0';
-        containerRef.current.style.zIndex = '9999';
-        containerRef.current.style.width = '100vw';
-        containerRef.current.style.height = '100vh';
+    if (isIOS()) {
+      // iOS-specific fullscreen handling
+      if (!isFullscreen) {
+        // Enter fullscreen on iOS
+        setIsFullscreen(true);
+        
+        // Add fullscreen styles to container
+        if (containerRef.current) {
+          containerRef.current.style.position = 'fixed';
+          containerRef.current.style.left = '0';
+          containerRef.current.style.right = '0';
+          containerRef.current.style.zIndex = '9999';
+          containerRef.current.style.width = '100vw';
+          
+          // For iPhone in PWA mode, add top and bottom padding to account for notch and home indicator
+          if (isIPhone() && isPWA()) {
+            containerRef.current.style.top = '44px'; // Standard iPhone notch safe area
+            containerRef.current.style.bottom = '20px'; // Home indicator safe area (same as pb-5)
+            containerRef.current.style.height = 'calc(100vh - 64px)'; // Total: 44px top + 20px bottom
+          } else {
+            containerRef.current.style.top = '0';
+            containerRef.current.style.bottom = '0';
+            containerRef.current.style.height = '100vh';
+          }
+        }
+        
+        // Scroll to hide address bar (for non-PWA mode)
+        window.scrollTo(0, 1);
+      } else {
+        // Exit fullscreen on iOS
+        setIsFullscreen(false);
+        
+        // Remove fullscreen styles
+        if (containerRef.current) {
+          containerRef.current.style.position = '';
+          containerRef.current.style.top = '';
+          containerRef.current.style.left = '';
+          containerRef.current.style.right = '';
+          containerRef.current.style.bottom = '';
+          containerRef.current.style.zIndex = '';
+          containerRef.current.style.width = '';
+          containerRef.current.style.height = '';
+        }
+        
+        // Scroll back to top
+        window.scrollTo(0, 0);
       }
     } else {
-      // Exit fullscreen
-      setIsFullscreen(false);
-      
-      // Remove fullscreen styles
-      if (containerRef.current) {
-        containerRef.current.style.position = '';
-        containerRef.current.style.top = '';
-        containerRef.current.style.left = '';
-        containerRef.current.style.right = '';
-        containerRef.current.style.bottom = '';
-        containerRef.current.style.zIndex = '';
-        containerRef.current.style.width = '';
-        containerRef.current.style.height = '';
+      // Standard fullscreen for non-iOS devices
+      if (!isFullscreen) {
+        // Enter fullscreen
+        setIsFullscreen(true);
+        
+        // Add fullscreen styles to container
+        if (containerRef.current) {
+          containerRef.current.style.position = 'fixed';
+          containerRef.current.style.top = '0';
+          containerRef.current.style.left = '0';
+          containerRef.current.style.right = '0';
+          containerRef.current.style.bottom = '0';
+          containerRef.current.style.zIndex = '9999';
+          containerRef.current.style.width = '100vw';
+          containerRef.current.style.height = '100vh';
+        }
+      } else {
+        // Exit fullscreen
+        setIsFullscreen(false);
+        
+        // Remove fullscreen styles
+        if (containerRef.current) {
+          containerRef.current.style.position = '';
+          containerRef.current.style.top = '';
+          containerRef.current.style.left = '';
+          containerRef.current.style.right = '';
+          containerRef.current.style.bottom = '';
+          containerRef.current.style.zIndex = '';
+          containerRef.current.style.width = '';
+          containerRef.current.style.height = '';
+        }
       }
     }
     
     // Trigger resize event for chart to recalculate
     window.dispatchEvent(new Event('resize'));
-  }, [isFullscreen]);
+  }, [isFullscreen, isIOS, isIPhone, isPWA]);
 
   // Handler for updating trend line settings
   const handleUpdateTrendLineSettings = useCallback((settings: Partial<any>) => {
