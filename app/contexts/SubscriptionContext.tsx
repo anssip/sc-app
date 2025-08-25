@@ -13,6 +13,8 @@ interface SubscriptionData {
   subscriptionId?: string
   customerId?: string
   isLoading: boolean
+  previewStartTime?: number
+  isPreviewExpired?: boolean
 }
 
 interface SubscriptionContextType extends SubscriptionData {
@@ -31,12 +33,15 @@ const PRICE_TO_PLAN: Record<string, PlanType> = {
   [import.meta.env.VITE_STRIPE_PRICE_ID_PRO]: 'pro',
 }
 
+const PREVIEW_DURATION_MINUTES = 5
+
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData>({
     status: 'none',
     plan: 'none',
     isLoading: true, // Start with loading true to wait for auth check
   })
+  const [previewTimer, setPreviewTimer] = useState<NodeJS.Timeout | null>(null)
 
   const refreshSubscription = async () => {
     try {
@@ -154,12 +159,37 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
           console.error('Error querying Firestore:', firestoreError)
         }
         
-        // If still no subscription found, set to none
+        // If still no subscription found, set to none and start preview timer for new users
+        const previewKey = `preview_start_${user.uid}`
+        let previewStart = localStorage.getItem(previewKey)
+        
+        if (!previewStart) {
+          // First time user - start the preview timer
+          previewStart = Date.now().toString()
+          localStorage.setItem(previewKey, previewStart)
+        }
+        
+        const startTime = parseInt(previewStart)
+        const elapsedMinutes = (Date.now() - startTime) / (1000 * 60)
+        const isExpired = elapsedMinutes >= PREVIEW_DURATION_MINUTES
+        
         setSubscriptionData({
           status: 'none',
           plan: 'none',
           isLoading: false,
+          previewStartTime: startTime,
+          isPreviewExpired: isExpired,
         })
+        
+        // Set a timer to update when preview expires
+        if (!isExpired) {
+          const remainingMs = (PREVIEW_DURATION_MINUTES * 60 * 1000) - (Date.now() - startTime)
+          if (previewTimer) clearTimeout(previewTimer)
+          const timer = setTimeout(() => {
+            setSubscriptionData(prev => ({ ...prev, isPreviewExpired: true }))
+          }, remainingMs)
+          setPreviewTimer(timer)
+        }
       }
     } catch (error) {
       console.error('Failed to fetch subscription data:', error)
@@ -184,7 +214,10 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       }
     })
 
-    return unsubscribe
+    return () => {
+      unsubscribe()
+      if (previewTimer) clearTimeout(previewTimer)
+    }
   }, [])
 
   // Helper functions for checking plan limitations

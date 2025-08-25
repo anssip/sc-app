@@ -314,19 +314,19 @@ export default function Index() {
             <FeatureCard
               title="Technical Analysis & Indicators"
               description="Analyze markets with essential drawing tools and prebuilt indicators."
-              timeline="H1/2025"
+              timeline="Available"
               icon={<BarChart3 className="w-6 h-6" />}
             />
             <FeatureCard
               title="Multi-Chart Layouts"
               description="Arrange several charts in a single layout to compare and analyze market trends. Save your favorite layouts for quick access at any time."
-              timeline="H2/2025"
+              timeline="Available"
               icon={<Code2 className="w-6 h-6" />}
             />
             <FeatureCard
               title="All Maror Crypto Markets in a clear UX"
               description="We provide real-time data and analysis for all major crypto markets. We pride in providing the best User Experience in the market."
-              timeline="H3/2025"
+              timeline="Available"
               icon={<Brain className="w-6 h-6" />}
             />
           </div>

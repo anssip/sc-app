@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive Dropdown Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900">
+    <div class="p-4">
+        <h1 class="text-white mb-4">AccountMenu Dropdown Responsive Positioning</h1>
+        
+        <div class="bg-gray-800 p-4 rounded mb-4">
+            <h2 class="text-white mb-2">Mobile View (< 640px)</h2>
+            <p class="text-gray-400">Classes: absolute right-0 left-0 mx-2</p>
+            <p class="text-gray-400">Result: Full width minus margins on both sides</p>
+        </div>
+        
+        <div class="bg-gray-800 p-4 rounded mb-4">
+            <h2 class="text-white mb-2">Desktop View (≥ 640px)</h2>
+            <p class="text-gray-400">Classes: absolute right-0 sm:left-auto sm:mx-0 sm:w-72</p>
+            <p class="text-gray-400">Result: Fixed width (288px) aligned to right edge</p>
+        </div>
+        
+        <div class="relative bg-black p-4 rounded">
+            <button class="text-white bg-blue-600 px-4 py-2 rounded">Account Menu Button</button>
+            
+            <!-- Mobile dropdown simulation -->
+            <div class="mt-4">
+                <p class="text-gray-500 text-sm mb-2">Mobile dropdown (resize window to < 640px):</p>
+                <div class="absolute right-0 left-0 mx-2 bg-gray-700 p-4 rounded border border-gray-600">
+                    <p class="text-white">Full width dropdown content</p>
+                </div>
+            </div>
+            
+            <!-- Desktop dropdown simulation -->
+            <div class="mt-20">
+                <p class="text-gray-500 text-sm mb-2">Desktop dropdown (window ≥ 640px):</p>
+                <div class="absolute right-0 w-72 bg-gray-700 p-4 rounded border border-gray-600">
+                    <p class="text-white">Fixed width dropdown content (288px)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

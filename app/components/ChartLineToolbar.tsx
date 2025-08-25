@@ -20,6 +20,9 @@ interface ChartLineToolbarProps {
   onUpdateSettings: (settings: Partial<LineSettings>) => void
   onDelete: () => void
   isVisible: boolean
+  onClose?: () => void
+  defaultSettings?: Partial<LineSettings>
+  onDefaultSettingsChange?: (settings: Partial<LineSettings>) => void
 }
 
 const LinePreview: React.FC<{ color: string; style: LineStyle; thickness: number; compact?: boolean }> = ({ color, style, thickness, compact = false }) => (
@@ -38,6 +41,9 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
   onUpdateSettings,
   onDelete,
   isVisible,
+  onClose,
+  defaultSettings,
+  onDefaultSettingsChange,
 }) => {
   const colorInputRef = useRef<HTMLInputElement>(null)
   const toolbarRef = useRef<HTMLDivElement>(null)
@@ -132,7 +138,7 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
     setStartPosition(position)
   }
 
-  if (!isVisible || !trendLine) return null
+  if (!isVisible) return null
 
   const quickColors = [
     '#10b981', // emerald
@@ -144,16 +150,35 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
     '#e5e5e5', // gray
   ]
 
-  const currentSettings: LineSettings = {
+  // Use trend line settings if available, otherwise use default settings
+  const currentSettings: LineSettings = trendLine ? {
     color: trendLine.color || '#3b82f6',
     style: (trendLine.style as LineStyle) || 'solid',
     thickness: (trendLine.lineWidth as LineThickness) || 2,
     extendLeft: trendLine.extendLeft || false,
     extendRight: trendLine.extendRight || false,
+  } : {
+    color: defaultSettings?.color || '#3b82f6',
+    style: (defaultSettings?.style as LineStyle) || 'solid',
+    thickness: (defaultSettings?.thickness as LineThickness) || 2,
+    extendLeft: defaultSettings?.extendLeft || false,
+    extendRight: defaultSettings?.extendRight || false,
   }
 
   const handleQuickColor = (color: string) => {
-    onUpdateSettings({ color })
+    if (trendLine) {
+      onUpdateSettings({ color })
+    } else if (onDefaultSettingsChange) {
+      onDefaultSettingsChange({ ...defaultSettings, color })
+    }
+  }
+  
+  const handleSettingsChange = (settings: Partial<LineSettings>) => {
+    if (trendLine) {
+      onUpdateSettings(settings)
+    } else if (onDefaultSettingsChange) {
+      onDefaultSettingsChange({ ...defaultSettings, ...settings })
+    }
   }
 
   const styleLabel = (s: LineStyle) => s.charAt(0).toUpperCase() + s.slice(1)
@@ -225,7 +250,7 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
                     ref={colorInputRef}
                     type="color"
                     value={currentSettings.color}
-                    onChange={(e) => onUpdateSettings({ color: e.target.value })}
+                    onChange={(e) => handleSettingsChange({ color: e.target.value })}
                     className="h-8 w-full cursor-pointer bg-transparent"
                     aria-label="Line color picker"
                   />
@@ -257,7 +282,7 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
                   <Menu.Item key={s}>
                     {({ active }) => (
                       <button
-                        onClick={() => onUpdateSettings({ style: s })}
+                        onClick={() => handleSettingsChange({ style: s })}
                         className={`${
                           active ? 'bg-gray-700' : ''
                         } group flex items-center w-full px-2 py-2 text-sm text-white rounded`}
@@ -301,7 +326,7 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
                   <Menu.Item key={t}>
                     {({ active }) => (
                       <button
-                        onClick={() => onUpdateSettings({ thickness: t as LineThickness })}
+                        onClick={() => handleSettingsChange({ thickness: t as LineThickness })}
                         className={`${
                           active ? 'bg-gray-700' : ''
                         } group flex items-center w-full px-2 py-2 text-sm text-white rounded`}
@@ -343,7 +368,7 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
                 <Menu.Item>
                   {({ active }) => (
                     <button
-                      onClick={() => onUpdateSettings({ extendLeft: !currentSettings.extendLeft })}
+                      onClick={() => handleSettingsChange({ extendLeft: !currentSettings.extendLeft })}
                       className={`${
                         active ? 'bg-gray-700' : ''
                       } group flex items-center justify-between w-full px-2 py-2 text-sm text-white rounded`}
@@ -360,7 +385,7 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
                 <Menu.Item>
                   {({ active }) => (
                     <button
-                      onClick={() => onUpdateSettings({ extendRight: !currentSettings.extendRight })}
+                      onClick={() => handleSettingsChange({ extendRight: !currentSettings.extendRight })}
                       className={`${
                         active ? 'bg-gray-700' : ''
                       } group flex items-center justify-between w-full px-2 py-2 text-sm text-white rounded`}
@@ -379,17 +404,37 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
           </Transition>
         </Menu>
 
-          {/* Delete */}
-          <ToolbarButton
-            onClick={onDelete}
-            variant="danger"
-            title="Delete line"
-          >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          </ToolbarButton>
+          {/* Delete button (only when a line is selected) */}
+          {trendLine && (
+            <ToolbarButton
+              onClick={onDelete}
+              variant="danger"
+              title="Delete line"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </ToolbarButton>
+          )}
         </div>
+        
+        {/* Close button - always visible */}
+        {onClose && (
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onClose();
+            }}
+            className="flex items-center justify-center w-6 h-6 ml-1 mr-1 text-gray-400 hover:text-white transition-colors relative z-50"
+            title="Close trend line tool"
+            type="button"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
         
         {/* Right Drag Handle */}
         <div

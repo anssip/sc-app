@@ -22,9 +22,9 @@ export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
   const baseClasses = 'flex items-center justify-center px-2 py-1 text-sm border rounded transition-colors h-[28px]'
   
   const variantClasses = {
-    default: `bg-gray-800 border-gray-700 text-white hover:bg-gray-700 ${
-      active ? 'bg-gray-700 text-blue-400' : ''
-    }`,
+    default: active 
+      ? 'bg-blue-600 border-blue-500 text-white hover:bg-blue-700 hover:border-blue-600' 
+      : 'bg-gray-800 border-gray-700 text-white hover:bg-gray-700',
     danger: 'bg-gray-800 border-gray-700 text-white hover:bg-red-900 hover:border-red-700',
   }
   

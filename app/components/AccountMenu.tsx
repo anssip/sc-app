@@ -55,21 +55,21 @@ export default function AccountMenu() {
 
       {/* Dropdown menu */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-72 bg-black/95 backdrop-blur-sm border border-gray-800 rounded-lg shadow-xl z-50">
+        <div className="absolute left-0 right-0 sm:left-auto sm:right-0 mt-2 mx-4 sm:mx-0 sm:w-80 bg-black/95 backdrop-blur-sm border border-gray-800 rounded-lg shadow-xl z-[350]">
           {user ? (
             // Signed-in menu
             <div className="p-4">
               <div className="mb-4 pb-4 border-b border-gray-800">
                 <p className="text-sm text-gray-400">Signed in as</p>
-                <p className="text-white font-medium">{user.email}</p>
+                <p className="text-white font-medium break-all">{user.email}</p>
                 
                 {/* Subscription Status */}
                 {status !== 'none' && (
                   <div className="mt-3">
                     {status === 'trialing' && trialEndsAt && (
                       <div className="flex items-center gap-2 text-sm">
-                        <Zap className="h-4 w-4 text-yellow-500" />
-                        <span className="text-yellow-500">
+                        <Zap className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+                        <span className="text-yellow-500 whitespace-nowrap">
                           Trial ends {new Date(trialEndsAt).toLocaleDateString()}
                         </span>
                       </div>
@@ -78,13 +78,13 @@ export default function AccountMenu() {
                       <div className="flex items-center gap-2 text-sm">
                         {plan === 'pro' ? (
                           <>
-                            <Crown className="h-4 w-4 text-pricing-green" />
-                            <span className="text-pricing-green">Pro Plan</span>
+                            <Crown className="h-4 w-4 text-pricing-green flex-shrink-0" />
+                            <span className="text-pricing-green whitespace-nowrap">Pro Plan</span>
                           </>
                         ) : (
                           <>
-                            <Zap className="h-4 w-4 text-blue-500" />
-                            <span className="text-blue-500">Starter Plan</span>
+                            <Zap className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                            <span className="text-blue-500 whitespace-nowrap">Starter Plan</span>
                           </>
                         )}
                       </div>
@@ -97,7 +97,7 @@ export default function AccountMenu() {
                   <Link
                     to="/chart"
                     onClick={() => setIsOpen(false)}
-                    className="block w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-800 rounded-md transition-colors"
+                    className="block w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-800 rounded-md transition-colors whitespace-nowrap"
                   >
                     Chart Dashboard
                   </Link>
@@ -105,16 +105,23 @@ export default function AccountMenu() {
                 <Link
                   to="/billing"
                   onClick={() => setIsOpen(false)}
-                  className="block w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-800 rounded-md transition-colors"
+                  className="block w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-800 rounded-md transition-colors whitespace-nowrap"
                 >
                   Billing & Subscription
                 </Link>
                 <button
                   onClick={handleSignOut}
-                  className="block w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-800 rounded-md transition-colors"
+                  className="block w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-800 rounded-md transition-colors whitespace-nowrap"
                 >
                   Sign Out
                 </button>
+                <Link
+                  to="/"
+                  onClick={() => setIsOpen(false)}
+                  className="block w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-800 rounded-md transition-colors whitespace-nowrap"
+                >
+                  Home
+                </Link>
               </div>
             </div>
           ) : (

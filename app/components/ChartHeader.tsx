@@ -11,6 +11,8 @@ interface ChartHeaderProps {
   onSplitHorizontal?: () => void;
   onSplitVertical?: () => void;
   onOpenSymbolManager?: () => void;
+  isTrendLineToolActive?: boolean;
+  onToggleTrendLineTool?: () => void;
   onToggleFullscreen?: () => void;
   isFullscreen?: boolean;
 }
@@ -25,11 +27,11 @@ export const ChartHeader: React.FC<ChartHeaderProps> = ({
   onSplitHorizontal,
   onSplitVertical,
   onOpenSymbolManager,
-  onToggleFullscreen,
-  isFullscreen,
+  isTrendLineToolActive,
+  onToggleTrendLineTool,
 }) => {
   return (
-    <div className="flex items-center justify-end px-4 py-2 bg-gray-900 border-b border-gray-800 relative z-10 overflow-visible">
+    <div className="flex items-center justify-end px-4 py-2 bg-gray-900 border-b border-gray-800 relative z-50 overflow-visible">
       <ChartToolbar
         chartId={chartId}
         chartApiRef={chartApiRef}
@@ -42,6 +44,8 @@ export const ChartHeader: React.FC<ChartHeaderProps> = ({
         onOpenSymbolManager={onOpenSymbolManager}
         onToggleFullscreen={onToggleFullscreen}
         isFullscreen={isFullscreen}
+        isTrendLineToolActive={isTrendLineToolActive}
+        onToggleTrendLineTool={onToggleTrendLineTool}
       />
     </div>
   );

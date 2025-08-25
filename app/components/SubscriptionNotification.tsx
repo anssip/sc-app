@@ -5,7 +5,7 @@ import { useSubscription } from "~/contexts/SubscriptionContext";
 import Button from "./Button";
 
 export default function SubscriptionNotification() {
-  const { status, plan, trialEndsAt, isLoading } = useSubscription();
+  const { status, plan, trialEndsAt, isLoading, isPreviewExpired, previewStartTime } = useSubscription();
   const [isDismissed, setIsDismissed] = useState(false);
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
 
@@ -90,8 +90,37 @@ export default function SubscriptionNotification() {
     }
   }
 
-  // Show no subscription warning
+  // Show no subscription warning - but only if preview has expired for new users
   if (status === "none") {
+    // If user is in preview period, show welcome message
+    if (!isPreviewExpired && previewStartTime) {
+      return (
+        <div className="relative bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 mb-4">
+          <button
+            onClick={() => setIsDismissed(true)}
+            className="absolute top-2 right-2 text-blue-500/50 hover:text-blue-500"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          <div className="flex items-start gap-3">
+            <Clock className="h-5 w-5 text-blue-500 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="text-blue-500 font-medium mb-1">
+                Welcome to Spot Canvas!
+              </h3>
+              <p className="text-gray-400 text-sm mb-3">
+                You're enjoying a 5-minute preview. Start your 7-day free trial to unlock unlimited access.
+              </p>
+              <Button asLink to="/pricing" variant="primary" size="sm">
+                Start Free Trial
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    // Preview expired - show subscription required
     return (
       <div className="relative bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-4">
         <button
@@ -104,10 +133,10 @@ export default function SubscriptionNotification() {
           <AlertCircle className="h-5 w-5 text-red-500 mt-0.5" />
           <div className="flex-1">
             <h3 className="text-red-500 font-medium mb-1">
-              No Active Subscription
+              Preview Ended
             </h3>
             <p className="text-gray-400 text-sm mb-3">
-              Start your 7-day free trial to access all features of Spot Canvas.
+              Your 5-minute preview has ended. Start your 7-day free trial to continue using Spot Canvas.
             </p>
             <Button asLink to="/pricing" variant="primary" size="sm">
               Start Free Trial

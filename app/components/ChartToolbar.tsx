@@ -25,6 +25,8 @@ interface ChartToolbarProps {
   onOpenSymbolManager?: () => void;
   onToggleFullscreen?: () => void;
   isFullscreen?: boolean;
+  isTrendLineToolActive?: boolean;
+  onToggleTrendLineTool?: () => void;
 }
 
 // Granularity options with proper labels
@@ -49,6 +51,8 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
   onSplitHorizontal,
   onSplitVertical,
   onOpenSymbolManager,
+  isTrendLineToolActive = false,
+  onToggleTrendLineTool,
   onToggleFullscreen,
   isFullscreen = false,
 }) => {
@@ -319,27 +323,24 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
         </>
       )}
 
-      {/* Trend Line Button */}
-      <ToolbarButton
-        onClick={() => {
-          if (chartApiRef?.current?.activateTrendLineTool) {
-            chartApiRef.current.activateTrendLineTool();
-          }
-        }}
-        title="Draw Trend Line"
-      >
-        <svg
-          className="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+        {/* Trend Line Button */}
+        <ToolbarButton
+          onClick={onToggleTrendLineTool}
+          title={isTrendLineToolActive ? "Stop Drawing Trend Lines" : "Draw Trend Line"}
+          active={isTrendLineToolActive}
         >
-          {/* Line with circles at both ends */}
-          <line x1="5" y1="19" x2="19" y2="5" strokeWidth={2} />
-          <circle cx="5" cy="19" r="2" fill="currentColor" />
-          <circle cx="19" cy="5" r="2" fill="currentColor" />
-        </svg>
-      </ToolbarButton>
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            {/* Line with circles at both ends */}
+            <line x1="5" y1="19" x2="19" y2="5" strokeWidth={2} />
+            <circle cx="5" cy="19" r="2" fill="currentColor" />
+            <circle cx="19" cy="5" r="2" fill="currentColor" />
+          </svg>
+        </ToolbarButton>
 
       {/* Indicator Dropdown */}
       <Menu as="div" className="relative">

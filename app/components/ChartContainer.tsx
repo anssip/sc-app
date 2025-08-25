@@ -233,8 +233,12 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
   const [isSymbolManagerOpen, setIsSymbolManagerOpen] = useState(false);
   const [trendLines, setTrendLines] = useState<TrendLine[]>([]);
   const [trendLinesLoaded, setTrendLinesLoaded] = useState(false);
-  const [selectedTrendLine, setSelectedTrendLine] = useState<TrendLine | null>(null);
-  const [selectedTrendLineId, setSelectedTrendLineId] = useState<string | null>(null);
+  const [selectedTrendLine, setSelectedTrendLine] = useState<TrendLine | null>(
+    null
+  );
+  const [selectedTrendLineId, setSelectedTrendLineId] = useState<string | null>(
+    null
+  );
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<SCChartRef>(null);
@@ -359,13 +363,17 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
 
   // Detect if iOS
   const isIOS = useCallback(() => {
-    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    return (
+      /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream
+    );
   }, []);
 
   // Detect if running as PWA (standalone mode)
   const isPWA = useCallback(() => {
-    return window.matchMedia('(display-mode: standalone)').matches || 
-           (window.navigator as any).standalone === true;
+    return (
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as any).standalone === true
+    );
   }, []);
 
   // Detect if iPhone specifically (not iPad)
@@ -380,45 +388,45 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
       if (!isFullscreen) {
         // Enter fullscreen on iOS
         setIsFullscreen(true);
-        
+
         // Add fullscreen styles to container
         if (containerRef.current) {
-          containerRef.current.style.position = 'fixed';
-          containerRef.current.style.left = '0';
-          containerRef.current.style.right = '0';
-          containerRef.current.style.zIndex = '9999';
-          containerRef.current.style.width = '100vw';
-          
+          containerRef.current.style.position = "fixed";
+          containerRef.current.style.left = "0";
+          containerRef.current.style.right = "0";
+          containerRef.current.style.zIndex = "9999";
+          containerRef.current.style.width = "100vw";
+
           // For iPhone in PWA mode, add top and bottom padding to account for notch and home indicator
           if (isIPhone() && isPWA()) {
-            containerRef.current.style.top = '44px'; // Standard iPhone notch safe area
-            containerRef.current.style.bottom = '20px'; // Home indicator safe area (same as pb-5)
-            containerRef.current.style.height = 'calc(100vh - 64px)'; // Total: 44px top + 20px bottom
+            containerRef.current.style.top = "44px"; // Standard iPhone notch safe area
+            containerRef.current.style.bottom = "20px"; // Home indicator safe area (same as pb-5)
+            containerRef.current.style.height = "calc(100vh - 64px)"; // Total: 44px top + 20px bottom
           } else {
-            containerRef.current.style.top = '0';
-            containerRef.current.style.bottom = '0';
-            containerRef.current.style.height = '100vh';
+            containerRef.current.style.top = "0";
+            containerRef.current.style.bottom = "0";
+            containerRef.current.style.height = "100vh";
           }
         }
-        
+
         // Scroll to hide address bar (for non-PWA mode)
         window.scrollTo(0, 1);
       } else {
         // Exit fullscreen on iOS
         setIsFullscreen(false);
-        
+
         // Remove fullscreen styles
         if (containerRef.current) {
-          containerRef.current.style.position = '';
-          containerRef.current.style.top = '';
-          containerRef.current.style.left = '';
-          containerRef.current.style.right = '';
-          containerRef.current.style.bottom = '';
-          containerRef.current.style.zIndex = '';
-          containerRef.current.style.width = '';
-          containerRef.current.style.height = '';
+          containerRef.current.style.position = "";
+          containerRef.current.style.top = "";
+          containerRef.current.style.left = "";
+          containerRef.current.style.right = "";
+          containerRef.current.style.bottom = "";
+          containerRef.current.style.zIndex = "";
+          containerRef.current.style.width = "";
+          containerRef.current.style.height = "";
         }
-        
+
         // Scroll back to top
         window.scrollTo(0, 0);
       }
@@ -427,80 +435,86 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
       if (!isFullscreen) {
         // Enter fullscreen
         setIsFullscreen(true);
-        
+
         // Add fullscreen styles to container
         if (containerRef.current) {
-          containerRef.current.style.position = 'fixed';
-          containerRef.current.style.top = '0';
-          containerRef.current.style.left = '0';
-          containerRef.current.style.right = '0';
-          containerRef.current.style.bottom = '0';
-          containerRef.current.style.zIndex = '9999';
-          containerRef.current.style.width = '100vw';
-          containerRef.current.style.height = '100vh';
+          containerRef.current.style.position = "fixed";
+          containerRef.current.style.top = "0";
+          containerRef.current.style.left = "0";
+          containerRef.current.style.right = "0";
+          containerRef.current.style.bottom = "0";
+          containerRef.current.style.zIndex = "9999";
+          containerRef.current.style.width = "100vw";
+          containerRef.current.style.height = "100vh";
         }
       } else {
         // Exit fullscreen
         setIsFullscreen(false);
-        
+
         // Remove fullscreen styles
         if (containerRef.current) {
-          containerRef.current.style.position = '';
-          containerRef.current.style.top = '';
-          containerRef.current.style.left = '';
-          containerRef.current.style.right = '';
-          containerRef.current.style.bottom = '';
-          containerRef.current.style.zIndex = '';
-          containerRef.current.style.width = '';
-          containerRef.current.style.height = '';
+          containerRef.current.style.position = "";
+          containerRef.current.style.top = "";
+          containerRef.current.style.left = "";
+          containerRef.current.style.right = "";
+          containerRef.current.style.bottom = "";
+          containerRef.current.style.zIndex = "";
+          containerRef.current.style.width = "";
+          containerRef.current.style.height = "";
         }
       }
     }
-    
+
     // Trigger resize event for chart to recalculate
-    window.dispatchEvent(new Event('resize'));
+    window.dispatchEvent(new Event("resize"));
   }, [isFullscreen, isIOS, isIPhone, isPWA]);
 
   // Handler for updating trend line settings
-  const handleUpdateTrendLineSettings = useCallback((settings: Partial<any>) => {
-    if (!selectedTrendLineId || !chartRef.current?.api) return;
-    
-    const api = chartRef.current.api;
-    
-    // Map our settings to the API's expected format
-    const updates: any = {};
-    if (settings.color !== undefined) updates.color = settings.color;
-    if (settings.style !== undefined) updates.style = settings.style;
-    if (settings.thickness !== undefined) updates.lineWidth = settings.thickness;
-    if (settings.extendLeft !== undefined) updates.extendLeft = settings.extendLeft;
-    if (settings.extendRight !== undefined) updates.extendRight = settings.extendRight;
-    
-    // Update via Chart API
-    api.updateTrendLineSettings?.(selectedTrendLineId, updates);
-    
-    // Update local state
-    if (selectedTrendLine) {
-      setSelectedTrendLine({
-        ...selectedTrendLine,
-        ...updates,
-      });
-    }
-  }, [selectedTrendLineId, selectedTrendLine]);
+  const handleUpdateTrendLineSettings = useCallback(
+    (settings: Partial<any>) => {
+      if (!selectedTrendLineId || !chartRef.current?.api) return;
+
+      const api = chartRef.current.api;
+
+      // Map our settings to the API's expected format
+      const updates: any = {};
+      if (settings.color !== undefined) updates.color = settings.color;
+      if (settings.style !== undefined) updates.style = settings.style;
+      if (settings.thickness !== undefined)
+        updates.lineWidth = settings.thickness;
+      if (settings.extendLeft !== undefined)
+        updates.extendLeft = settings.extendLeft;
+      if (settings.extendRight !== undefined)
+        updates.extendRight = settings.extendRight;
+
+      // Update via Chart API
+      api.updateTrendLineSettings?.(selectedTrendLineId, updates);
+
+      // Update local state
+      if (selectedTrendLine) {
+        setSelectedTrendLine({
+          ...selectedTrendLine,
+          ...updates,
+        });
+      }
+    },
+    [selectedTrendLineId, selectedTrendLine]
+  );
 
   // Handler for deleting selected trend line
   const handleDeleteTrendLine = useCallback(() => {
     if (!selectedTrendLineId || !chartRef.current?.api) return;
-    
+
     const api = chartRef.current.api;
     api.removeTrendLine?.(selectedTrendLineId);
-    
+
     // Clear selection
     setSelectedTrendLine(null);
     setSelectedTrendLineId(null);
   }, [selectedTrendLineId]);
 
   return (
-    <div 
+    <div
       ref={containerRef}
       className="h-full flex flex-col bg-gray-900 border border-gray-800 rounded-lg overflow-hidden relative"
     >
@@ -656,22 +670,22 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
                 // Set up trend line selection event listeners
                 if (api.on) {
                   // Listen for trend line selection
-                  api.on('trend-line-selected', (event: any) => {
-                    console.log('Trend line selected:', event);
+                  api.on("trend-line-selected", (event: any) => {
+                    console.log("Trend line selected:", event);
                     setSelectedTrendLineId(event.trendLineId);
                     setSelectedTrendLine(event.trendLine);
                   });
 
                   // Listen for trend line deselection
-                  api.on('trend-line-deselected', () => {
-                    console.log('Trend line deselected');
+                  api.on("trend-line-deselected", () => {
+                    console.log("Trend line deselected");
                     setSelectedTrendLineId(null);
                     setSelectedTrendLine(null);
                   });
 
                   // Listen for trend line deletion (to clear selection if deleted line was selected)
-                  api.on('trend-line-deleted', (event: any) => {
-                    console.log('Trend line deleted:', event);
+                  api.on("trend-line-deleted", (event: any) => {
+                    console.log("Trend line deleted:", event);
                     if (event.trendLineId === selectedTrendLineId) {
                       setSelectedTrendLineId(null);
                       setSelectedTrendLine(null);

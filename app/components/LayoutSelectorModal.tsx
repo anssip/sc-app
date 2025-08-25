@@ -157,7 +157,7 @@ export const LayoutSelectorModal: React.FC<LayoutSelectorModalProps> = ({
   ];
 
   return (
-    <Dialog open={isOpen} onClose={onClose} className="relative z-50">
+    <Dialog open={isOpen} onClose={onClose} className="relative z-[400]">
       <div className="fixed inset-0 bg-black/60" aria-hidden="true" />
       <div className="fixed inset-0 flex items-center justify-center p-4">
         <Dialog.Panel className="w-full max-w-md rounded-lg bg-gray-900 shadow-xl border border-gray-700">

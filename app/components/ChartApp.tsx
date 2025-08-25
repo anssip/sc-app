@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ChartPanel } from "./ChartPanel";
-import { LayoutSelector } from "./LayoutSelector";
-import AccountMenu from "./AccountMenu";
+import { AppToolbar } from "./AppToolbar";
 import PWAInstallBanner from "./PWAInstallBanner";
 import {
   useRepository,
@@ -345,88 +344,52 @@ export const ChartApp: React.FC<ChartAppProps> = ({
   }
 
   // Calculate if trial has expired
-  const { trialEndsAt } = useSubscription();
+  const { trialEndsAt, isPreviewExpired, previewStartTime } = useSubscription();
   const isTrialExpired =
     subscriptionStatus === "trialing" &&
     trialEndsAt &&
     new Date(trialEndsAt) <= new Date();
 
-  // User has access if they have an active subscription or are in a valid trial period
+  // User has access if they have an active subscription, are in a valid trial period, or are a new user in preview
   const hasActiveSubscription =
     subscriptionStatus === "active" ||
     (subscriptionStatus === "trialing" && !isTrialExpired);
+  
+  // New users (status === 'none') get 5-minute preview access
+  const hasPreviewAccess = subscriptionStatus === "none" && !isPreviewExpired;
+  
+  // Show subscription overlay if no active subscription and preview has expired (or for canceled/expired trials)
+  const shouldShowSubscriptionOverlay = !subscriptionLoading && !hasActiveSubscription && !hasPreviewAccess;
+  
+  // Calculate time remaining for preview users
+  const getPreviewTimeRemaining = () => {
+    if (!previewStartTime || subscriptionStatus !== "none") return null;
+    const elapsedMs = Date.now() - previewStartTime;
+    const remainingMs = Math.max(0, (5 * 60 * 1000) - elapsedMs);
+    const minutes = Math.floor(remainingMs / 60000);
+    const seconds = Math.floor((remainingMs % 60000) / 1000);
+    return { minutes, seconds, remainingMs };
+  };
 
   return (
     <div className={`flex flex-col h-full bg-black ${className}`}>
-      {/* PWA Header Spacer for iPhone - pushes content below the notch */}
-      {isIPhone() && isPWA() && (
+        {/* PWA Header Spacer for iPhone - pushes content below the notch */}
+        {isIPhone() && isPWA() && (
         <div className="flex-shrink-0 h-11 bg-gray-900" />
       )}
       
       {/* PWA Install Banner - shows only once for mobile users */}
       <PWAInstallBanner />
-      
-      {/* Compact Header */}
-      <div className="flex-shrink-0 px-4 py-2 bg-gray-900 border-b border-gray-800">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          {/* Left side - Logo, AccountMenu, Status */}
-          <div className="flex items-center gap-4">
-            {/* Logo - responsive */}
-            <picture>
-              <source
-                media="(min-width: 640px)"
-                srcSet="/logo/full/green.svg"
-              />
-              <img
-                src="/logo/icon/green.svg"
-                alt="Spot Canvas"
-                className="h-6 w-auto"
-              />
-            </picture>
-
-            {/* Account Menu */}
-            <AccountMenu />
-
-            {/* Status indicator light */}
-            {repository && (
-              <div
-                className="flex items-center gap-2"
-                title={
-                  repository.isOnline()
-                    ? "Repository Online"
-                    : "Repository Offline"
-                }
-              >
-                <div
-                  className={`h-2 w-2 rounded-full ${
-                    repository.isOnline() ? "bg-green-500" : "bg-red-500"
-                  }`}
-                ></div>
-                <span className="text-xs text-gray-400 hidden sm:inline">
-                  {repository.isOnline() ? "Online" : "Offline"}
-                </span>
-              </div>
-            )}
-
-            {migrationStatus && (
-              <div className="text-xs text-blue-400 bg-blue-900/20 px-2 py-1 rounded border border-blue-800">
-                {migrationStatus}
-              </div>
-            )}
-          </div>
-
-          {/* Right side - Layout Selector */}
-          <div className="flex items-center gap-2">
-            {/* Layout Selector */}
-            <LayoutSelector
-              currentLayout={currentLayout}
-              currentLayoutId={currentLayoutId}
-              onLayoutChange={handleLayoutSelection}
-              className="flex-shrink-0"
-            />
-          </div>
-        </div>
-      </div>
+      <AppToolbar
+        repository={repository}
+        currentLayout={currentLayout}
+        currentLayoutId={currentLayoutId}
+        onLayoutChange={handleLayoutSelection}
+        migrationStatus={migrationStatus}
+        hasPreviewAccess={hasPreviewAccess}
+        previewStartTime={previewStartTime}
+        onPreviewExpire={() => window.location.reload()}
+      />
 
       {/* Chart Panel */}
       <div className={`flex-1 relative bg-black ${isMobile() ? 'pb-5' : ''}`}>
@@ -438,7 +401,7 @@ export const ChartApp: React.FC<ChartAppProps> = ({
         />
 
         {/* Subscription Overlay - dims charts and blocks interaction when no subscription */}
-        {!subscriptionLoading && !hasActiveSubscription && (
+        {shouldShowSubscriptionOverlay && (
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="text-center p-8 bg-gray-900/90 rounded-lg border border-gray-700 max-w-md">
               <svg
@@ -458,14 +421,21 @@ export const ChartApp: React.FC<ChartAppProps> = ({
                 Subscription Required
               </h2>
               <p className="text-gray-400 mb-6">
-                To access live charts and trading features, please subscribe to
-                one of our plans.
+                {subscriptionStatus === "none" && isPreviewExpired
+                  ? "Your 5-minute preview has ended. Subscribe to continue using Spot Canvas with unlimited access."
+                  : subscriptionStatus === "canceled"
+                  ? "Your subscription has been canceled. Please resubscribe to continue using Spot Canvas."
+                  : isTrialExpired
+                  ? "Your trial has ended. Choose a plan to continue using Spot Canvas."
+                  : "To access live charts and trading features, please subscribe to one of our plans."}
               </p>
               <a
                 href="/pricing"
                 className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
               >
-                View Pricing Plans
+                {subscriptionStatus === "none" && isPreviewExpired
+                  ? "Start Free Trial"
+                  : "View Pricing Plans"}
               </a>
             </div>
           </div>
