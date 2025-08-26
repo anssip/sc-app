@@ -572,6 +572,21 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
     setSelectedTrendLine(null);
   }, []);
 
+  // Update trend line tool defaults when settings change
+  useEffect(() => {
+    if (!chartRef.current?.api || !isTrendLineToolActive) return;
+    
+    const api = chartRef.current.api;
+    // Update the defaults for new trend lines when user changes settings
+    api.setTrendLineDefaults?.({
+      color: defaultTrendLineSettings.color,
+      lineWidth: defaultTrendLineSettings.lineWidth,
+      style: defaultTrendLineSettings.style,
+      extendLeft: defaultTrendLineSettings.extendLeft,
+      extendRight: defaultTrendLineSettings.extendRight,
+    });
+  }, [defaultTrendLineSettings, isTrendLineToolActive]);
+
   return (
     <div
       ref={containerRef}
