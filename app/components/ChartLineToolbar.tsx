@@ -420,20 +420,22 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
         
         {/* Close button - always visible */}
         {onClose && (
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onClose();
-            }}
-            className="flex items-center justify-center w-6 h-6 ml-1 mr-1 text-gray-400 hover:text-white transition-colors relative z-50"
-            title="Close trend line tool"
-            type="button"
-          >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <div className="flex items-center border-l border-gray-700">
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onClose();
+              }}
+              className="flex items-center justify-center w-7 h-7 mx-1 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors"
+              title="Close trend line tool"
+              type="button"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         )}
         
         {/* Right Drag Handle */}

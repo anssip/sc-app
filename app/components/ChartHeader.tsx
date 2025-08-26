@@ -29,6 +29,8 @@ export const ChartHeader: React.FC<ChartHeaderProps> = ({
   onOpenSymbolManager,
   isTrendLineToolActive,
   onToggleTrendLineTool,
+  onToggleFullscreen,
+  isFullscreen,
 }) => {
   return (
     <div className="flex items-center justify-end px-4 py-2 bg-gray-900 border-b border-gray-800 relative z-50 overflow-visible">

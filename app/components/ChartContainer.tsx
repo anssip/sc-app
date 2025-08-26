@@ -240,6 +240,14 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
     null
   );
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isTrendLineToolActive, setIsTrendLineToolActive] = useState(false);
+  const [defaultTrendLineSettings, setDefaultTrendLineSettings] = useState({
+    color: '#3b82f6',
+    style: 'solid' as 'solid' | 'dashed' | 'dotted',
+    lineWidth: 2,
+    extendLeft: false,
+    extendRight: false,
+  });
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<SCChartRef>(null);
   const { settings } = useChartSettings(config.id);
@@ -362,14 +370,20 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
   };
 
   // Detect if iOS
-  const isIOS = useCallback(() => {
+  const isIOS = useMemo(() => {
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+      return false;
+    }
     return (
       /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream
     );
   }, []);
 
   // Detect if running as PWA (standalone mode)
-  const isPWA = useCallback(() => {
+  const isPWA = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
     return (
       window.matchMedia("(display-mode: standalone)").matches ||
       (window.navigator as any).standalone === true
@@ -377,13 +391,16 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
   }, []);
 
   // Detect if iPhone specifically (not iPad)
-  const isIPhone = useCallback(() => {
+  const isIPhone = useMemo(() => {
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+      return false;
+    }
     return /iPhone/.test(navigator.userAgent) && !(window as any).MSStream;
   }, []);
 
   // Handle fullscreen toggle for individual chart
   const handleToggleFullscreen = useCallback(() => {
-    if (isIOS()) {
+    if (isIOS) {
       // iOS-specific fullscreen handling
       if (!isFullscreen) {
         // Enter fullscreen on iOS
@@ -398,7 +415,7 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
           containerRef.current.style.width = "100vw";
 
           // For iPhone in PWA mode, add top and bottom padding to account for notch and home indicator
-          if (isIPhone() && isPWA()) {
+          if (isIPhone && isPWA) {
             containerRef.current.style.top = "44px"; // Standard iPhone notch safe area
             containerRef.current.style.bottom = "20px"; // Home indicator safe area (same as pb-5)
             containerRef.current.style.height = "calc(100vh - 64px)"; // Total: 44px top + 20px bottom
@@ -513,6 +530,48 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
     setSelectedTrendLineId(null);
   }, [selectedTrendLineId]);
 
+  // Handler for activating/deactivating trend line tool
+  const handleActivateTrendLineTool = useCallback(() => {
+    if (!chartRef.current?.api) return;
+    
+    const api = chartRef.current.api;
+    
+    if (isTrendLineToolActive) {
+      // Deactivate the tool
+      api.deactivateTrendLineTool?.();
+      setIsTrendLineToolActive(false);
+      
+      // Deselect all trend lines when closing the tool
+      api.deselectAllTrendLines?.();
+      setSelectedTrendLineId(null);
+      setSelectedTrendLine(null);
+    } else {
+      // Activate the tool with default settings
+      api.activateTrendLineTool?.({
+        color: defaultTrendLineSettings.color,
+        lineWidth: defaultTrendLineSettings.lineWidth,
+        style: defaultTrendLineSettings.style,
+        extendLeft: defaultTrendLineSettings.extendLeft,
+        extendRight: defaultTrendLineSettings.extendRight,
+      });
+      setIsTrendLineToolActive(true);
+    }
+  }, [isTrendLineToolActive, defaultTrendLineSettings]);
+
+  // Handler for deactivating trend line tool (called from close button)
+  const handleDeactivateTrendLineTool = useCallback(() => {
+    if (!chartRef.current?.api) return;
+    
+    const api = chartRef.current.api;
+    api.deactivateTrendLineTool?.();
+    setIsTrendLineToolActive(false);
+    
+    // Deselect all trend lines when closing the tool
+    api.deselectAllTrendLines?.();
+    setSelectedTrendLineId(null);
+    setSelectedTrendLine(null);
+  }, []);
+
   return (
     <div
       ref={containerRef}
@@ -530,6 +589,8 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
         onToggleFullscreen={handleToggleFullscreen}
         isFullscreen={isFullscreen}
         layoutId={layoutId}
+        isTrendLineToolActive={isTrendLineToolActive}
+        onToggleTrendLineTool={handleActivateTrendLineTool}
       />
 
       {/* Symbol Manager Modal */}
@@ -546,7 +607,10 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
           trendLine={selectedTrendLine}
           onUpdateSettings={handleUpdateTrendLineSettings}
           onDelete={handleDeleteTrendLine}
-          isVisible={!!selectedTrendLine}
+          isVisible={isTrendLineToolActive || !!selectedTrendLine}
+          onClose={handleDeactivateTrendLineTool}
+          defaultSettings={defaultTrendLineSettings}
+          onDefaultSettingsChange={setDefaultTrendLineSettings}
         />
         {chartError ? (
           <div className="flex items-center justify-center h-full bg-red-50 dark:bg-red-900/20">
