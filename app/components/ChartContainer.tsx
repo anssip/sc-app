@@ -775,7 +775,103 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
                 // Periodically check for trend line changes and persist them
                 const checkAndSaveTrendLines = async () => {
                   try {
-                    const currentTrendLines = api.getTrendLines?.() || [];
+                    const rawTrendLines = api.getTrendLines?.() || [];
+                    
+                    // Convert to array first to avoid proxy issues, then process
+                    const currentTrendLines = [];
+                    
+                    for (let i = 0; i < rawTrendLines.length; i++) {
+                      try {
+                        // Access the proxy object carefully
+                        const line = rawTrendLines[i];
+                        
+                        // Build a clean object without touching proxy internals
+                        const cleanLine: any = {};
+                        
+                        // Safely extract id
+                        try {
+                          cleanLine.id = String(line.id || `trend-line-${Date.now()}-${Math.random()}`);
+                        } catch {
+                          cleanLine.id = `trend-line-${Date.now()}-${Math.random()}`;
+                        }
+                        
+                        // Safely extract startPoint
+                        try {
+                          if (line.startPoint) {
+                            const sp = line.startPoint;
+                            // Check for both timestamp and time properties (library might use either)
+                            const timeValue = sp.timestamp !== undefined ? sp.timestamp : sp.time;
+                            const priceValue = sp.price !== undefined ? sp.price : sp.value;
+                            
+                            if (timeValue !== undefined && priceValue !== undefined) {
+                              cleanLine.startPoint = {
+                                timestamp: Number(timeValue),
+                                price: Number(priceValue)
+                              };
+                            }
+                          }
+                        } catch (e) {
+                          console.warn("Could not extract startPoint:", e);
+                        }
+                        
+                        // Safely extract endPoint
+                        try {
+                          if (line.endPoint) {
+                            const ep = line.endPoint;
+                            // Check for both timestamp and time properties (library might use either)
+                            const timeValue = ep.timestamp !== undefined ? ep.timestamp : ep.time;
+                            const priceValue = ep.price !== undefined ? ep.price : ep.value;
+                            
+                            if (timeValue !== undefined && priceValue !== undefined) {
+                              cleanLine.endPoint = {
+                                timestamp: Number(timeValue),
+                                price: Number(priceValue)
+                              };
+                            }
+                          }
+                        } catch (e) {
+                          console.warn("Could not extract endPoint:", e);
+                        }
+                        
+                        // Safely extract style
+                        try {
+                          if (line.style) {
+                            cleanLine.style = {
+                              color: String(line.style.color || '#2962FF'),
+                              width: Number(line.style.width || 1),
+                              style: Number(line.style.style || 0)
+                            };
+                          }
+                        } catch (e) {
+                          console.warn("Could not extract style:", e);
+                        }
+                        
+                        // Safely extract extend
+                        try {
+                          if (line.extend) {
+                            cleanLine.extend = {
+                              left: Boolean(line.extend.left),
+                              right: Boolean(line.extend.right)
+                            };
+                          }
+                        } catch (e) {
+                          console.warn("Could not extract extend:", e);
+                        }
+                        
+                        // Safely extract text
+                        try {
+                          if (line.text !== undefined && line.text !== null) {
+                            cleanLine.text = String(line.text);
+                          }
+                        } catch (e) {
+                          console.warn("Could not extract text:", e);
+                        }
+                        
+                        currentTrendLines.push(cleanLine);
+                      } catch (lineError) {
+                        console.error("Error processing trend line at index", i, ":", lineError);
+                      }
+                    }
 
                     // Check if trend lines have changed
                     if (

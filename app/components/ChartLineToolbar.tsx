@@ -150,17 +150,33 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
     '#e5e5e5', // gray
   ]
 
+  // Helper function to convert style value to LineStyle string
+  const getStyleString = (style: any): LineStyle => {
+    if (typeof style === 'string' && ['solid', 'dashed', 'dotted'].includes(style)) {
+      return style as LineStyle;
+    }
+    // Handle numeric styles (0 = solid, 1 = dotted, 2 = dashed)
+    if (typeof style === 'number') {
+      switch (style) {
+        case 1: return 'dotted';
+        case 2: return 'dashed';
+        default: return 'solid';
+      }
+    }
+    return 'solid';
+  }
+
   // Use trend line settings if available, otherwise use default settings
   const currentSettings: LineSettings = trendLine ? {
     color: trendLine.color || '#3b82f6',
-    style: (trendLine.style as LineStyle) || 'solid',
-    thickness: (trendLine.lineWidth as LineThickness) || 2,
+    style: getStyleString(trendLine.style),
+    thickness: (Number(trendLine.lineWidth) || 2) as LineThickness,
     extendLeft: trendLine.extendLeft || false,
     extendRight: trendLine.extendRight || false,
   } : {
     color: defaultSettings?.color || '#3b82f6',
-    style: (defaultSettings?.style as LineStyle) || 'solid',
-    thickness: (defaultSettings?.thickness as LineThickness) || 2,
+    style: getStyleString(defaultSettings?.style),
+    thickness: (Number(defaultSettings?.thickness) || 2) as LineThickness,
     extendLeft: defaultSettings?.extendLeft || false,
     extendRight: defaultSettings?.extendRight || false,
   }
@@ -181,7 +197,10 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
     }
   }
 
-  const styleLabel = (s: LineStyle) => s.charAt(0).toUpperCase() + s.slice(1)
+  const styleLabel = (s: LineStyle) => {
+    const str = String(s || 'solid');
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }
 
   return (
     <div 
@@ -306,7 +325,7 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
               <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={currentSettings.thickness} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
               </svg>
-              {!isMobile && <span className="text-xs">{currentSettings.thickness}</span>}
+              {!isMobile && <span className="text-xs">{currentSettings.thickness || 2}</span>}
               <ChevronDownIcon className="h-4 w-4" />
             </Menu.Button>
 
@@ -334,7 +353,7 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
                         <svg className="mr-3 h-4 w-4" fill="none" stroke="currentColor" strokeWidth={t} viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
                         </svg>
-                        {t}px
+                        {String(t)}px
                       </button>
                     )}
                   </Menu.Item>
