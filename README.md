@@ -16,18 +16,7 @@ All charting functionality is provided by the sc-charts module. This app interfa
 
 TODO next:
 
-- [x] auto-save granularity and symbol selection
-- [x] layout selector
-  - shows only a button with ... in the toolbar
-  - quick layout buttons to be removed from toolbar
-  - button opens a modal that lists saved layouts
-  - modal has a way to add a new layout using the quick layout buttons (number of charts), a field for title also
-- [ ] Add indicators to Firestore
-- [ ] Indicators menu
-- [ ] Indicators persistence
-- [ ] Chart color customization
-- [ ] Drawing tools ?!
-- [ ] Subscription purhcase and management
+- [ ] Refactor trend lines stuff out of ChartContainer
 
 The initial features;
 

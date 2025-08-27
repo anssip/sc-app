@@ -4,6 +4,8 @@ excerpt: "New to crypto charting? This comprehensive guide will walk you through
 author: "Spot Canvas Team"
 publishDate: "2025-02-01"
 category: "Education"
+published: true
+featured: false
 ---
 
 Whether you're completely new to cryptocurrency trading or looking to sharpen your charting skills, understanding how to read and analyze crypto charts is essential for making informed trading decisions. This guide will walk you through the fundamentals of crypto charting and how Spot Canvas makes it easier than ever to get started.

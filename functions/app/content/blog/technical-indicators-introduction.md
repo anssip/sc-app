@@ -4,6 +4,7 @@ excerpt: "We're stoked to unveil the biggest upgrade yet to Spot Canvas - a full
 author: "Spot Canvas Team"
 publishDate: "2025-01-30"
 category: "Product Updates"
+published: true
 ---
 
 We're stoked to unveil the biggest upgrade yet to Spot Canvas - a full toolbox of technical indicators for our upcoming charting product. These indicators are for all charting pros and also for all newbies in this area. These new tools will help you spot trends, catch reversals, and trade with more confidence. We here at Spot Canvas just need to finish the rest of the product and after that you will be able to start using these indicators for real.
