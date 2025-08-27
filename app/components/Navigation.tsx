@@ -1,13 +1,15 @@
 import { Link, useLocation } from "@remix-run/react";
 import { useState, useEffect, useRef } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Star } from "lucide-react";
 import AccountMenu from "~/components/AccountMenu";
+import type { BlogPostMeta } from "~/lib/blog.server";
 
 interface NavigationProps {
   showGetStarted?: boolean;
+  featuredPost?: BlogPostMeta | null;
 }
 
-export default function Navigation({ showGetStarted = true }: NavigationProps) {
+export default function Navigation({ showGetStarted = true, featuredPost }: NavigationProps) {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -98,6 +100,17 @@ export default function Navigation({ showGetStarted = true }: NavigationProps) {
           >
             Contact
           </a>
+          {featuredPost && (
+            <Link
+              to={`/blog/${featuredPost.slug}`}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-purple-500 bg-purple-500/10 hover:bg-purple-500/20 transition-colors"
+            >
+              <Star className="h-3.5 w-3.5 text-purple-400" />
+              <span className="text-sm text-purple-300 font-medium whitespace-nowrap max-w-[200px] truncate">
+                {featuredPost.title}
+              </span>
+            </Link>
+          )}
         </div>
 
         {/* Right side - Account Menu and Mobile Menu Button */}
@@ -187,6 +200,17 @@ export default function Navigation({ showGetStarted = true }: NavigationProps) {
                 >
                   Contact
                 </a>
+                {featuredPost && (
+                  <Link
+                    to={`/blog/${featuredPost.slug}`}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-purple-500 bg-purple-500/10"
+                  >
+                    <Star className="h-4 w-4 text-purple-400" />
+                    <span className="text-lg text-purple-300 font-medium">
+                      {featuredPost.title}
+                    </span>
+                  </Link>
+                )}
               </div>
             </div>
           </div>

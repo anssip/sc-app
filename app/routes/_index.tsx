@@ -1,6 +1,6 @@
 import type { MetaFunction, LoaderFunction } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { Link, useNavigate } from "@remix-run/react";
+import { Link, useNavigate, useLoaderData } from "@remix-run/react";
 import { useAuth } from "~/lib/auth-context";
 import { useSubscription } from "~/contexts/SubscriptionContext";
 import Button from "~/components/Button";
@@ -9,11 +9,14 @@ import Accordion from "~/components/Accordion";
 import FeatureCard from "~/components/FeatureCard";
 import Footer from "~/components/Footer";
 import { getCacheHeaders, CacheProfiles } from "~/lib/cache.server";
+import { getFeaturedBlogPost } from "~/lib/blog.server";
 import { BarChart3, Code2, Brain } from "lucide-react";
 
 export const loader: LoaderFunction = async () => {
+  const featuredPost = await getFeaturedBlogPost();
+  
   return json(
-    {},
+    { featuredPost },
     {
       headers: getCacheHeaders(CacheProfiles.HOMEPAGE),
     }
@@ -31,6 +34,7 @@ export const meta: MetaFunction = () => {
 };
 
 export default function Index() {
+  const { featuredPost } = useLoaderData<typeof loader>();
   const { user, loading } = useAuth();
   const { status: subscriptionStatus } = useSubscription();
   const navigate = useNavigate();
@@ -73,7 +77,7 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-primary-dark">
-      <Navigation />
+      <Navigation featuredPost={featuredPost} />
 
       {/* Hero Section */}
       <section className="relative overflow-hidden">

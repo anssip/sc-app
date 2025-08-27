@@ -12,6 +12,8 @@ export interface BlogPost {
   publishDate: string
   category: string
   readingTime?: string
+  published?: boolean
+  featured?: boolean
 }
 
 export interface BlogPostMeta {
@@ -22,6 +24,8 @@ export interface BlogPostMeta {
   publishDate: string
   category: string
   readingTime?: string
+  published?: boolean
+  featured?: boolean
 }
 
 const BLOG_PATH = path.join(process.cwd(), 'app', 'content', 'blog')
@@ -61,14 +65,18 @@ export async function getAllBlogPosts(): Promise<BlogPostMeta[]> {
         author: data.author || 'Spot Canvas Team',
         publishDate: data.publishDate || new Date().toISOString(),
         category: data.category || 'Uncategorized',
-        readingTime
+        readingTime,
+        published: data.published !== undefined ? data.published : true,
+        featured: data.featured || false
       }
     })
     
-    // Sort by publish date, newest first
-    return posts.sort((a, b) => 
-      new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime()
-    )
+    // Filter only published posts and sort by publish date, newest first
+    return posts
+      .filter(post => post.published === true)
+      .sort((a, b) => 
+        new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime()
+      )
   } catch (error) {
     console.error('Error reading blog posts:', error)
     return []
@@ -87,6 +95,14 @@ export async function getBlogPost(slug: string): Promise<BlogPost | null> {
     
     const fileContent = fs.readFileSync(filePath, 'utf-8')
     const { data, content } = matter(fileContent)
+    
+    // Check if the post is published, default to true if not specified
+    const isPublished = data.published !== undefined ? data.published : true
+    
+    // Return null if the post is not published
+    if (!isPublished) {
+      return null
+    }
     
     // Configure marked for better rendering
     marked.setOptions({
@@ -110,12 +126,19 @@ export async function getBlogPost(slug: string): Promise<BlogPost | null> {
       author: data.author || 'Spot Canvas Team',
       publishDate: data.publishDate || new Date().toISOString(),
       category: data.category || 'Uncategorized',
-      readingTime
+      readingTime,
+      published: isPublished,
+      featured: data.featured || false
     }
   } catch (error) {
     console.error(`Error reading blog post ${slug}:`, error)
     return null
   }
+}
+
+export async function getFeaturedBlogPost(): Promise<BlogPostMeta | null> {
+  const posts = await getAllBlogPosts()
+  return posts.find(post => post.featured === true) || null
 }
 
 export function formatDate(dateString: string): string {

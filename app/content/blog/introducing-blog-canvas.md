@@ -5,8 +5,9 @@ date: "2025-01-19"
 author: "Spot Canvas Team"
 description: "We are excited to announce the immediate availability of Spot Canvas - a professional cryptocurrency charting platform with multi-chart layouts, real-time data, technical indicators, and powerful analysis tools."
 tags: ["announcement", "product launch", "crypto", "charting", "technical analysis"]
-featured: true
+featured: false
 category: "Product Updates"
+published: false
 ---
 
 <img src="/icon-logo-accent-1.svg" alt="Spot Canvas Logo" style="width: 70%; height: auto;" class="mb-8" />
