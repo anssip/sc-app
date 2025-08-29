@@ -113,43 +113,21 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
               return;
             }
 
-            // Try the standard setSymbol method first
+            // Use the standard setSymbol method from the library
             if (apiRef.current.setSymbol) {
               try {
                 await apiRef.current.setSymbol(symbol);
-
-                // Wait a moment and check if the symbol actually changed
-                await new Promise((resolve) => setTimeout(resolve, 100));
-                const newSymbol = apiRef.current.getSymbol?.() || "";
-
-                if (newSymbol === symbol) {
-                  // Update the context to trigger persistence
-                  chartSettings.setSymbol(symbol, uniqueChartId.current);
-                  return;
-                } else {
-                  // Force chart re-initialization with new symbol
-                  await reinitializeChart(
-                    symbol,
-                    apiRef.current.getGranularity?.() || "ONE_HOUR"
-                  );
-                  // Update the context after reinit
-                  chartSettings.setSymbol(symbol, uniqueChartId.current);
-                }
+                
+                // Update the context to trigger persistence
+                chartSettings.setSymbol(symbol, uniqueChartId.current);
               } catch (error) {
-                // Fall back to re-initialization
-                await reinitializeChart(
-                  symbol,
-                  apiRef.current.getGranularity?.() || "ONE_HOUR"
-                );
-                // Update the context after reinit
-                chartSettings.setSymbol(symbol);
+                console.error("Failed to set symbol:", error);
+                // Still update context even if the API call fails
+                chartSettings.setSymbol(symbol, uniqueChartId.current);
               }
             } else {
-              await reinitializeChart(
-                symbol,
-                apiRef.current.getGranularity?.() || "ONE_HOUR"
-              );
-              // Update the context after reinit
+              console.warn("setSymbol method not available on API");
+              // Update context anyway
               chartSettings.setSymbol(symbol, uniqueChartId.current);
             }
           }
@@ -161,49 +139,27 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
               return;
             }
 
-            // Try the standard setGranularity method first
+            // Use the standard setGranularity method from the library
             if (apiRef.current.setGranularity) {
               try {
                 await apiRef.current.setGranularity(granularity);
-
-                // Wait a moment and check if the granularity actually changed
-                await new Promise((resolve) => setTimeout(resolve, 100));
-                const newGranularity = apiRef.current.getGranularity?.() || "";
-
-                if (newGranularity === granularity) {
-                  // Update the context to trigger persistence
-                  chartSettings.setGranularity(
-                    granularity,
-                    uniqueChartId.current
-                  );
-                  return;
-                } else {
-                  // Force chart re-initialization with new granularity
-                  await reinitializeChart(
-                    apiRef.current.getSymbol?.() || "BTC-USD",
-                    granularity
-                  );
-                  // Update the context after reinit
-                  chartSettings.setGranularity(
-                    granularity,
-                    uniqueChartId.current
-                  );
-                }
-              } catch (error) {
-                // Fall back to re-initialization
-                await reinitializeChart(
-                  apiRef.current.getSymbol?.() || "BTC-USD",
-                  granularity
+                
+                // Update the context to trigger persistence
+                chartSettings.setGranularity(
+                  granularity,
+                  uniqueChartId.current
                 );
-                // Update the context after reinit
-                chartSettings.setGranularity(granularity);
+              } catch (error) {
+                console.error("Failed to set granularity:", error);
+                // Still update context even if the API call fails
+                chartSettings.setGranularity(
+                  granularity,
+                  uniqueChartId.current
+                );
               }
             } else {
-              await reinitializeChart(
-                apiRef.current.getSymbol?.() || "BTC-USD",
-                granularity
-              );
-              // Update the context after reinit
+              console.warn("setGranularity method not available on API");
+              // Update context anyway
               chartSettings.setGranularity(granularity, uniqueChartId.current);
             }
           }
@@ -403,7 +359,7 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
         api.on("symbolChange", symbolChangeHandlerRef.current);
         api.on("indicatorChange", indicatorChangeHandlerRef.current);
       },
-      [chartSettings, onReady, chartId]
+      [onReady, chartId]
     );
 
     // Function to reinitialize the chart with new parameters
@@ -534,7 +490,7 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
           );
         }
       },
-      [firebaseConfig, chartSettings, setupEventHandlers]
+      [firebaseConfig, setupEventHandlers]
     );
 
     useEffect(() => {
