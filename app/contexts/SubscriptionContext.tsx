@@ -1,9 +1,11 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { getAuth } from 'firebase/auth'
 import { getFirestore, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore'
+import { accountRepository } from '~/services/accountRepository'
+import type { SubscriptionStatus, PlanType } from '~/services/accountRepository'
 
-export type SubscriptionStatus = 'none' | 'trialing' | 'active' | 'past_due' | 'canceled' | 'incomplete' | 'incomplete_expired'
-export type PlanType = 'starter' | 'pro' | 'none'
+// Re-export types from accountRepository for backward compatibility
+export type { SubscriptionStatus, PlanType } from '~/services/accountRepository'
 
 interface SubscriptionData {
   status: SubscriptionStatus
@@ -51,27 +53,22 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       if (!user) {
         console.log('No authenticated user found')
         
-        // Check for existing anonymous preview (but don't initialize it here)
-        const previewKey = 'anonymous_preview_start'
-        const previewStart = localStorage.getItem(previewKey)
+        // Check for preview status using AccountRepository
+        const previewStatus = await accountRepository.getPreviewStatus(null)
         
-        if (previewStart) {
+        if (previewStatus.isPreview) {
           // Preview exists - check its status
-          const startTime = parseInt(previewStart)
-          const elapsedMinutes = (Date.now() - startTime) / (1000 * 60)
-          const isExpired = elapsedMinutes >= PREVIEW_DURATION_MINUTES
-          
           setSubscriptionData({
             status: 'none',
             plan: 'none',
             isLoading: false,
-            previewStartTime: startTime,
-            isPreviewExpired: isExpired,
+            previewStartTime: previewStatus.startTime,
+            isPreviewExpired: previewStatus.isExpired,
           })
           
           // Set a timer to update when preview expires
-          if (!isExpired) {
-            const remainingMs = (PREVIEW_DURATION_MINUTES * 60 * 1000) - (Date.now() - startTime)
+          if (!previewStatus.isExpired && previewStatus.startTime) {
+            const remainingMs = (PREVIEW_DURATION_MINUTES * 60 * 1000) - (Date.now() - previewStatus.startTime)
             if (previewTimer) clearTimeout(previewTimer)
             const timer = setTimeout(() => {
               setSubscriptionData(prev => ({ ...prev, isPreviewExpired: true }))
@@ -92,69 +89,24 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       
       console.log('Fetching subscription for user:', user.uid)
 
-      const idToken = await user.getIdToken()
+      // Use AccountRepository for fetching subscription data
+      // This will return cached data immediately if available
+      const subscription = await accountRepository.getSubscription(user)
       
-      // Fetch user's subscriptions
-      const response = await fetch('https://billing-server-346028322665.europe-west1.run.app/api/subscriptions', {
-        headers: {
-          'Authorization': `Bearer ${idToken}`,
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch subscriptions')
-      }
-
-      const data = await response.json()
-      const subscriptions = data.subscriptions || []
-      
-      console.log('Subscriptions from API:', subscriptions)
-      console.log('Price to plan mapping:', PRICE_TO_PLAN)
-      console.log('Environment variables:', {
-        starter: import.meta.env.VITE_STRIPE_PRICE_ID_STARTER,
-        pro: import.meta.env.VITE_STRIPE_PRICE_ID_PRO
-      })
-      
-      // Find the most relevant subscription (prioritize active/trialing, then any other)
-      const activeSubscription = subscriptions.find(
-        (sub: any) => sub.status === 'active' || sub.status === 'trialing'
-      ) || subscriptions[0] // fallback to first subscription (including canceled)
-
-      if (activeSubscription) {
-        const plan = PRICE_TO_PLAN[activeSubscription.price_id] || 'none'
-        
-        // If we have a subscription but plan mapping failed, try to infer from price
-        let finalPlan = plan
-        if (plan === 'none' && activeSubscription.price_id) {
-          // Check if price_id contains hints about the plan
-          if (activeSubscription.price_id.toLowerCase().includes('starter') || 
-              activeSubscription.price_id.toLowerCase().includes('basic')) {
-            finalPlan = 'starter'
-            console.log('Inferred starter plan from price_id')
-          } else if (activeSubscription.price_id.toLowerCase().includes('pro') || 
-                     activeSubscription.price_id.toLowerCase().includes('premium')) {
-            finalPlan = 'pro'
-            console.log('Inferred pro plan from price_id')
-          } else {
-            // Default to starter if we have ANY active subscription but can't determine the plan
-            // This ensures users with active subscriptions at least get starter limits
-            console.warn('Could not determine plan from price_id, defaulting to starter:', activeSubscription.price_id)
-            finalPlan = 'starter'
-          }
-        }
-        
+      if (subscription) {
         console.log('Setting subscription data:', {
-          status: activeSubscription.status,
-          plan: finalPlan,
-          price_id: activeSubscription.price_id,
-          mapped_plan: plan
+          status: subscription.status,
+          plan: subscription.plan,
+          subscriptionId: subscription.subscriptionId
         })
         
         setSubscriptionData({
-          status: activeSubscription.status,
-          plan: finalPlan,
-          subscriptionId: activeSubscription.subscription_id,
-          trialEndsAt: activeSubscription.trial_end ? new Date(activeSubscription.trial_end * 1000) : undefined,
+          status: subscription.status,
+          plan: subscription.plan,
+          subscriptionId: subscription.subscriptionId,
+          trialEndsAt: subscription.trialEndsAt,
+          currentPeriodEnd: subscription.currentPeriodEnd,
+          customerId: subscription.customerId,
           isLoading: false,
         })
       } else {
@@ -191,37 +143,47 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
           console.error('Error querying Firestore:', firestoreError)
         }
         
-        // If still no subscription found, set to none and start preview timer for new users
-        // Use user-specific key for authenticated users, anonymous key for non-authenticated
-        const previewKey = user ? `preview_start_${user.uid}` : 'anonymous_preview_start'
-        let previewStart = localStorage.getItem(previewKey)
+        // If still no subscription found, check preview status
+        const previewStatus = await accountRepository.getPreviewStatus(user)
         
-        if (!previewStart) {
+        if (!previewStatus.isPreview) {
           // First time user - start the preview timer
-          previewStart = Date.now().toString()
-          localStorage.setItem(previewKey, previewStart)
-        }
-        
-        const startTime = parseInt(previewStart)
-        const elapsedMinutes = (Date.now() - startTime) / (1000 * 60)
-        const isExpired = elapsedMinutes >= PREVIEW_DURATION_MINUTES
-        
-        setSubscriptionData({
-          status: 'none',
-          plan: 'none',
-          isLoading: false,
-          previewStartTime: startTime,
-          isPreviewExpired: isExpired,
-        })
-        
-        // Set a timer to update when preview expires
-        if (!isExpired) {
-          const remainingMs = (PREVIEW_DURATION_MINUTES * 60 * 1000) - (Date.now() - startTime)
+          accountRepository.startPreview(user)
+          const newPreviewStatus = await accountRepository.getPreviewStatus(user)
+          
+          setSubscriptionData({
+            status: 'none',
+            plan: 'none',
+            isLoading: false,
+            previewStartTime: newPreviewStatus.startTime,
+            isPreviewExpired: false,
+          })
+          
+          // Set a timer to update when preview expires
+          const remainingMs = PREVIEW_DURATION_MINUTES * 60 * 1000
           if (previewTimer) clearTimeout(previewTimer)
           const timer = setTimeout(() => {
             setSubscriptionData(prev => ({ ...prev, isPreviewExpired: true }))
           }, remainingMs)
           setPreviewTimer(timer)
+        } else {
+          setSubscriptionData({
+            status: 'none',
+            plan: 'none',
+            isLoading: false,
+            previewStartTime: previewStatus.startTime,
+            isPreviewExpired: previewStatus.isExpired,
+          })
+          
+          // Set a timer to update when preview expires
+          if (!previewStatus.isExpired && previewStatus.startTime) {
+            const remainingMs = (PREVIEW_DURATION_MINUTES * 60 * 1000) - (Date.now() - previewStatus.startTime)
+            if (previewTimer) clearTimeout(previewTimer)
+            const timer = setTimeout(() => {
+              setSubscriptionData(prev => ({ ...prev, isPreviewExpired: true }))
+            }, remainingMs)
+            setPreviewTimer(timer)
+          }
         }
       }
     } catch (error) {
@@ -236,6 +198,9 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     // Listen for auth state changes
     const auth = getAuth()
     const unsubscribe = auth.onAuthStateChanged((user) => {
+      // Update the account repository with current user
+      accountRepository.setCurrentUser(user)
+      
       if (user) {
         refreshSubscription()
       } else {
@@ -246,9 +211,26 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         })
       }
     })
+    
+    // Subscribe to subscription updates from the repository
+    const unsubscribeFromRepo = accountRepository.subscribeToSubscription((subscriptionData) => {
+      if (subscriptionData) {
+        console.log('Subscription updated from repository:', subscriptionData)
+        setSubscriptionData({
+          status: subscriptionData.status,
+          plan: subscriptionData.plan,
+          subscriptionId: subscriptionData.subscriptionId,
+          trialEndsAt: subscriptionData.trialEndsAt,
+          currentPeriodEnd: subscriptionData.currentPeriodEnd,
+          customerId: subscriptionData.customerId,
+          isLoading: false,
+        })
+      }
+    })
 
     return () => {
       unsubscribe()
+      unsubscribeFromRepo()
       if (previewTimer) clearTimeout(previewTimer)
     }
   }, [])

@@ -101,6 +101,37 @@ export default function App() {
         script.src = 'https://assets.customer.io/assets/track.js';
         document.body.appendChild(script);
       }
+      
+      // Register service worker for offline support and caching
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js')
+          .then((registration) => {
+            console.log('Service Worker registered with scope:', registration.scope);
+            
+            // Listen for updates
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              if (newWorker) {
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    console.log('New service worker available, reload for updates');
+                  }
+                });
+              }
+            });
+          })
+          .catch((error) => {
+            console.error('Service Worker registration failed:', error);
+          });
+          
+        // Listen for messages from service worker
+        navigator.serviceWorker.addEventListener('message', (event) => {
+          if (event.data.type === 'SUBSCRIPTION_UPDATED') {
+            console.log('Subscription data updated via service worker');
+            // The subscription context will automatically pick up the new data
+          }
+        });
+      }
     }
   }, []);
 

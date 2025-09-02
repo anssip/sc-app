@@ -3,6 +3,7 @@ import { User, onAuthStateChanged, reload } from 'firebase/auth';
 import { auth, db } from './firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { updateEmailVerificationStatus } from './auth';
+import { accountRepository } from '~/services/accountRepository';
 
 interface AuthContextType {
   user: User | null;
@@ -74,6 +75,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (user) {
         setEmailVerified(user.emailVerified);
         
+        // Warm the cache with user data when they sign in
+        accountRepository.setCurrentUser(user);
+        accountRepository.warmCache(user).then(() => {
+          console.log("Account cache warmed for user:", user.email);
+        }).catch((error) => {
+          console.error("Failed to warm cache:", error);
+        });
+        
         // Set up a periodic check for email verification
         if (!user.emailVerified) {
           const intervalId = setInterval(async () => {
@@ -91,6 +100,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       } else {
         setEmailVerified(false);
+        // Clear cache when user signs out
+        accountRepository.setCurrentUser(null);
       }
       
       setLoading(false);
