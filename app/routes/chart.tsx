@@ -64,12 +64,13 @@ function ChartContent() {
 export default function ChartRoute() {
   return (
     <ProtectedRoute
+      allowPreview={true}
       fallback={
         <div className="min-h-screen-dvh flex items-center justify-center bg-primary-dark">
           <div className="max-w-md w-full">
             <Login
-              title="Authentication Required"
-              description="Please sign in to access the trading chart."
+              title="Preview Expired"
+              description="Your 5-minute preview has ended. Please sign in to continue using the trading charts."
               showFeatures={false}
               layout="vertical"
               className="w-full"

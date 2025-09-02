@@ -256,6 +256,7 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
   // Load trend lines when layout and chart are available
   useEffect(() => {
     const loadTrendLines = async () => {
+      // Skip loading trend lines for anonymous users or when already loaded
       if (!layoutId || !config.id || !user?.email || trendLinesLoaded) return;
 
       try {
@@ -882,6 +883,13 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
                         "📊 ChartContainer: Current trend lines from API:",
                         currentTrendLines
                       );
+                      
+                      // Skip saving trend lines for anonymous users
+                      if (!user?.email) {
+                        console.log("📊 ChartContainer: Skipping trend line save for anonymous user");
+                        return;
+                      }
+                      
                       const repository = getRepository(user.email);
                       await repository.initialize();
 
@@ -938,6 +946,12 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
                 api.on?.("trend-line-deleted", async (event: any) => {
                   if (event.trendLineId) {
                     try {
+                      // Skip deleting trend lines for anonymous users
+                      if (!user?.email) {
+                        console.log("📊 ChartContainer: Skipping trend line delete for anonymous user");
+                        return;
+                      }
+                      
                       const repository = getRepository(user.email);
                       await repository.initialize();
                       await repository.deleteTrendLine(

@@ -42,10 +42,10 @@ export default function Index() {
   // Determine CTA button behavior based on user state (same logic as Navigation)
   const getCtaButtonConfig = () => {
     if (!user) {
-      // User not logged in
+      // User not logged in - offer preview
       return {
-        label: "Get started",
-        onClick: () => navigate("/signin"),
+        label: "See it in action",
+        onClick: () => navigate("/chart"),
       };
     } else if (
       subscriptionStatus === "active" ||

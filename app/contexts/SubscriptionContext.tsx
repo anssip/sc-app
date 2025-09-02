@@ -50,11 +50,43 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       
       if (!user) {
         console.log('No authenticated user found')
-        setSubscriptionData({
-          status: 'none',
-          plan: 'none',
-          isLoading: false,
-        })
+        
+        // Check for existing anonymous preview (but don't initialize it here)
+        const previewKey = 'anonymous_preview_start'
+        const previewStart = localStorage.getItem(previewKey)
+        
+        if (previewStart) {
+          // Preview exists - check its status
+          const startTime = parseInt(previewStart)
+          const elapsedMinutes = (Date.now() - startTime) / (1000 * 60)
+          const isExpired = elapsedMinutes >= PREVIEW_DURATION_MINUTES
+          
+          setSubscriptionData({
+            status: 'none',
+            plan: 'none',
+            isLoading: false,
+            previewStartTime: startTime,
+            isPreviewExpired: isExpired,
+          })
+          
+          // Set a timer to update when preview expires
+          if (!isExpired) {
+            const remainingMs = (PREVIEW_DURATION_MINUTES * 60 * 1000) - (Date.now() - startTime)
+            if (previewTimer) clearTimeout(previewTimer)
+            const timer = setTimeout(() => {
+              setSubscriptionData(prev => ({ ...prev, isPreviewExpired: true }))
+            }, remainingMs)
+            setPreviewTimer(timer)
+          }
+        } else {
+          // No preview started yet - just set basic state
+          setSubscriptionData({
+            status: 'none',
+            plan: 'none',
+            isLoading: false,
+          })
+        }
+        
         return
       }
       
@@ -160,7 +192,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         }
         
         // If still no subscription found, set to none and start preview timer for new users
-        const previewKey = `preview_start_${user.uid}`
+        // Use user-specific key for authenticated users, anonymous key for non-authenticated
+        const previewKey = user ? `preview_start_${user.uid}` : 'anonymous_preview_start'
         let previewStart = localStorage.getItem(previewKey)
         
         if (!previewStart) {

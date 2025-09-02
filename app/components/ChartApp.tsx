@@ -100,6 +100,18 @@ export const ChartApp: React.FC<ChartAppProps> = ({
 
   // Single effect to handle all layout initialization logic
   useEffect(() => {
+    // Check if user is in anonymous preview mode (no user)
+    const isAnonymousPreview = !user && subscriptionStatus === "none" && !subscriptionLoading;
+    
+    // For anonymous preview, immediately use default layout without waiting for repository
+    if (isAnonymousPreview && !isInitialized) {
+      console.log("Anonymous preview mode - using default layout");
+      setCurrentLayout(createDefaultLayout());
+      setCurrentLayoutId(null);
+      setIsInitialized(true);
+      return;
+    }
+    
     const isLoading = repoLoading || layoutsLoading || settingsLoading;
 
     // Don't initialize if still loading or already initialized
@@ -174,13 +186,16 @@ export const ChartApp: React.FC<ChartAppProps> = ({
     currentLayout,
     initialLayout,
     isInitialized,
-    user?.email,
+    user,
+    subscriptionStatus,
+    subscriptionLoading,
     setActiveLayout,
   ]);
 
   // Auto-save function
   const autoSaveLayout = useCallback(async () => {
-    if (!currentLayout || !currentLayoutId || !repository) return;
+    // Don't auto-save for anonymous users or when no repository/layoutId
+    if (!currentLayout || !currentLayoutId || !repository || !user) return;
 
     try {
       const charts = new Map<string, ChartConfig>();
@@ -195,7 +210,7 @@ export const ChartApp: React.FC<ChartAppProps> = ({
     } catch (error) {
       console.error("Auto-save failed:", error);
     }
-  }, [currentLayout, currentLayoutId, repository, updateLayout]);
+  }, [currentLayout, currentLayoutId, repository, updateLayout, user]);
 
   // Handle layout changes from ChartPanel with auto-save
   const handleLayoutChange = useCallback(
@@ -214,9 +229,9 @@ export const ChartApp: React.FC<ChartAppProps> = ({
         console.log("ChartApp: Cleared existing auto-save timeout");
       }
 
-      // Only auto-save for structural changes (panel resizes, splits)
+      // Only auto-save for structural changes (panel resizes, splits) and only for authenticated users
       // Chart data changes are handled by ChartContainer
-      if (currentLayoutId && changeType === "structure") {
+      if (currentLayoutId && changeType === "structure" && user) {
         console.log(
           "ChartApp: Setting auto-save timeout for structural change"
         );
@@ -228,13 +243,15 @@ export const ChartApp: React.FC<ChartAppProps> = ({
         console.log("ChartApp: Auto-save not triggered", {
           reason: !currentLayoutId
             ? "No currentLayoutId"
+            : !user
+            ? "No authenticated user"
             : changeType !== "structure"
             ? "Not structure change"
             : "Other",
         });
       }
     },
-    [currentLayoutId, autoSaveLayout]
+    [currentLayoutId, autoSaveLayout, user]
   );
 
   // Handle layout selection from LayoutSelector
