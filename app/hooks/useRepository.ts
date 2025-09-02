@@ -384,6 +384,7 @@ interface UseSymbolsReturn {
 }
 
 export function useSymbols(): UseSymbolsReturn {
+  const { user } = useAuth();
   const {
     repository,
     isLoading: repoLoading,
@@ -393,12 +394,106 @@ export function useSymbols(): UseSymbolsReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Default symbols for preview mode (non-authenticated users)
+  const DEFAULT_PREVIEW_SYMBOLS: Symbol[] = [
+    {
+      id: "coinbase:BTC-USD",
+      exchangeId: "coinbase",
+      symbol: "BTC-USD",
+      baseAsset: "BTC",
+      quoteAsset: "USD",
+      displayName: "Bitcoin",
+      active: true,
+      minOrderSize: 0.00001,
+      maxOrderSize: 10000,
+      tickSize: 0.01,
+      status: "online",
+      tradingDisabled: false,
+      auctionMode: false,
+      productType: "SPOT",
+      quoteCurrencyId: "USD",
+      baseCurrencyId: "BTC",
+      fcmTradingSessionDetails: null,
+      midMarketPrice: "",
+    },
+    {
+      id: "coinbase:ETH-USD",
+      exchangeId: "coinbase",
+      symbol: "ETH-USD",
+      baseAsset: "ETH",
+      quoteAsset: "USD",
+      displayName: "Ethereum",
+      active: true,
+      minOrderSize: 0.0001,
+      maxOrderSize: 10000,
+      tickSize: 0.01,
+      status: "online",
+      tradingDisabled: false,
+      auctionMode: false,
+      productType: "SPOT",
+      quoteCurrencyId: "USD",
+      baseCurrencyId: "ETH",
+      fcmTradingSessionDetails: null,
+      midMarketPrice: "",
+    },
+    {
+      id: "coinbase:SOL-USD",
+      exchangeId: "coinbase",
+      symbol: "SOL-USD",
+      baseAsset: "SOL",
+      quoteAsset: "USD",
+      displayName: "Solana",
+      active: true,
+      minOrderSize: 0.001,
+      maxOrderSize: 10000,
+      tickSize: 0.01,
+      status: "online",
+      tradingDisabled: false,
+      auctionMode: false,
+      productType: "SPOT",
+      quoteCurrencyId: "USD",
+      baseCurrencyId: "SOL",
+      fcmTradingSessionDetails: null,
+      midMarketPrice: "",
+    },
+    {
+      id: "coinbase:DOGE-USD",
+      exchangeId: "coinbase",
+      symbol: "DOGE-USD",
+      baseAsset: "DOGE",
+      quoteAsset: "USD",
+      displayName: "Dogecoin",
+      active: true,
+      minOrderSize: 1,
+      maxOrderSize: 10000000,
+      tickSize: 0.00001,
+      status: "online",
+      tradingDisabled: false,
+      auctionMode: false,
+      productType: "SPOT",
+      quoteCurrencyId: "USD",
+      baseCurrencyId: "DOGE",
+      fcmTradingSessionDetails: null,
+      midMarketPrice: "",
+    },
+  ];
+
   useEffect(() => {
     console.log("useSymbols: Effect triggered", {
+      hasUser: !!user,
       hasRepository: !!repository,
       repoLoading,
       repoError,
     });
+
+    // If no user (preview mode), use default symbols
+    if (!user) {
+      console.log("useSymbols: No user, using default preview symbols");
+      setSymbols(DEFAULT_PREVIEW_SYMBOLS);
+      setIsLoading(false);
+      setError(null);
+      return;
+    }
 
     if (!repository || repoLoading) {
       console.log("useSymbols: Repository not ready, skipping symbol loading");
@@ -426,7 +521,7 @@ export function useSymbols(): UseSymbolsReturn {
     }
 
     loadSymbols();
-  }, [repository, repoLoading]);
+  }, [user, repository, repoLoading]);
 
   const activeSymbols = symbols.filter((symbol) => symbol.active);
 
@@ -440,8 +535,8 @@ export function useSymbols(): UseSymbolsReturn {
   return {
     symbols,
     activeSymbols,
-    isLoading: isLoading || repoLoading,
-    error: error || repoError,
+    isLoading: user ? (isLoading || repoLoading) : false,
+    error: user ? (error || repoError) : null,
     getSymbol,
   };
 }

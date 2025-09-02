@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "~/lib/auth-context";
 import { useRepository } from "./useRepository";
 
 interface UseStarredSymbolsReturn {
@@ -10,12 +11,21 @@ interface UseStarredSymbolsReturn {
 }
 
 export function useStarredSymbols(layoutId?: string): UseStarredSymbolsReturn {
+  const { user } = useAuth();
   const { repository, isLoading: repoLoading, error: repoError } = useRepository();
   const [starredSymbols, setStarredSymbols] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // If no user (preview mode), set empty starred symbols and loading to false
+    if (!user) {
+      setStarredSymbols([]);
+      setIsLoading(false);
+      setError(null);
+      return;
+    }
+
     if (!repository || repoLoading || !layoutId) return;
 
     async function loadStarredSymbols() {
@@ -45,7 +55,7 @@ export function useStarredSymbols(layoutId?: string): UseStarredSymbolsReturn {
     });
 
     return unsubscribe || (() => {});
-  }, [repository, repoLoading, layoutId]);
+  }, [user, repository, repoLoading, layoutId]);
 
   const updateStarredSymbols = async (symbols: string[]): Promise<void> => {
     if (!repository || !layoutId) {
@@ -62,8 +72,8 @@ export function useStarredSymbols(layoutId?: string): UseStarredSymbolsReturn {
 
   return {
     starredSymbols,
-    isLoading: isLoading || repoLoading || !layoutId,
-    error: error || repoError,
+    isLoading: user ? (isLoading || repoLoading || !layoutId) : false,
+    error: user ? (error || repoError) : null,
     updateStarredSymbols,
     isSymbolStarred,
   };
