@@ -1,6 +1,6 @@
 import type { MetaFunction } from "@remix-run/node";
 import { useNavigate, useSearchParams } from "@remix-run/react";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { getAuth } from "firebase/auth";
 import { signUp, signInWithGoogle, getErrorMessage, saveUserPreferences } from "~/lib/auth";
 import { useAuth } from "~/lib/auth-context";
@@ -16,9 +16,6 @@ export const meta: MetaFunction = () => {
 };
 
 export default function SignUp() {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const { user } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -28,6 +25,11 @@ export default function SignUp() {
   });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Initialize hooks after state
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   
   // Check if user came from pricing/payment flow
   const fromPricing = searchParams.get('from') === 'pricing';
