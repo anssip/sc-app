@@ -110,3 +110,5 @@ functions/lib/
 functions/build/
 functions/rs-charts/
 functions/package.json.bak
+
+.playwright-mcp/
