@@ -1,5 +1,5 @@
 // Service Worker for Spot Canvas - Background Sync & Caching
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE_NAME = `spotcanvas-cache-${CACHE_VERSION}`;
 const API_CACHE_NAME = `spotcanvas-api-${CACHE_VERSION}`;
 
@@ -67,6 +67,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   
+  // Skip external third-party requests (Google Analytics, Firestore, etc.)
+  if (!url.origin.includes(self.location.origin) && 
+      !url.hostname.includes('billing-server')) {
+    return; // Let the browser handle these normally
+  }
+  
   // Handle API requests with cache-first strategy
   if (url.hostname.includes('billing-server') && url.pathname.includes('/api/subscriptions')) {
     event.respondWith(handleAPIRequest(request));
@@ -88,10 +94,25 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   
-  // Network-first for everything else
+  // Network-first for everything else (same-origin requests)
   event.respondWith(
-    fetch(request).catch(() => {
-      return caches.match(request);
+    fetch(request).then((response) => {
+      return response;
+    }).catch(() => {
+      return caches.match(request).then((cachedResponse) => {
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        // Return a basic offline response for HTML requests
+        if (request.headers.get('accept')?.includes('text/html')) {
+          return new Response('Offline - Please check your connection', {
+            status: 503,
+            headers: { 'Content-Type': 'text/html' }
+          });
+        }
+        // Return empty response for other requests
+        return new Response('', { status: 503 });
+      });
     })
   );
 });
