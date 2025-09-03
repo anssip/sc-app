@@ -10,11 +10,11 @@ import FeatureCard from "~/components/FeatureCard";
 import Footer from "~/components/Footer";
 import { getCacheHeaders, CacheProfiles } from "~/lib/cache.server";
 import { getFeaturedBlogPost } from "~/lib/blog.server";
-import { BarChart3, Code2, Brain } from "lucide-react";
+import { BarChart3, Code2, Smartphone } from "lucide-react";
 
 export const loader: LoaderFunction = async () => {
   const featuredPost = await getFeaturedBlogPost();
-  
+
   return json(
     { featuredPost },
     {
@@ -268,15 +268,6 @@ export default function Index() {
                 </p>
                 <div className="flex gap-4">
                   <Button
-                    to="/features"
-                    variant="primary"
-                    size="lg"
-                    asLink
-                    className="inline-flex text-center gap-2"
-                  >
-                    Learn more
-                  </Button>
-                  <Button
                     variant="outline"
                     size="lg"
                     outlineColor="var(--color-accent-1)"
@@ -328,11 +319,23 @@ export default function Index() {
               icon={<Code2 className="w-6 h-6" />}
             />
             <FeatureCard
-              title="All Maror Crypto Markets in a clear UX"
-              description="We provide real-time data and analysis for all major crypto markets. We pride in providing the best User Experience in the market."
+              title="Clear UX on both desktops and mobile"
+              description="Our user experience is optimized for both desktop and mobile - mobile UX is a priority for us."
               timeline="Available"
-              icon={<Brain className="w-6 h-6" />}
+              icon={<Smartphone className="w-6 h-6" />}
+              backgroundImage="/phone2.png"
             />
+          </div>
+          <div className="flex justify-center mt-12">
+            <Button
+              to="/features"
+              variant="primary"
+              size="lg"
+              asLink
+              className="inline-flex text-center gap-2"
+            >
+              Learn more
+            </Button>
           </div>
         </div>
       </section>
