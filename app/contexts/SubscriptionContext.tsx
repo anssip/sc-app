@@ -108,6 +108,9 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
           currentPeriodEnd: subscription.currentPeriodEnd,
           customerId: subscription.customerId,
           isLoading: false,
+          // Clear preview-related fields when subscription exists
+          previewStartTime: undefined,
+          isPreviewExpired: undefined,
         })
       } else {
         // If no subscription from API, check Firestore directly for canceled subscriptions
@@ -197,13 +200,50 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     
     // Listen for auth state changes
     const auth = getAuth()
-    const unsubscribe = auth.onAuthStateChanged((user) => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
       // Update the account repository with current user
       accountRepository.setCurrentUser(user)
       
       if (user) {
-        refreshSubscription()
+        // Clear anonymous preview timer when user logs in
+        const anonymousPreviewKey = 'anonymous_preview_start'
+        if (localStorage.getItem(anonymousPreviewKey)) {
+          console.log('Clearing anonymous preview timer on user login')
+          localStorage.removeItem(anonymousPreviewKey)
+        }
+        
+        // Clear any stale cache and force refresh when user logs in
+        console.log('User logged in, forcing subscription refresh for:', user.email)
+        // Force refresh to get fresh data from server on login
+        setSubscriptionData(prev => ({ ...prev, isLoading: true }))
+        const subscription = await accountRepository.getSubscription(user, true) // Force refresh on login
+        
+        if (subscription) {
+          console.log('Fresh subscription data fetched:', {
+            status: subscription.status,
+            plan: subscription.plan,
+            subscriptionId: subscription.subscriptionId
+          })
+          
+          setSubscriptionData({
+            status: subscription.status,
+            plan: subscription.plan,
+            subscriptionId: subscription.subscriptionId,
+            trialEndsAt: subscription.trialEndsAt,
+            currentPeriodEnd: subscription.currentPeriodEnd,
+            customerId: subscription.customerId,
+            isLoading: false,
+            // Clear preview-related fields when subscription exists
+            previewStartTime: undefined,
+            isPreviewExpired: undefined,
+          })
+        } else {
+          // Continue with existing logic for checking Firestore and preview
+          refreshSubscription()
+        }
       } else {
+        // User logged out - clear subscription data
+        console.log('User logged out, clearing subscription data')
         setSubscriptionData({
           status: 'none',
           plan: 'none',
@@ -224,6 +264,9 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
           currentPeriodEnd: subscriptionData.currentPeriodEnd,
           customerId: subscriptionData.customerId,
           isLoading: false,
+          // Clear preview-related fields when subscription exists
+          previewStartTime: undefined,
+          isPreviewExpired: undefined,
         })
       }
     })
