@@ -102,6 +102,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setEmailVerified(false);
         // Clear cache when user signs out
         accountRepository.setCurrentUser(null);
+        // Clear all cached data for clean state
+        accountRepository.clearCache().then(() => {
+          console.log("Cleared account cache on logout");
+        }).catch((error) => {
+          console.error("Failed to clear cache on logout:", error);
+        });
       }
       
       setLoading(false);
