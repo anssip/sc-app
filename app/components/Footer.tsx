@@ -98,6 +98,16 @@ export default function Footer({ variant = "default" }: FooterProps) {
               >
                 Blog
               </Link>
+              <Link
+                to="/manual"
+                className={`block ${
+                  isDark
+                    ? "text-gray-300 hover:text-white"
+                    : "text-black/80 hover:text-black"
+                } font-medium transition-colors text-sm`}
+              >
+                User Manual
+              </Link>
               <a
                 href="mailto:anssi@spotcanvas.com"
                 className={`block ${

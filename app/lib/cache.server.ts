@@ -71,6 +71,22 @@ export const CacheProfiles = {
     staleWhileRevalidate: 3600, // 1 hour stale-while-revalidate
   },
 
+  // Manual entries - cache for 10 minutes, allow stale content while revalidating
+  MANUAL_ENTRY: {
+    public: true,
+    maxAge: 600, // 10 minutes browser cache
+    sMaxAge: 1200, // 20 minutes CDN cache
+    staleWhileRevalidate: 3600, // 1 hour stale-while-revalidate
+  },
+
+  // Manual index - shorter cache for list pages
+  MANUAL_INDEX: {
+    public: true,
+    maxAge: 120, // 2 minutes browser cache
+    sMaxAge: 300, // 5 minutes CDN cache
+    staleWhileRevalidate: 600, // 10 minutes stale-while-revalidate
+  },
+
   // User-specific content - no public caching
   PRIVATE: {
     public: false,
