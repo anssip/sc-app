@@ -20,8 +20,10 @@ export function useMCPClient(userId?: string) {
     }
 
     try {
-      // Get the function URL - use production since emulator has CORS issues
-      const functionUrl = 'https://us-central1-spotcanvas-prod.cloudfunctions.net/mcpServer/chat';
+      // Get the function URL - use environment variable for dev/prod
+      const functionUrl = import.meta.env.VITE_MCP_SERVER_URL 
+        ? `${import.meta.env.VITE_MCP_SERVER_URL}/chat`
+        : 'https://us-central1-spotcanvas-prod.cloudfunctions.net/mcpServer/chat';
 
       const response = await fetch(functionUrl, {
         method: 'POST',
@@ -98,7 +100,9 @@ export function useMCPClient(userId?: string) {
     if (!userId) return [];
 
     try {
-      const functionUrl = `https://us-central1-spotcanvas-prod.cloudfunctions.net/mcpServer/chat/history/${userId}?sessionId=${sessionId}`;
+      const baseUrl = import.meta.env.VITE_MCP_SERVER_URL 
+        || 'https://us-central1-spotcanvas-prod.cloudfunctions.net/mcpServer';
+      const functionUrl = `${baseUrl}/chat/history/${userId}?sessionId=${sessionId}`;
 
       const response = await fetch(functionUrl, {
         credentials: 'omit',
@@ -127,7 +131,9 @@ export function useMCPClient(userId?: string) {
     if (!userId) return;
 
     try {
-      const functionUrl = `https://us-central1-spotcanvas-prod.cloudfunctions.net/mcpServer/chat/history/${userId}`;
+      const baseUrl = import.meta.env.VITE_MCP_SERVER_URL 
+        || 'https://us-central1-spotcanvas-prod.cloudfunctions.net/mcpServer';
+      const functionUrl = `${baseUrl}/chat/history/${userId}`;
 
       const response = await fetch(functionUrl, {
         method: 'DELETE',

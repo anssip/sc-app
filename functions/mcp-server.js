@@ -3,13 +3,26 @@ import express from 'express';
 import cors from 'cors';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { initializeApp, getApps } from 'firebase-admin/app';
+import dotenv from 'dotenv';
+
+// Load environment variables from .env file - force override any existing vars
+dotenv.config({ override: true });
 
 // Initialize Firebase Admin
 if (getApps().length === 0) {
   initializeApp();
 }
 
+// Connect to emulator if running locally
 const db = getFirestore();
+if (process.env.FUNCTIONS_EMULATOR_HOST || process.env.FIRESTORE_EMULATOR_HOST) {
+  console.log('Using Firestore emulator for mcpServer');
+  const apiKey = process.env.OPENAI_API_KEY;
+  console.log('API Key loaded:', apiKey ? 'Yes' : 'No');
+  if (apiKey) {
+    console.log('API Key ending:', apiKey.substring(apiKey.length - 4));
+  }
+}
 const app = express();
 
 // Lazy load OpenAI service to avoid initialization errors
@@ -28,9 +41,11 @@ const corsOptions = {
     // Allow requests with no origin (like mobile apps or curl)
     if (!origin) return callback(null, true);
     
-    // Allow localhost for development
+    // Allow localhost for development (including common Vite ports)
     if (origin.startsWith('http://localhost:') || 
         origin.startsWith('https://localhost:') ||
+        origin.startsWith('http://127.0.0.1:') ||
+        origin.startsWith('https://127.0.0.1:') ||
         origin.includes('spotcanvas-prod.web.app') ||
         origin.includes('spotcanvas-prod.firebaseapp.com')) {
       callback(null, true);
@@ -58,7 +73,14 @@ app.options('*', (req, res) => {
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ status: 'healthy', service: 'mcp-server' });
+  const isEmulator = !!(process.env.FUNCTIONS_EMULATOR_HOST || process.env.FIRESTORE_EMULATOR_HOST);
+  res.json({ 
+    status: 'healthy', 
+    service: 'mcp-server',
+    emulator: isEmulator,
+    firestoreEmulator: process.env.FIRESTORE_EMULATOR_HOST || 'not set',
+    functionsEmulator: process.env.FUNCTIONS_EMULATOR_HOST || 'not set'
+  });
 });
 
 // Main chat endpoint
@@ -222,8 +244,8 @@ export const mcpServer = onRequest(
     memory: '1GiB',
     timeoutSeconds: 300, // 5 minutes for streaming
     maxInstances: 100,
-    region: 'us-central1',
-    secrets: ['OPENAI_API_KEY']
+    region: 'us-central1'
+    // Removed secrets config to use .env file for local dev
   },
   app
 );

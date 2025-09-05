@@ -16,8 +16,11 @@
     "deploy": "NODE_ENV=production bash scripts/prepare-functions.sh && NODE_ENV=production firebase deploy",
     "deploy:hosting": "NODE_ENV=production bun run build && NODE_ENV=production firebase deploy --only hosting",
     "deploy:functions": "NODE_ENV=production bash scripts/prepare-functions.sh && NODE_ENV=production firebase deploy --only functions",
-    "firebase:emulators": "firebase emulators:start",
-    "firebase:login": "firebase login"
+    "firebase:emulators": "firebase emulators:start --only functions,firestore",
+    "firebase:emulators:all": "firebase emulators:start",
+    "firebase:login": "firebase login",
+    "emulators:dev": "FIRESTORE_EMULATOR_HOST=localhost:8090 FUNCTIONS_EMULATOR_HOST=localhost:5001 firebase emulators:start --only functions,firestore",
+    "emulators:mcp": "cd functions && npm run build && cd .. && firebase emulators:start --only functions:mcpServer,firestore --project spotcanvas-prod"
   },
   "dependencies": {
     "@anssipiirainen/sc-charts": "^0.1.5",
