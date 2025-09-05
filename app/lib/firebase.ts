@@ -1,6 +1,6 @@
 import { FirebaseApp, initializeApp, getApps } from "firebase/app";
-import { getAuth, Auth } from "firebase/auth";
-import { getFirestore, Firestore } from "firebase/firestore";
+import { getAuth, Auth, connectAuthEmulator } from "firebase/auth";
+import { getFirestore, Firestore, connectFirestoreEmulator } from "firebase/firestore";
 
 // Firebase configuration
 // These are client-side keys and safe to expose
@@ -26,6 +26,29 @@ if (getApps().length === 0) {
 
 auth = getAuth(app);
 db = getFirestore(app);
+
+// Connect to emulators in development
+if (typeof window !== 'undefined' && import.meta.env.DEV) {
+  // Check if we haven't already connected to avoid errors
+  if (!window.localStorage.getItem('firebase-emulator-warning')) {
+    try {
+      // Connect to Firestore emulator
+      connectFirestoreEmulator(db, 'localhost', 8090);
+      console.log('Connected to Firestore emulator on localhost:8090');
+      
+      // Connect to Auth emulator if available
+      if (import.meta.env.VITE_FIREBASE_AUTH_EMULATOR_HOST) {
+        connectAuthEmulator(auth, import.meta.env.VITE_FIREBASE_AUTH_EMULATOR_HOST, { disableWarnings: true });
+        console.log('Connected to Auth emulator on', import.meta.env.VITE_FIREBASE_AUTH_EMULATOR_HOST);
+      }
+      
+      // Set flag to prevent reconnection attempts
+      window.localStorage.setItem('firebase-emulator-warning', 'true');
+    } catch (error) {
+      console.warn('Failed to connect to Firebase emulators:', error);
+    }
+  }
+}
 
 export { auth, db, firebaseConfig };
 export default app;
