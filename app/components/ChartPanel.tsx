@@ -38,6 +38,7 @@ interface ChartPanelProps {
     changeType?: "chart-data" | "structure"
   ) => void;
   className?: string;
+  onChartApiReady?: (api: any) => void;
 }
 
 const defaultChartConfig: ChartConfig = {
@@ -79,7 +80,8 @@ const renderPanelGroup = (
     changeType?: "chart-data" | "structure"
   ) => void,
   rootLayout?: PanelLayout,
-  parentPath: string = ""
+  parentPath: string = "",
+  onChartApiReady?: (api: any) => void
 ): React.ReactNode => {
   const currentPath = parentPath ? `${parentPath}.${layout.id}` : layout.id;
 
@@ -124,6 +126,7 @@ const renderPanelGroup = (
               onLayoutChange(updatedRootLayout, "chart-data");
             }
           }}
+          onApiReady={onChartApiReady}
         />
       </Panel>
     );
@@ -188,7 +191,8 @@ const renderPanelGroup = (
                 layoutId,
                 onLayoutChange,
                 rootLayout || layout,
-                currentPath
+                currentPath,
+                onChartApiReady
               )}
               {index < layout.children!.length - 1 && (
                 <ResizeHandle direction={layout.direction || "horizontal"} />
@@ -208,6 +212,7 @@ export const ChartPanel: React.FC<ChartPanelProps> = ({
   layoutId,
   onLayoutChange,
   className = "",
+  onChartApiReady,
 }) => {
   const handleLayoutChange = useCallback(
     (sizes: number[]) => {
@@ -238,13 +243,13 @@ export const ChartPanel: React.FC<ChartPanelProps> = ({
         {layout.children
           ? layout.children.map((child, index) => (
               <React.Fragment key={child.id}>
-                {renderPanelGroup(child, layoutId, onLayoutChange, layout, "")}
+                {renderPanelGroup(child, layoutId, onLayoutChange, layout, "", onChartApiReady)}
                 {index < layout.children!.length - 1 && (
                   <ResizeHandle direction={layout.direction || "horizontal"} />
                 )}
               </React.Fragment>
             ))
-          : renderPanelGroup(layout, layoutId, onLayoutChange, layout, "")}
+          : renderPanelGroup(layout, layoutId, onLayoutChange, layout, "", onChartApiReady)}
       </PanelGroup>
     </div>
   );

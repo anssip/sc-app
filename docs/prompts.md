@@ -214,3 +214,85 @@ Let implement plan specific limitations to the functionality of the app. These a
 - When the subcription is in trial mode, for both the Starter and Pro plans, the user has access to all features.
 - When the subscription is active (trial expired), the Starter plan has the following limitations: Only two saved layouts can be created, and only two indicators per chart can be added.
 - The existing logic applies when there is no active subscription and no trial in progress: It prompts to subscribe to a plan.
+
+# MCP Server
+
+Create an MCP server implemented as a Cloud function hosted in Google Cloud and called by this Firebase app.
+
+There will be an AI chat in the user interface that can be used to interact with the chart. See LLM_ARCHITECTURE.md for details.
+
+The MCP server should expose all the methods that the chart API has as tools. See CHART_API_REFERENCE.md for details.
+
+The MCP also needs a tool for accessing price data from Firestore. To implement this, the server can read data directly from Firestore. See PRICE_INFO_FIRESTORE.md for details.
+
+On the backend, you:
+
+- Use OpenAI’s Assistants API with MCP tool support.
+- Register your chart tools (get_candles, set_symbol, etc.).
+- Stream responses and tool calls back to the React client.
+
+Here is an example partial implementation:
+
+```javascript
+import express from "express";
+import { OpenAI } from "openai";
+import { Server } from "socket.io";
+
+const app = express();
+app.use(express.json());
+const io = new Server(3001); // socket.io server for chart updates
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+app.post("/api/chat", async (req, res) => {
+  const { messages } = req.body;
+
+  // Send to OpenAI with MCP tool definitions
+  const response = await openai.chat.completions.create({
+    model: "gpt-4.1", // or gpt-5 when available
+    messages,
+    tools: [
+      {
+        type: "function",
+        function: {
+          name: "get_candles",
+          description: "Fetch OHLC candles",
+          parameters: {
+            type: "object",
+            properties: {
+              symbol: { type: "string" },
+              timeframe: { type: "string" },
+              limit: { type: "number" }
+            }
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "set_symbol",
+          description: "Change chart symbol",
+          parameters: {
+            type: "object",
+            properties: { symbol: { type: "string" } }
+          }
+        }
+      }
+    ]
+  });
+
+  // If the LLM called a tool
+  const choice = response.choices[0].message;
+  if (choice.tool_calls) {
+    for (const tool of choice.tool_calls) {
+      if (tool.function.name === "set_symbol") {
+        io.emit("set_symbol", tool.function.arguments); // broadcast to chart
+      }
+    }
+  }
+
+  res.json({ reply: choice.content });
+});
+
+app.listen(3000, () => console.log("API server running on http://localhost:3000"));
+```

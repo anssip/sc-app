@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ChartPanel } from "./ChartPanel";
 import { AppToolbar } from "./AppToolbar";
 import PWAInstallBanner from "./PWAInstallBanner";
+import { AIChatPanel } from "./AIChatPanel";
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import {
   useRepository,
   useLayouts,
@@ -79,6 +81,8 @@ export const ChartApp: React.FC<ChartAppProps> = ({
   const [currentLayoutId, setCurrentLayoutId] = useState<string | null>(null);
   const [migrationStatus, setMigrationStatus] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [showAIChat, setShowAIChat] = useState(false);
+  const [chartApi, setChartApi] = useState<any>(null);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastChangeTypeRef = useRef<LayoutChangeType>("unknown");
   const isChartDataUpdateRef = useRef(false);
@@ -97,6 +101,19 @@ export const ChartApp: React.FC<ChartAppProps> = ({
     defaultSize: 100,
     minSize: 20,
   });
+
+  // Keyboard shortcut for AI Chat (Cmd/Ctrl + Shift + A)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'A') {
+        e.preventDefault();
+        setShowAIChat(prev => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Single effect to handle all layout initialization logic
   useEffect(() => {
@@ -406,16 +423,37 @@ export const ChartApp: React.FC<ChartAppProps> = ({
         hasPreviewAccess={hasPreviewAccess}
         previewStartTime={previewStartTime}
         onPreviewExpire={() => window.location.reload()}
+        showAIChat={showAIChat}
+        onToggleAIChat={() => setShowAIChat(prev => !prev)}
       />
 
-      {/* Chart Panel */}
+      {/* Chart Panel with AI Chat */}
       <div className={`flex-1 relative bg-black ${isMobile() ? 'pb-5' : ''}`}>
-        <ChartPanel
-          layout={currentLayout}
-          layoutId={currentLayoutId || undefined}
-          onLayoutChange={handleLayoutChange}
-          className="h-full"
-        />
+        <PanelGroup direction="horizontal" className="h-full">
+          {/* AI Chat Panel */}
+          {showAIChat && (
+            <>
+              <Panel defaultSize={25} minSize={15} maxSize={40}>
+                <AIChatPanel 
+                  onClose={() => setShowAIChat(false)}
+                  chartApi={chartApi}
+                />
+              </Panel>
+              <PanelResizeHandle className="w-1 bg-gray-800 hover:bg-gray-700 transition-colors" />
+            </>
+          )}
+          
+          {/* Main Chart Panel */}
+          <Panel>
+            <ChartPanel
+              layout={currentLayout}
+              layoutId={currentLayoutId || undefined}
+              onLayoutChange={handleLayoutChange}
+              className="h-full"
+              onChartApiReady={setChartApi}
+            />
+          </Panel>
+        </PanelGroup>
 
         {/* Subscription Overlay - dims charts and blocks interaction when no subscription */}
         {shouldShowSubscriptionOverlay && (

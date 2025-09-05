@@ -24,6 +24,7 @@ interface SCChartProps {
   onReady?: () => void;
   onError?: (error: string) => void;
   chartId?: string;
+  onApiReady?: (api: ChartApi) => void;
 }
 
 export interface SCChartRef {
@@ -38,7 +39,7 @@ export interface SCChartRef {
 
 export const SCChart = forwardRef<SCChartRef, SCChartProps>(
   (
-    { firestore, initialState, className, style, onReady, onError, chartId },
+    { firestore, initialState, className, style, onReady, onError, chartId, onApiReady },
     ref
   ) => {
     console.log(`📈 SCChart: Component initialized with initialState:`, {
@@ -477,6 +478,11 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
           appRef.current = app;
           apiRef.current = api;
 
+          // Call onApiReady if provided
+          if (onApiReady && api) {
+            onApiReady(api);
+          }
+
           // Re-attach event handlers after reinit with preserved indicators
           setupEventHandlers(api, {
             ...newInitialState,
@@ -685,6 +691,10 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
         // Mark API as ready when it's assigned
         if (api) {
           console.log(`📈 SCChart: API initialized and assigned to apiRef`);
+          // Call the onApiReady callback if provided
+          if (onApiReady) {
+            onApiReady(api);
+          }
         }
 
         // Set up event handlers

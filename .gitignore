@@ -112,3 +112,5 @@ functions/rs-charts/
 functions/package.json.bak
 
 .playwright-mcp/
+functions/.env
+functions/.secret.local

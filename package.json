@@ -20,7 +20,7 @@
     "firebase:login": "firebase login"
   },
   "dependencies": {
-    "@anssipiirainen/sc-charts": "^0.1.4",
+    "@anssipiirainen/sc-charts": "^0.1.5",
     "@headlessui/react": "^2.2.4",
     "@remix-run/node": "^2.16.8",
     "@remix-run/react": "^2.16.8",

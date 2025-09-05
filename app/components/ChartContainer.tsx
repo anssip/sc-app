@@ -35,6 +35,7 @@ interface ChartContainerProps {
   layoutId?: string;
   onRemove?: () => void;
   onConfigUpdate?: (config: ChartConfig) => void;
+  onApiReady?: (api: any) => void;
 }
 
 /**
@@ -51,6 +52,7 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
   layoutId,
   onRemove,
   onConfigUpdate,
+  onApiReady,
 }) => {
   const { updateChart, saveChart, isLoading: chartsLoading } = useCharts();
   const { indicators: availableIndicators = [], isLoading: indicatorsLoading } =
@@ -213,6 +215,7 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
         layoutId={layoutId}
         onRemove={onRemove}
         onConfigUpdate={onConfigUpdate}
+        onApiReady={onApiReady}
       />
     </ChartSettingsProvider>
   );
@@ -223,6 +226,7 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
   layoutId,
   onRemove,
   onConfigUpdate,
+  onApiReady,
 }) => {
   const { updateChart, saveChart } = useCharts();
   const { indicators: availableIndicators = [], isLoading: indicatorsLoading } =
@@ -664,6 +668,7 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
             initialState={initialState}
             style={{ width: "100%", height: "100%" }}
             className="trading-chart"
+            onApiReady={onApiReady}
             chartId={config.id}
             onReady={() => {
               // Set up trend line event listeners when chart is ready

@@ -33,3 +33,6 @@ export const remix = onRequest(
   },
   app
 )
+
+// Export MCP server
+export { mcpServer } from './mcp-server.js'

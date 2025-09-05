@@ -72,6 +72,16 @@ service cloud.firestore {
     // User profiles and preferences - allow authenticated users to manage their own data
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // AI Chat commands - allow users to manage their own commands
+      match /chart_commands/{commandId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // AI Chat history - allow users to manage their own chat history
+      match /chat_history/{messageId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
     }
 
     // Subscriptions - allow querying by firebase_uid field

@@ -2,6 +2,7 @@ import React from 'react'
 import { LayoutSelector } from './LayoutSelector'
 import AccountMenu from './AccountMenu'
 import PreviewTimer from './PreviewTimer'
+import { Bot } from 'lucide-react'
 import type { PanelLayout } from './ChartPanel'
 import type { Repository } from '~/services/repository'
 
@@ -14,6 +15,8 @@ interface AppToolbarProps {
   hasPreviewAccess?: boolean
   previewStartTime?: number | null
   onPreviewExpire?: () => void
+  showAIChat?: boolean
+  onToggleAIChat?: () => void
 }
 
 export const AppToolbar: React.FC<AppToolbarProps> = ({
@@ -25,6 +28,8 @@ export const AppToolbar: React.FC<AppToolbarProps> = ({
   hasPreviewAccess,
   previewStartTime,
   onPreviewExpire,
+  showAIChat,
+  onToggleAIChat,
 }) => {
   return (
     <div className="flex-shrink-0 px-2 sm:px-4 py-2 bg-gray-900 border-b border-gray-800 relative z-[300]">
@@ -69,15 +74,32 @@ export const AppToolbar: React.FC<AppToolbarProps> = ({
           )}
         </div>
 
-        {/* Right side - Layout Selector */}
-        {currentLayout && (
-          <LayoutSelector
-            currentLayout={currentLayout}
-            currentLayoutId={currentLayoutId}
-            onLayoutChange={onLayoutChange}
-            className="flex-shrink-0"
-          />
-        )}
+        {/* Right side - AI Chat Toggle and Layout Selector */}
+        <div className="flex items-center gap-2">
+          {/* AI Chat Toggle - Show even if no callback for better visibility */}
+          <button
+            onClick={onToggleAIChat || (() => console.log('AI Chat toggle not connected'))}
+            className={`p-2 rounded-lg transition-colors ${
+              showAIChat 
+                ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white'
+            }`}
+            title={showAIChat ? 'Close AI Assistant' : 'Open AI Assistant (Cmd/Ctrl + Shift + A)'}
+            aria-label={showAIChat ? 'Close AI Assistant' : 'Open AI Assistant'}
+          >
+            <Bot className="w-5 h-5" />
+          </button>
+
+          {/* Layout Selector */}
+          {currentLayout && (
+            <LayoutSelector
+              currentLayout={currentLayout}
+              currentLayoutId={currentLayoutId}
+              onLayoutChange={onLayoutChange}
+              className="flex-shrink-0"
+            />
+          )}
+        </div>
       </div>
     </div>
   )
