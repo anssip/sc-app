@@ -59,6 +59,55 @@ export function AIChatPanel({
     setInputValue('');
     setIsLoading(true);
 
+    // Get chart context if available
+    let chartContext;
+    if (chartApi) {
+      try {
+        const symbol = chartApi.getSymbol?.();
+        const granularity = chartApi.getGranularity?.();
+        const timeRange = chartApi.getTimeRange?.();
+        const priceRange = chartApi.getPriceRange?.();
+        
+        console.log('Chart API values:', {
+          symbol,
+          symbolType: typeof symbol,
+          granularity,
+          granularityType: typeof granularity,
+          timeRange,
+          priceRange
+        });
+        
+        if (symbol && granularity && timeRange && priceRange) {
+          // Extract raw values from potential proxy objects
+          // Use JSON parse/stringify to break proxy references
+          chartContext = JSON.parse(JSON.stringify({
+            symbol: String(symbol),
+            granularity: String(granularity),
+            timeRange: {
+              start: Number(timeRange.start),
+              end: Number(timeRange.end)
+            },
+            priceRange: {
+              min: Number(priceRange.min),
+              max: Number(priceRange.max),
+              range: Number(priceRange.range || (priceRange.max - priceRange.min))
+            }
+          }));
+          
+          console.log('Chart context prepared:', chartContext);
+        } else {
+          console.warn('Missing chart context values:', {
+            hasSymbol: !!symbol,
+            hasGranularity: !!granularity,
+            hasTimeRange: !!timeRange,
+            hasPriceRange: !!priceRange
+          });
+        }
+      } catch (error) {
+        console.warn('Could not get chart context:', error);
+      }
+    }
+
     try {
       const assistantMessage: Message = {
         id: `assistant-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -71,12 +120,17 @@ export function AIChatPanel({
       setMessages(prev => [...prev, assistantMessage]);
 
       await sendMessage(inputValue, {
+        chartContext,
         onStream: (chunk) => {
           setMessages(prev => {
             const updated = [...prev];
-            const lastMessage = updated[updated.length - 1];
-            if (lastMessage.role === 'assistant') {
-              lastMessage.content += chunk;
+            const lastIndex = updated.length - 1;
+            if (lastIndex >= 0 && updated[lastIndex].role === 'assistant') {
+              // Create a new message object instead of mutating
+              updated[lastIndex] = {
+                ...updated[lastIndex],
+                content: updated[lastIndex].content + chunk
+              };
             }
             return updated;
           });
@@ -84,13 +138,16 @@ export function AIChatPanel({
         onToolCall: (tool, commandId) => {
           setMessages(prev => {
             const updated = [...prev];
-            const lastMessage = updated[updated.length - 1];
-            if (lastMessage.role === 'assistant' && lastMessage.commands) {
-              lastMessage.commands.push({ 
-                id: commandId, 
-                command: tool,
-                status: 'pending' 
-              });
+            const lastIndex = updated.length - 1;
+            if (lastIndex >= 0 && updated[lastIndex].role === 'assistant') {
+              // Create a new message object with updated commands
+              updated[lastIndex] = {
+                ...updated[lastIndex],
+                commands: [
+                  ...(updated[lastIndex].commands || []),
+                  { id: commandId, command: tool, status: 'pending' }
+                ]
+              };
             }
             return updated;
           });
@@ -98,9 +155,13 @@ export function AIChatPanel({
         onError: (error) => {
           setMessages(prev => {
             const updated = [...prev];
-            const lastMessage = updated[updated.length - 1];
-            if (lastMessage.role === 'assistant') {
-              lastMessage.content = `Error: ${error.message}`;
+            const lastIndex = updated.length - 1;
+            if (lastIndex >= 0 && updated[lastIndex].role === 'assistant') {
+              // Create a new message object with error content
+              updated[lastIndex] = {
+                ...updated[lastIndex],
+                content: `Error: ${error.message}`
+              };
             }
             return updated;
           });

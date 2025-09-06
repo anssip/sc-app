@@ -296,3 +296,11 @@ app.post("/api/chat", async (req, res) => {
 
 app.listen(3000, () => console.log("API server running on http://localhost:3000"));
 ```
+
+# chat enhancements
+
+I think it would make sense if the AI Assistant chat client would send some context to the mcpServer. This context can be retrieved from the chart API: the visible time range, the visible price range. This makes it possible for the server to issue commands to draw trend lines, for zooming and panning the chart. What else would be necessary to make it possible to do following prompt:
+
+"Draw a trend line that goes through three high price points, essentially this would represent a resistance level."
+
+The MCP server should somehow know that it can fetch the price history data by fetching it from Firestore. Is it now equipped with a tool that fetches data from Firestore? See docs/PRICE_INFO_FIRESTORE.md

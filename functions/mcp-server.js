@@ -13,15 +13,21 @@ if (getApps().length === 0) {
   initializeApp();
 }
 
-// Connect to emulator if running locally
+// Connect to Firestore (emulator in local dev, production in deployed environment)
 const db = getFirestore();
+
+// Log environment info
 if (process.env.FUNCTIONS_EMULATOR_HOST || process.env.FIRESTORE_EMULATOR_HOST) {
-  console.log('Using Firestore emulator for mcpServer');
-  const apiKey = process.env.OPENAI_API_KEY;
-  console.log('API Key loaded:', apiKey ? 'Yes' : 'No');
-  if (apiKey) {
-    console.log('API Key ending:', apiKey.substring(apiKey.length - 4));
-  }
+  console.log('Using Firestore emulator for chat data');
+  console.log('Price data will be fetched from REST API');
+} else {
+  console.log('Using production Firestore');
+}
+
+const apiKey = process.env.OPENAI_API_KEY;
+console.log('API Key loaded:', apiKey ? 'Yes' : 'No');
+if (apiKey) {
+  console.log('API Key ending:', apiKey.substring(apiKey.length - 4));
 }
 const app = express();
 
@@ -86,7 +92,7 @@ app.get('/health', (req, res) => {
 // Main chat endpoint
 app.post('/chat', async (req, res) => {
   try {
-    const { message, userId, sessionId } = req.body;
+    const { message, userId, sessionId, chartContext } = req.body;
 
     if (!message || !userId) {
       return res.status(400).json({ 
@@ -117,6 +123,7 @@ app.post('/chat', async (req, res) => {
       message,
       userId,
       sessionId: sessionId || 'default',
+      chartContext,
       db,
       onStream: (chunk) => {
         // Send streaming chunk to client

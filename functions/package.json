@@ -4,11 +4,13 @@
   "type": "module",
   "scripts": {
     "prebuild": "cp -r ../build ./",
-    "build": "echo 'Build files copied'",
-    "serve": "firebase emulators:start --only functions",
+    "build:remix": "echo 'Build files copied'",
+    "build": "bun run tsc",
+    "watch": "bun run tsc --watch",
+    "serve": "bun run build && firebase emulators:start --only functions",
     "shell": "firebase functions:shell",
     "start": "npm run shell",
-    "deploy": "firebase deploy --only functions",
+    "deploy": "bun run build && firebase deploy --only functions",
     "logs": "firebase functions:log"
   },
   "engines": {
@@ -42,6 +44,10 @@
   },
   "private": true,
   "devDependencies": {
-    "dotenv": "^17.2.2"
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.3.1",
+    "dotenv": "^17.2.2",
+    "typescript": "^5.9.2"
   }
 }

@@ -1,9 +1,24 @@
 import { useState, useCallback } from 'react';
 
+interface ChartContext {
+  symbol: string;
+  granularity: string;
+  timeRange: {
+    start: number;
+    end: number;
+  };
+  priceRange: {
+    min: number;
+    max: number;
+    range: number;
+  };
+}
+
 interface MCPClientOptions {
   onStream?: (chunk: string) => void;
   onToolCall?: (tool: string, commandId: string) => void;
   onError?: (error: Error) => void;
+  chartContext?: ChartContext;
 }
 
 export function useMCPClient(userId?: string) {
@@ -35,7 +50,8 @@ export function useMCPClient(userId?: string) {
         body: JSON.stringify({
           message,
           userId,
-          sessionId
+          sessionId,
+          chartContext: options.chartContext
         })
       });
 
