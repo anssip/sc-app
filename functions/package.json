@@ -5,7 +5,8 @@
   "scripts": {
     "prebuild": "cp -r ../build ./",
     "build:remix": "echo 'Build files copied'",
-    "build": "bun run tsc",
+    "clean": "rm -rf dist",
+    "build": "bun run clean && bun run tsc",
     "watch": "bun run tsc --watch",
     "serve": "bun run build && firebase emulators:start --only functions",
     "shell": "firebase functions:shell",

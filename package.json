@@ -20,7 +20,7 @@
     "firebase:emulators:all": "firebase emulators:start",
     "firebase:login": "firebase login",
     "emulators:dev": "FIRESTORE_EMULATOR_HOST=localhost:8090 FUNCTIONS_EMULATOR_HOST=localhost:5001 firebase emulators:start --only functions,firestore",
-    "emulators:mcp": "cd functions && npm run build && cd .. && firebase emulators:start --only functions:mcpServer,firestore --project spotcanvas-prod"
+    "emulators:mcp": "cd functions && bun run build && cd .. && firebase emulators:start --only functions:mcpServer,firestore --project spotcanvas-prod"
   },
   "dependencies": {
     "@anssipiirainen/sc-charts": "^0.1.5",

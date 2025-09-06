@@ -22,14 +22,13 @@
     "allowJs": true,
     "types": ["node"]
   },
-  "include": [
-    "**/*.ts",
-    "**/*.js"
-  ],
+  "include": ["*.ts", "*.js", "lib/**/*.ts", "lib/**/*.js"],
   "exclude": [
     "node_modules",
     "dist",
     "**/*.test.ts",
-    "**/*.spec.ts"
+    "**/*.spec.ts",
+    "build/**/*",
+    "rs-charts/**/*"
   ]
 }
