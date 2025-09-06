@@ -1,6 +1,16 @@
 import { FirebaseApp, initializeApp, getApps } from "firebase/app";
-import { getAuth, Auth, connectAuthEmulator } from "firebase/auth";
-import { getFirestore, Firestore, connectFirestoreEmulator } from "firebase/firestore";
+import {
+  getAuth,
+  Auth,
+  connectAuthEmulator,
+  browserLocalPersistence,
+  setPersistence,
+} from "firebase/auth";
+import {
+  getFirestore,
+  Firestore,
+  connectFirestoreEmulator,
+} from "firebase/firestore";
 
 // Firebase configuration
 // These are client-side keys and safe to expose
@@ -17,6 +27,9 @@ let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
 
+// Track if emulators are connected
+export const isEmulatorMode = () => import.meta.env.DEV;
+
 // Initialize Firebase
 if (getApps().length === 0) {
   app = initializeApp(firebaseConfig);
@@ -27,27 +40,51 @@ if (getApps().length === 0) {
 auth = getAuth(app);
 db = getFirestore(app);
 
-// Connect to emulators in development
-if (typeof window !== 'undefined' && import.meta.env.DEV) {
-  // Check if we haven't already connected to avoid errors
-  if (!window.localStorage.getItem('firebase-emulator-warning')) {
+// Connect to emulators FIRST in development
+if (typeof window !== "undefined" && import.meta.env.DEV) {
+  // Check if emulators are already connected to avoid duplicate connections
+  const emulatorKey = "firebase-emulator-connected";
+
+  // Always try to connect on page load in dev mode
+  if (!auth.emulatorConfig) {
     try {
-      // Connect to Firestore emulator
-      connectFirestoreEmulator(db, 'localhost', 8090);
-      console.log('Connected to Firestore emulator on localhost:8090');
-      
-      // Connect to Auth emulator if available
-      if (import.meta.env.VITE_FIREBASE_AUTH_EMULATOR_HOST) {
-        connectAuthEmulator(auth, import.meta.env.VITE_FIREBASE_AUTH_EMULATOR_HOST, { disableWarnings: true });
-        console.log('Connected to Auth emulator on', import.meta.env.VITE_FIREBASE_AUTH_EMULATOR_HOST);
-      }
-      
-      // Set flag to prevent reconnection attempts
-      window.localStorage.setItem('firebase-emulator-warning', 'true');
+      // Connect to Auth emulator
+      connectAuthEmulator(auth, "http://localhost:9099", {
+        disableWarnings: true,
+      });
+      console.log("Connected to Auth emulator on localhost:9099");
     } catch (error) {
-      console.warn('Failed to connect to Firebase emulators:', error);
+      // Silently ignore if already connected
+      if (!error?.message?.includes("already")) {
+        console.warn("Failed to connect to Auth emulator:", error);
+      }
     }
   }
+
+  // Check Firestore emulator connection
+  if (!(db as any)._settings?.host?.includes("localhost:8090")) {
+    try {
+      // Connect to Firestore emulator
+      connectFirestoreEmulator(db, "localhost", 8090);
+      console.log("Connected to Firestore emulator on localhost:8090");
+    } catch (error) {
+      // Silently ignore if already connected
+      if (!error?.message?.includes("already")) {
+        console.warn("Failed to connect to Firestore emulator:", error);
+      }
+    }
+  }
+}
+
+// Set auth persistence AFTER emulator connection
+if (typeof window !== "undefined") {
+  setPersistence(auth, browserLocalPersistence)
+    .then(() => {
+      console.log("Auth persistence set to LOCAL");
+    })
+    .catch((error) => {
+      console.warn("Failed to set auth persistence:", error);
+    });
 }
 
 export { auth, db, firebaseConfig };

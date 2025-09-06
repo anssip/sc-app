@@ -20,7 +20,7 @@
     "firebase:emulators:all": "firebase emulators:start",
     "firebase:login": "firebase login",
     "emulators:dev": "FIRESTORE_EMULATOR_HOST=localhost:8090 FUNCTIONS_EMULATOR_HOST=localhost:5001 firebase emulators:start --only functions,firestore",
-    "emulators:mcp": "cd functions && bun run build && cd .. && firebase emulators:start --only functions:mcpServer,firestore --project spotcanvas-prod"
+    "emulators:mcp": "cd functions && bun run build && cd .. && firebase emulators:start --only functions:mcpServer,firestore,auth --project spotcanvas-prod"
   },
   "dependencies": {
     "@anssipiirainen/sc-charts": "^0.1.5",
@@ -56,6 +56,7 @@
     "eslint-plugin-jsx-a11y": "^6.7.1",
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",
+    "firebase-admin": "^13.5.0",
     "postcss": "^8.4.38",
     "sharp": "^0.34.3",
     "tailwindcss": "^3.4.4",
