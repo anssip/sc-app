@@ -108,24 +108,8 @@ export class WorkflowEngine {
     switch (workflowType) {
       case "TrendLineWorkflow":
         if (result.trendLine) {
-          // First, expand the timeline to ensure all found points are visible
-          // Add a 10% buffer on each side for better visibility
-          const timeBuffer =
-            (result.trendLine.endTime - result.trendLine.startTime) * 0.1;
-
-          toolCalls.push({
-            id: `call_${Date.now()}_expand`,
-            type: "function",
-            function: {
-              name: "set_time_range",
-              arguments: JSON.stringify({
-                startTime: result.trendLine.startTime - timeBuffer,
-                endTime: result.trendLine.endTime + timeBuffer,
-              }),
-            },
-          });
-
-          // Then add the trend line
+          // Add the trend line to the chart
+          // Note: We don't change the chart's time range - let the user control the view
           toolCalls.push({
             id: `call_${Date.now()}_trendline`,
             type: "function",
@@ -211,9 +195,7 @@ export class WorkflowEngine {
       case "TrendLineWorkflow":
         return `Found ${result.points.length} ${result.type} points with ${(
           result.confidence * 100
-        ).toFixed(1)}% confidence. Expanding timeline and adding ${
-          result.type
-        } line to chart.`;
+        ).toFixed(1)}% confidence. Added ${result.type} line to chart.`;
 
       case "PatternRecognitionWorkflow":
         const patterns = result.patterns.map((p: any) => p.type).join(", ");

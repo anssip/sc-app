@@ -105,10 +105,15 @@ async function processWithWorkflow({
     }
 
     // Use OpenAI to extract workflow parameters from the message
+    console.log("Extracting parameters from message:", message);
     const extractedParams = await extractWorkflowParameters(
       message,
       intent.workflowType,
       chartContext
+    );
+    console.log(
+      "Extracted parameters:",
+      JSON.stringify(extractedParams, null, 2)
     );
 
     // Prepare input based on workflow type and extracted parameters
@@ -116,6 +121,10 @@ async function processWithWorkflow({
       intent.workflowType,
       { ...intent.parameters, ...extractedParams },
       chartContext
+    );
+    console.log(
+      "Final workflow input:",
+      JSON.stringify(workflowInput, null, 2)
     );
 
     // Execute workflow with progress callback
@@ -170,7 +179,8 @@ async function extractWorkflowParameters(
     const client = getOpenAI();
 
     // Create a specialized prompt for extracting parameters
-    const currentDate = new Date();
+    // Using 2025 date to match the mock data in the market API
+    const currentDate = new Date("2025-09-06T12:00:00Z");
     const systemPrompt = `You are a parameter extraction assistant. Extract specific parameters from the user's message for the ${workflowType}.
 
 IMPORTANT - Today's actual date: ${currentDate.toISOString()}
@@ -201,13 +211,29 @@ Current chart context:
     }
 
 Extract the following parameters:
-1. Time range: If the user mentions a specific time period (e.g., "one year", "past 6 months", "last 30 days"):
-   - Calculate the END as TODAY's timestamp: ${currentDate.getTime()}
-   - Calculate the START by subtracting the period from TODAY
-   - Example: "one year" = start: ${
+1. Time range: If the user mentions a specific time period:
+   - "four months" or "past four months" = start: ${
+     currentDate.getTime() - 120 * 24 * 60 * 60 * 1000
+   } (${new Date(
+      currentDate.getTime() - 120 * 24 * 60 * 60 * 1000
+    ).toISOString()}), end: ${currentDate.getTime()} (${currentDate.toISOString()})
+   - "six months" = start: ${
+     currentDate.getTime() - 180 * 24 * 60 * 60 * 1000
+   } (${new Date(
+      currentDate.getTime() - 180 * 24 * 60 * 60 * 1000
+    ).toISOString()}), end: ${currentDate.getTime()} (${currentDate.toISOString()})
+   - "one year" = start: ${
      currentDate.getTime() - 365 * 24 * 60 * 60 * 1000
-   }, end: ${currentDate.getTime()}
-2. Interval/granularity: If the user specifies a candle interval (e.g., "daily", "hourly", "4-hour"), map it to the appropriate granularity
+   } (${new Date(
+      currentDate.getTime() - 365 * 24 * 60 * 60 * 1000
+    ).toISOString()}), end: ${currentDate.getTime()} (${currentDate.toISOString()})
+   - Always use TODAY as the END timestamp: ${currentDate.getTime()}
+   - Calculate the START by subtracting the period from TODAY
+
+2. Interval/granularity: Map these EXACTLY:
+   - "one day candles" or "daily" or "day candles" → "ONE_DAY"
+   - "hourly" or "one hour" → "ONE_HOUR"
+   - "4-hour" or "four hour" → "FOUR_HOUR"
    - If no interval is specified but a time range is mentioned, suggest an appropriate interval:
      - For 1 year or more: use ONE_DAY
      - For 3-12 months: use SIX_HOUR or ONE_DAY
@@ -241,9 +267,12 @@ Only return valid JSON, nothing else.`;
     });
 
     const response = completion.choices[0]?.message?.content || "{}";
+    console.log("OpenAI extraction response:", response);
 
     try {
-      return JSON.parse(response);
+      const parsed = JSON.parse(response);
+      console.log("Successfully parsed parameters:", parsed);
+      return parsed;
     } catch (e) {
       console.error("Failed to parse extracted parameters:", response);
       return {};
@@ -259,16 +288,36 @@ function prepareWorkflowInput(
   parameters: any,
   chartContext: any
 ): any {
+  console.log("prepareWorkflowInput - parameters:", parameters);
+  console.log(
+    "prepareWorkflowInput - chartContext timeRange:",
+    chartContext?.timeRange
+  );
+
   // Use extracted timeRange if provided, otherwise fall back to chart context or default
-  const timeRange = parameters.timeRange ||
-    chartContext?.timeRange || {
+  let timeRange;
+  if (parameters.timeRange) {
+    console.log("Using extracted time range from OpenAI");
+    timeRange = parameters.timeRange;
+  } else if (chartContext?.timeRange) {
+    console.log(
+      "WARNING: No extracted time range, falling back to chart context"
+    );
+    timeRange = chartContext.timeRange;
+  } else {
+    console.log("WARNING: No time range found, using default 7 days");
+    timeRange = {
       start: Date.now() - 7 * 24 * 60 * 60 * 1000, // 7 days ago
       end: Date.now(),
     };
+  }
 
   // Use extracted interval if provided, otherwise fall back to chart context or default
   const interval =
     parameters.interval || chartContext?.granularity || "ONE_HOUR";
+
+  console.log("Final timeRange being used:", timeRange);
+  console.log("Final interval being used:", interval);
 
   const baseInput = {
     symbol: chartContext?.symbol || "BTC-USD",

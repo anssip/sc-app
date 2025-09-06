@@ -1,9 +1,5 @@
-import {
-  Workflow,
-  TrendLineInput,
-  TrendLineResult,
-  PriceCandle,
-} from "./types.js";
+import { Workflow, TrendLineInput, TrendLineResult } from "./types.js";
+import { marketAPI, PriceCandle } from "../market-api.js";
 
 export class TrendLineWorkflow
   implements Workflow<TrendLineInput, TrendLineResult>
@@ -69,11 +65,13 @@ export class TrendLineWorkflow
       ).toISOString()} to ${new Date(adjustedEndTime).toISOString()}`
     );
 
-    const priceData = await this.fetchPriceData(
+    // Use the new MarketAPI to fetch data with automatic batching
+    const priceData = await marketAPI.fetchPriceData(
       input.symbol,
       input.interval,
       input.timeRange.start,
-      adjustedEndTime
+      adjustedEndTime,
+      log // Pass the log function for progress updates
     );
 
     log(`✅ Retrieved ${priceData.length} candles`);
@@ -138,9 +136,14 @@ export class TrendLineWorkflow
 
     // Generate trend line parameters for chart
     log(`📈 Generating trend line for chart...`);
+    // Use the adjusted time range (not the original which might be in the future)
+    const adjustedTimeRange = {
+      start: input.timeRange.start,
+      end: adjustedEndTime,
+    };
     const trendLineParams = this.generateTrendLineParams(
       ransacResult.bestLine,
-      input.timeRange
+      adjustedTimeRange
     );
 
     log(`✅ Trend line ready:`);
@@ -161,93 +164,6 @@ export class TrendLineWorkflow
       trendLine: trendLineParams,
       type: input.type,
     };
-  }
-
-  private async fetchPriceData(
-    symbol: string,
-    interval: string,
-    startTime: number,
-    endTime: number
-  ): Promise<PriceCandle[]> {
-    try {
-      // Fetch real price data from the market API
-      const API_BASE_URL = "https://market.spotcanvas.com";
-
-      // Build query parameters
-      const params = new URLSearchParams();
-      params.append("symbol", symbol);
-      params.append("granularity", interval);
-      params.append("startTime", startTime.toString());
-      params.append("endTime", endTime.toString());
-
-      console.log(
-        `Fetching price data from API: ${API_BASE_URL}/history?${params}`
-      );
-      console.log(
-        `• Start timestamp: ${startTime} (${new Date(startTime).toISOString()})`
-      );
-      console.log(
-        `• End timestamp: ${endTime} (${new Date(endTime).toISOString()})`
-      );
-      console.log(`• Interval: ${interval}`);
-
-      const response = await fetch(`${API_BASE_URL}/history?${params}`);
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result: any = await response.json();
-      console.log(`API returned ${result.candles?.length || 0} candles`);
-
-      // Transform the API response to match PriceCandle interface
-      if (!result.candles || !Array.isArray(result.candles)) {
-        throw new Error("Invalid API response: missing candles array");
-      }
-
-      return result.candles.map((candle: any) => ({
-        timestamp: Number(candle.timestamp),
-        open: Number(candle.open),
-        high: Number(candle.high),
-        low: Number(candle.low),
-        close: Number(candle.close),
-        volume: Number(candle.volume || 0),
-      }));
-    } catch (error) {
-      console.error("Error fetching price data from API:", error);
-
-      // Fallback to realistic mock data if API fails
-      console.warn("Using fallback mock data due to API error");
-      const mockData: PriceCandle[] = [];
-      const intervalMs = this.getIntervalMilliseconds(interval);
-      let currentTime = startTime;
-
-      // Use realistic BTC price levels
-      const basePrice = 110000;
-      const volatility = 2000;
-      let previousClose = basePrice;
-
-      while (currentTime <= endTime) {
-        const open = previousClose + (Math.random() - 0.5) * 500;
-        const close = open + (Math.random() - 0.5) * 800;
-        const high = Math.max(open, close) + Math.random() * 600;
-        const low = Math.min(open, close) - Math.random() * 600;
-
-        mockData.push({
-          timestamp: currentTime,
-          open: Math.max(basePrice - volatility * 2, open),
-          high: Math.max(basePrice - volatility * 2, high),
-          low: Math.max(basePrice - volatility * 2, low),
-          close: Math.max(basePrice - volatility * 2, close),
-          volume: 1000000 + Math.random() * 5000000,
-        });
-
-        previousClose = close;
-        currentTime += intervalMs;
-      }
-
-      return mockData;
-    }
   }
 
   private findPeaks(
@@ -438,27 +354,5 @@ export class TrendLineWorkflow
       lineWidth: 2,
       style: "solid",
     };
-  }
-
-  private getIntervalMilliseconds(interval: string): number {
-    const intervals: Record<string, number> = {
-      ONE_MINUTE: 60 * 1000,
-      FIVE_MINUTE: 5 * 60 * 1000,
-      FIVE_MINUTES: 5 * 60 * 1000, // Support both formats
-      FIFTEEN_MINUTE: 15 * 60 * 1000,
-      FIFTEEN_MINUTES: 15 * 60 * 1000,
-      THIRTY_MINUTE: 30 * 60 * 1000,
-      THIRTY_MINUTES: 30 * 60 * 1000,
-      ONE_HOUR: 60 * 60 * 1000,
-      TWO_HOUR: 2 * 60 * 60 * 1000,
-      TWO_HOURS: 2 * 60 * 60 * 1000,
-      FOUR_HOUR: 4 * 60 * 60 * 1000,
-      FOUR_HOURS: 4 * 60 * 60 * 1000,
-      SIX_HOUR: 6 * 60 * 60 * 1000,
-      SIX_HOURS: 6 * 60 * 60 * 1000,
-      ONE_DAY: 24 * 60 * 60 * 1000,
-    };
-
-    return intervals[interval] || 60 * 60 * 1000; // Default to 1 hour
   }
 }
