@@ -330,304 +330,150 @@ async function processWithLLM({
           // Special handling for combined trend line tool
           if (toolCall.function.name === "draw_trend_line_from_analysis") {
             try {
-              // First, analyze price points
-              const analysisArgs = {
-                symbol: args.symbol,
-                interval: args.interval,
-                startTime: args.startTime,
-                endTime: args.endTime,
-                type: args.type === "resistance" ? "highs" : "lows",
-                count: args.count || 2,
-              };
-
-              const analysisResult = await priceTools.execute(
-                "analyze_price_points",
-                analysisArgs,
+              console.log("Using OpenAI to analyze trend lines...");
+              
+              // Fetch candle data for the time range
+              const candleData = await priceTools.execute(
+                "get_price_data",
+                {
+                  symbol: args.symbol,
+                  interval: args.interval,
+                  startTime: args.startTime,
+                  endTime: args.endTime,
+                },
                 db
               );
 
-              console.log("Analysis result for trend line:", analysisResult);
+              console.log(`Fetched ${candleData.candles.length} candles for analysis`);
 
-              // Extract price points
-              const points =
-                args.type === "resistance"
-                  ? analysisResult.highs
-                  : analysisResult.lows;
+              // Prepare candles for OpenAI analysis
+              const candles = candleData.candles.map((c: any) => ({
+                timestamp: c.timestamp || c.time || c.t,
+                open: c.open || c.o,
+                high: c.high || c.h,
+                low: c.low || c.l,
+                close: c.close || c.c,
+                volume: c.volume || c.v || 0,
+              }));
 
-              if (points.length >= 2) {
-                // Sort points by timestamp to connect them chronologically
-                const sortedPoints = points
-                  .slice()
-                  .sort((a: any, b: any) => a.timestamp - b.timestamp);
+              // Build prompt for OpenAI to analyze trend lines
+              const trendLinePrompt = `Analyze the following cryptocurrency price candle data and identify significant trend lines.
 
-                // For a proper trend line, select points that span a good time range
-                // Use first and last chronologically, or if we have many points,
-                // use the most extreme ones that are far apart in time
-                let startPoint = sortedPoints[0];
-                let endPoint = sortedPoints[sortedPoints.length - 1];
+CANDLE DATA (${args.symbol}, ${args.interval}):
+${JSON.stringify(candles.slice(0, 100), null, 2)} ${candles.length > 100 ? `... and ${candles.length - 100} more candles` : ''}
 
-                // Calculate minimum time separation based on granularity
-                // Common heuristic in technical analysis: trend lines should span enough time
-                // to be meaningful. The standard approach is:
-                // - Intraday charts (1-30 min): Points should be 30-120 minutes apart
-                // - Hourly charts: Points should be at least 1-2 days apart
-                // - Daily charts: Points should be at least 10-20 days apart
-                // This ensures the trend line captures actual price movement patterns
-                // rather than noise or very short-term fluctuations
-                const getMinSeparation = (interval: string): number => {
-                  const intervalMs =
-                    {
-                      ONE_MINUTE: 60 * 1000,
-                      FIVE_MINUTE: 5 * 60 * 1000,
-                      FIFTEEN_MINUTE: 15 * 60 * 1000,
-                      THIRTY_MINUTE: 30 * 60 * 1000,
-                      ONE_HOUR: 60 * 60 * 1000,
-                      TWO_HOUR: 2 * 60 * 60 * 1000,
-                      FOUR_HOUR: 4 * 60 * 60 * 1000,
-                      SIX_HOUR: 6 * 60 * 60 * 1000,
-                      ONE_DAY: 24 * 60 * 60 * 1000,
-                    }[interval] || 60 * 60 * 1000;
+TIME RANGE CONTEXT:
+- Start: ${new Date(args.startTime).toISOString()}
+- End: ${new Date(args.endTime).toISOString()}
+- User requested: ${args.type || 'both support and resistance'} trend lines
 
-                  // Minimum separation rules based on granularity
-                  // These values represent the minimum number of candles between trend line points
-                  // The heuristic follows standard technical analysis practices:
-                  // - Shorter timeframes need proportionally more candles for stability
-                  // - Longer timeframes can work with fewer candles as each represents more time
-                  const minCandles =
-                    {
-                      ONE_MINUTE: 30, // 30 minutes apart (captures micro-trends)
-                      FIVE_MINUTE: 24, // 2 hours apart (filters out noise)
-                      FIFTEEN_MINUTE: 16, // 4 hours apart (half trading session)
-                      THIRTY_MINUTE: 12, // 6 hours apart (quarter trading day)
-                      ONE_HOUR: 24, // 1 day apart (full trading cycle)
-                      TWO_HOUR: 24, // 2 days apart (multi-day trend)
-                      FOUR_HOUR: 18, // 3 days apart (short-term swing)
-                      SIX_HOUR: 16, // 4 days apart (weekly pattern)
-                      ONE_DAY: 10, // 10 days apart (2 trading weeks)
-                    }[interval] || 24;
+INSTRUCTIONS:
+1. Analyze the price action and volume patterns
+2. Identify the most significant trend lines (up to 3-4 lines)
+3. For each trend line, provide:
+   - Two coordinate points (start and end) with timestamp and price
+   - Type: "support" or "resistance"
+   - Confidence level (high/medium/low)
+   - Brief explanation of why this line is significant
 
-                  return intervalMs * minCandles;
-                };
+Consider:
+- Volume patterns at key price levels
+- Multiple touches/bounces off price levels
+- Historical significance of price levels
+- Recent vs older price action (weight recent action more heavily)
 
-                const minRequiredSeparation = getMinSeparation(
-                  analysisArgs.interval
-                );
+Return your analysis in this JSON format:
+{
+  "trendLines": [
+    {
+      "type": "support" or "resistance",
+      "start": { "timestamp": <ms>, "price": <number> },
+      "end": { "timestamp": <ms>, "price": <number> },
+      "confidence": "high" | "medium" | "low",
+      "explanation": "Brief explanation"
+    }
+  ],
+  "summary": "Overall market structure analysis"
+}`;
 
-                // If we have more than 2 points, try to find better endpoints
-                if (sortedPoints.length > 2) {
-                  const timeSpan = endPoint.timestamp - startPoint.timestamp;
-                  // Use the greater of: minimum required separation or 30% of total span
-                  const minTimeSpan = Math.max(
-                    minRequiredSeparation,
-                    timeSpan * 0.3
-                  );
-
-                  // For resistance, we want the highest points that are far apart
-                  // For support, we want the lowest points that are far apart
-                  if (args.type === "resistance") {
-                    // Find two highest points that are far enough apart in time
-                    const highestPoints = sortedPoints
-                      .slice()
-                      .sort((a: any, b: any) => b.price - a.price);
-                    for (let i = 0; i < highestPoints.length - 1; i++) {
-                      for (let j = i + 1; j < highestPoints.length; j++) {
-                        const timeDiff = Math.abs(
-                          highestPoints[j].timestamp -
-                            highestPoints[i].timestamp
-                        );
-                        if (timeDiff >= minTimeSpan) {
-                          // Order by timestamp for proper line direction
-                          if (
-                            highestPoints[i].timestamp <
-                            highestPoints[j].timestamp
-                          ) {
-                            startPoint = highestPoints[i];
-                            endPoint = highestPoints[j];
-                          } else {
-                            startPoint = highestPoints[j];
-                            endPoint = highestPoints[i];
-                          }
-                          break;
-                        }
-                      }
-                      if (
-                        startPoint !== sortedPoints[0] ||
-                        endPoint !== sortedPoints[sortedPoints.length - 1]
-                      )
-                        break;
-                    }
-                  } else {
-                    // For support, find two lowest points that are far enough apart in time
-                    const lowestPoints = sortedPoints
-                      .slice()
-                      .sort((a: any, b: any) => a.price - b.price);
-                    for (let i = 0; i < lowestPoints.length - 1; i++) {
-                      for (let j = i + 1; j < lowestPoints.length; j++) {
-                        const timeDiff = Math.abs(
-                          lowestPoints[j].timestamp - lowestPoints[i].timestamp
-                        );
-                        if (timeDiff >= minTimeSpan) {
-                          // Order by timestamp for proper line direction
-                          if (
-                            lowestPoints[i].timestamp <
-                            lowestPoints[j].timestamp
-                          ) {
-                            startPoint = lowestPoints[i];
-                            endPoint = lowestPoints[j];
-                          } else {
-                            startPoint = lowestPoints[j];
-                            endPoint = lowestPoints[i];
-                          }
-                          break;
-                        }
-                      }
-                      if (
-                        startPoint !== sortedPoints[0] ||
-                        endPoint !== sortedPoints[sortedPoints.length - 1]
-                      )
-                        break;
-                    }
+              // Call OpenAI for trend line analysis
+              const openaiClient = getOpenAI();
+              const analysisResponse = await openaiClient.chat.completions.create({
+                model: "gpt-4o",
+                messages: [
+                  {
+                    role: "system",
+                    content: "You are a technical analysis expert specializing in identifying trend lines, support, and resistance levels in cryptocurrency markets. Analyze price and volume data to find the most significant trend lines."
+                  },
+                  {
+                    role: "user",
+                    content: trendLinePrompt
                   }
-                }
+                ],
+                temperature: 0.2,
+                max_tokens: 1500,
+                response_format: { type: "json_object" }
+              });
 
-                // Check if selected points meet minimum separation requirement
-                const selectedTimeDiff = Math.abs(
-                  endPoint.timestamp - startPoint.timestamp
-                );
-                if (selectedTimeDiff < minRequiredSeparation) {
-                  console.warn(
-                    `Selected points are too close in time (${selectedTimeDiff}ms < ${minRequiredSeparation}ms required). ` +
-                      `Looking for points with better separation...`
-                  );
+              const trendAnalysis = JSON.parse(analysisResponse.choices[0].message.content || "{}");
+              console.log("OpenAI trend analysis:", trendAnalysis);
 
-                  // Try to find points with adequate separation
-                  let bestStart = sortedPoints[0];
-                  let bestEnd = sortedPoints[sortedPoints.length - 1];
-                  let maxSeparation = 0;
+              // Stream the summary to the user
+              if (trendAnalysis.summary) {
+                onStream("\n\n" + trendAnalysis.summary + "\n");
+              }
 
-                  for (let i = 0; i < sortedPoints.length - 1; i++) {
-                    for (let j = i + 1; j < sortedPoints.length; j++) {
-                      const separation =
-                        sortedPoints[j].timestamp - sortedPoints[i].timestamp;
-                      if (
-                        separation >= minRequiredSeparation &&
-                        separation > maxSeparation
-                      ) {
-                        maxSeparation = separation;
-                        bestStart = sortedPoints[i];
-                        bestEnd = sortedPoints[j];
-                      }
-                    }
+              // Process each identified trend line
+              if (trendAnalysis.trendLines && Array.isArray(trendAnalysis.trendLines)) {
+                for (const line of trendAnalysis.trendLines) {
+                  if (!line.start || !line.end) continue;
+
+                  // Stream explanation for this line
+                  if (line.explanation) {
+                    onStream(`\n${line.type === 'resistance' ? '🔴' : '🟢'} ${line.type.charAt(0).toUpperCase() + line.type.slice(1)} line: ${line.explanation}`);
                   }
 
-                  if (maxSeparation >= minRequiredSeparation) {
-                    startPoint = bestStart;
-                    endPoint = bestEnd;
-                    console.log(
-                      `Found points with adequate separation: ${maxSeparation}ms`
-                    );
-                  } else {
-                    console.warn(
-                      `Could not find points with minimum separation (${minRequiredSeparation}ms). ` +
-                        `Using best available with ${maxSeparation}ms separation.`
-                    );
-                    startPoint = bestStart;
-                    endPoint = bestEnd;
-                  }
+                  // Determine color based on type
+                  const color = line.type === 'resistance' 
+                    ? (args.color || "#ff5252")  // Red for resistance
+                    : (args.color || "#4caf50"); // Green for support
+
+                  const trendLineArgs = {
+                    start: {
+                      timestamp: line.start.timestamp,
+                      price: line.start.price,
+                    },
+                    end: {
+                      timestamp: line.end.timestamp,
+                      price: line.end.price,
+                    },
+                    color: color,
+                    lineWidth: args.lineWidth || 2,
+                    style: args.style || "solid",
+                    extendLeft: args.extendLeft || false,
+                    extendRight: args.extendRight || true, // Default to extending right
+                  };
+
+                  // Create the add_trend_line command
+                  const trendLineToolCall = {
+                    ...toolCall,
+                    function: {
+                      name: "add_trend_line",
+                      arguments: JSON.stringify(trendLineArgs),
+                    },
+                  };
+
+                  // Write trend line command to Firestore
+                  await onToolCall(trendLineToolCall);
+                  
+                  console.log(`Added ${line.type} trend line from ${new Date(line.start.timestamp).toISOString()} to ${new Date(line.end.timestamp).toISOString()}`);
                 }
-
-                // Ensure we have valid start and end points
-                if (
-                  !startPoint ||
-                  !endPoint ||
-                  startPoint.timestamp === endPoint.timestamp
-                ) {
-                  console.warn(
-                    "Invalid points selected, falling back to first and last chronologically"
-                  );
-                  startPoint = sortedPoints[0];
-                  endPoint = sortedPoints[sortedPoints.length - 1];
-                }
-
-                console.log(
-                  `Analysis found ${points.length} ${args.type} points:`
-                );
-                points.forEach((point: any, index: number) => {
-                  console.log(
-                    `  ${index + 1}. ${new Date(
-                      point.timestamp
-                    ).toISOString()} - $${point.price.toFixed(2)}`
-                  );
-                });
-
-                console.log(
-                  `Selected trend line points: Start(${new Date(
-                    startPoint.timestamp
-                  ).toISOString()}, $${startPoint.price.toFixed(
-                    2
-                  )}) -> End(${new Date(
-                    endPoint.timestamp
-                  ).toISOString()}, $${endPoint.price.toFixed(2)})`
-                );
-
-                const trendLineArgs = {
-                  start: {
-                    timestamp: startPoint.timestamp,
-                    price: startPoint.price,
-                  },
-                  end: {
-                    timestamp: endPoint.timestamp,
-                    price: endPoint.price,
-                  },
-                  color: args.color || "#2962ff",
-                  lineWidth: args.lineWidth || 2,
-                  style: args.style || "solid",
-                  extendLeft: args.extendLeft || false,
-                  extendRight: args.extendRight || false,
-                };
-
-                // Create the actual add_trend_line command for Firestore
-                const trendLineToolCall = {
-                  ...toolCall,
-                  function: {
-                    name: "add_trend_line",
-                    arguments: JSON.stringify(trendLineArgs),
-                  },
-                };
-
-                // Write trend line command to Firestore
-                await onToolCall(trendLineToolCall);
-
-                // Send success message
-                const analysisMessage = priceTools.formatResult(
-                  "analyze_price_points",
-                  analysisResult
-                );
-
-                // Calculate time separation for user info
-                const timeDiff = endPoint.timestamp - startPoint.timestamp;
-                const daysDiff = Math.round(timeDiff / (24 * 60 * 60 * 1000));
-                const hoursDiff = Math.round(timeDiff / (60 * 60 * 1000));
-                const separationText =
-                  daysDiff > 0 ? `${daysDiff} days` : `${hoursDiff} hours`;
-
-                const trendMessage = `✓ Drew ${
-                  args.type
-                } trend line (${separationText} span) connecting:\n  • ${new Date(
-                  startPoint.timestamp
-                ).toLocaleDateString()} at $${startPoint.price.toFixed(
-                  2
-                )}\n  • ${new Date(
-                  endPoint.timestamp
-                ).toLocaleDateString()} at $${endPoint.price.toFixed(2)}`;
-                onStream("\n\n" + analysisMessage + "\n" + trendMessage);
-                assistantMessage +=
-                  "\n\n" + analysisMessage + "\n" + trendMessage;
+                
+                // Confirm to user
+                const lineCount = trendAnalysis.trendLines.length;
+                onStream(`\n\n✓ Drew ${lineCount} trend line${lineCount > 1 ? 's' : ''} on the chart.`);
               } else {
-                onStream(
-                  `\n\nCould not find enough ${args.type} points (found ${points.length}, need at least 2) to draw trend line`
-                );
-                assistantMessage += `\n\nCould not find enough ${args.type} points to draw trend line`;
+                onStream("\n\nNo significant trend lines identified in the current data.");
               }
             } catch (error: any) {
               console.error("Error in combined trend line tool:", error);

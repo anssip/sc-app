@@ -175,55 +175,25 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
           return apiRef.current?.getGranularity() || "ONE_HOUR";
         },
         getTimeRange: () => {
-          // Extract from chart state
-          try {
-            if (appRef.current && appRef.current._state) {
-              const state = appRef.current._state;
-              if (state.timeRange) {
-                console.log('[SCChart] getTimeRange from state:', state.timeRange);
-                return state.timeRange;
-              }
-            }
-            
-            // Check if chart element has the data
-            if (chartRef.current) {
-              const chart = chartRef.current.querySelector('chart-container');
-              if (chart && chart._state && chart._state.timeRange) {
-                console.log('[SCChart] getTimeRange from chart element:', chart._state.timeRange);
-                return chart._state.timeRange;
-              }
-            }
-          } catch (e) {
-            console.warn('[SCChart] Error getting timeRange from state:', e);
+          // Use the actual API method if available
+          if (apiRef.current?.getTimeRange) {
+            const timeRange = apiRef.current.getTimeRange();
+            console.log('[SCChart] getTimeRange from API:', timeRange);
+            return timeRange;
           }
           
-          console.warn('[SCChart] Could not get time range from state');
+          console.warn('[SCChart] API not ready or getTimeRange not available');
           return null;
         },
         getPriceRange: () => {
-          // Extract from chart state
-          try {
-            if (appRef.current && appRef.current._state) {
-              const state = appRef.current._state;
-              if (state.priceRange) {
-                console.log('[SCChart] getPriceRange from state:', state.priceRange);
-                return state.priceRange;
-              }
-            }
-            
-            // Check if chart element has the data
-            if (chartRef.current) {
-              const chart = chartRef.current.querySelector('chart-container');
-              if (chart && chart._state && chart._state.priceRange) {
-                console.log('[SCChart] getPriceRange from chart element:', chart._state.priceRange);
-                return chart._state.priceRange;
-              }
-            }
-          } catch (e) {
-            console.warn('[SCChart] Error getting priceRange from state:', e);
+          // Use the actual API method if available
+          if (apiRef.current?.getPriceRange) {
+            const priceRange = apiRef.current.getPriceRange();
+            console.log('[SCChart] getPriceRange from API:', priceRange);
+            return priceRange;
           }
           
-          console.warn('[SCChart] Could not get price range from state');
+          console.warn('[SCChart] API not ready or getPriceRange not available');
           return null;
         },
         getState: () => {
