@@ -1,11 +1,68 @@
 // Firestore data access tools
-export const firestoreTools = {
+import { Firestore } from "firebase-admin/firestore";
+
+interface ToolDefinition {
+  type: string;
+  function: {
+    name: string;
+    description: string;
+    parameters: any;
+  };
+}
+
+interface PriceDataArgs {
+  symbol: string;
+  interval: string;
+  limit?: number;
+  startTime?: number;
+  endTime?: number;
+}
+
+interface LatestPriceArgs {
+  symbol: string;
+}
+
+interface AnalyzePricePointsArgs {
+  symbol: string;
+  interval: string;
+  startTime: number;
+  endTime: number;
+  type?: "highs" | "lows" | "both";
+  count?: number;
+}
+
+interface Candle {
+  timestamp?: number;
+  time?: number;
+  t?: number;
+  open?: number;
+  o?: number;
+  high?: number;
+  h?: number;
+  low?: number;
+  l?: number;
+  close?: number;
+  c?: number;
+  volume?: number;
+  v?: number;
+}
+
+interface NormalizedCandle {
+  timestamp: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+export const priceTools = {
   definitions: [
     {
       type: "function",
       function: {
         name: "get_price_data",
-        description: "Fetch historical price data from Firestore for analysis",
+        description: "Fetch historical price data for analysis",
         parameters: {
           type: "object",
           properties: {
@@ -117,65 +174,72 @@ export const firestoreTools = {
         },
       },
     },
-  ],
+  ] as ToolDefinition[],
 
-  isFirestoreTool(name) {
+  isPriceTool(name: string): boolean {
     return this.definitions.some((def) => def.function.name === name);
   },
 
-  async execute(toolName, args, db) {
+  async execute(toolName: string, args: any, db: Firestore): Promise<any> {
     switch (toolName) {
       case "get_price_data":
-        return await this.getPriceData(args);
+        return await this.getPriceData(args as PriceDataArgs);
       case "get_latest_price":
-        return await this.getLatestPrice(args);
+        return await this.getLatestPrice(args as LatestPriceArgs);
       case "get_available_symbols":
         return await this.getAvailableSymbols(db);
       case "analyze_price_points":
-        return await this.analyzePricePoints(args);
+        return await this.analyzePricePoints(args as AnalyzePricePointsArgs);
       default:
         throw new Error(`Unknown Firestore tool: ${toolName}`);
     }
   },
 
-  async getPriceData(
-    { symbol, interval, limit = 100, startTime, endTime }
-  ) {
+  async getPriceData({
+    symbol,
+    interval,
+    limit = 100,
+    startTime,
+    endTime,
+  }: PriceDataArgs): Promise<any> {
     try {
       const API_BASE_URL = "https://market.spotcanvas.com";
-      
+
       // If no time range provided, calculate a reasonable default
       if (!startTime || !endTime) {
         const now = Date.now();
         endTime = endTime || now;
         // Default to last 7 days worth of data
-        startTime = startTime || (endTime - 7 * 24 * 60 * 60 * 1000);
+        startTime = startTime || endTime - 7 * 24 * 60 * 60 * 1000;
       }
 
       // Build query parameters
+      // Ensure timestamps are integers (no decimals)
       const params = new URLSearchParams({
         symbol,
         granularity: interval || "ONE_HOUR",
-        start_time: startTime.toString(),
-        end_time: endTime.toString(),
+        start_time: Math.floor(startTime).toString(),
+        end_time: Math.floor(endTime).toString(),
         exchange: "coinbase",
       });
 
-      console.log(`Fetching price data from API: ${API_BASE_URL}/history?${params}`);
+      console.log(
+        `Fetching price data from API: ${API_BASE_URL}/history?${params}`
+      );
 
       // Fetch from the API
       const response = await fetch(`${API_BASE_URL}/history?${params}`);
-      
+
       if (!response.ok) {
         throw new Error(`API error: ${response.status} ${response.statusText}`);
       }
 
-      const data = await response.json();
-      
+      const data: any = await response.json();
+
       // The API returns data in a different format, so we need to transform it
       // Assuming the API returns an array of candles
-      const candles = data.candles || data || [];
-      
+      const candles: Candle[] = data.candles || data || [];
+
       if (candles.length === 0) {
         return {
           symbol,
@@ -190,12 +254,16 @@ export const firestoreTools = {
 
       // Calculate some basic statistics
       const high = Math.max(...limitedCandles.map((c) => c.high || c.h || 0));
-      const low = Math.min(...limitedCandles.map((c) => c.low || c.l || Number.MAX_VALUE));
+      const low = Math.min(
+        ...limitedCandles.map((c) => c.low || c.l || Number.MAX_VALUE)
+      );
+      const lastCandle = limitedCandles[limitedCandles.length - 1];
+      const firstCandle = limitedCandles[0];
+      const lastClose = lastCandle?.close || lastCandle?.c || 0;
+      const firstClose = firstCandle?.close || firstCandle?.c || 1;
       const change =
         limitedCandles.length > 1
-          ? ((limitedCandles[limitedCandles.length - 1].close - limitedCandles[0].close) /
-              limitedCandles[0].close) *
-            100
+          ? ((lastClose - firstClose) / firstClose) * 100
           : 0;
 
       return {
@@ -207,42 +275,45 @@ export const firestoreTools = {
           high,
           low,
           change: change.toFixed(2) + "%",
-          latestPrice: limitedCandles[limitedCandles.length - 1]?.close,
-          oldestPrice: limitedCandles[0]?.close,
+          latestPrice: lastClose,
+          oldestPrice: firstClose,
         },
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching price data from API:", error);
       throw new Error(`Failed to fetch price data: ${error.message}`);
     }
   },
 
-  async getLatestPrice({ symbol }) {
+  async getLatestPrice({ symbol }: LatestPriceArgs): Promise<any> {
     try {
       const API_BASE_URL = "https://market.spotcanvas.com";
-      
+
       // Get the last hour of data to find the latest price
       const now = Date.now();
-      const oneHourAgo = now - (60 * 60 * 1000);
-      
+      const oneHourAgo = now - 60 * 60 * 1000;
+
+      // Ensure timestamps are integers (no decimals)
       const params = new URLSearchParams({
         symbol,
         granularity: "ONE_MINUTE",
-        start_time: oneHourAgo.toString(),
-        end_time: now.toString(),
+        start_time: Math.floor(oneHourAgo).toString(),
+        end_time: Math.floor(now).toString(),
         exchange: "coinbase",
       });
 
-      console.log(`Fetching latest price from API: ${API_BASE_URL}/history?${params}`);
+      console.log(
+        `Fetching latest price from API: ${API_BASE_URL}/history?${params}`
+      );
 
       const response = await fetch(`${API_BASE_URL}/history?${params}`);
-      
+
       if (!response.ok) {
         throw new Error(`API error: ${response.status} ${response.statusText}`);
       }
 
-      const data = await response.json();
-      const candles = data.candles || data || [];
+      const data: any = await response.json();
+      const candles: Candle[] = data.candles || data || [];
 
       if (candles.length === 0) {
         return {
@@ -258,20 +329,21 @@ export const firestoreTools = {
       return {
         symbol,
         price: latestCandle.close || latestCandle.c,
-        timestamp: latestCandle.timestamp || latestCandle.time || latestCandle.t,
+        timestamp:
+          latestCandle.timestamp || latestCandle.time || latestCandle.t,
         open: latestCandle.open || latestCandle.o,
         high: latestCandle.high || latestCandle.h,
         low: latestCandle.low || latestCandle.l,
         close: latestCandle.close || latestCandle.c,
         volume: latestCandle.volume || latestCandle.v,
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching latest price from API:", error);
       throw new Error(`Failed to fetch latest price: ${error.message}`);
     }
   },
 
-  async getAvailableSymbols(db) {
+  async getAvailableSymbols(db: Firestore): Promise<any> {
     try {
       const snapshot = await db
         .collection("/exchanges/coinbase/products")
@@ -284,18 +356,23 @@ export const firestoreTools = {
         count: symbols.length,
         exchange: "coinbase",
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching available symbols:", error);
       throw new Error(`Failed to fetch available symbols: ${error.message}`);
     }
   },
 
-  async analyzePricePoints(
-    { symbol, interval, startTime, endTime, type = "both", count = 3 }
-  ) {
+  async analyzePricePoints({
+    symbol,
+    interval,
+    startTime,
+    endTime,
+    type = "both",
+    count = 3,
+  }: AnalyzePricePointsArgs): Promise<any> {
     try {
       const API_BASE_URL = "https://market.spotcanvas.com";
-      
+
       // Log the query parameters for debugging
       console.log("Analyzing price points:", {
         symbol,
@@ -307,25 +384,28 @@ export const firestoreTools = {
       });
 
       // Build query parameters for the API
+      // Ensure timestamps are integers (no decimals)
       const params = new URLSearchParams({
         symbol,
         granularity: interval || "ONE_HOUR",
-        start_time: startTime.toString(),
-        end_time: endTime.toString(),
+        start_time: Math.floor(startTime).toString(),
+        end_time: Math.floor(endTime).toString(),
         exchange: "coinbase",
       });
 
-      console.log(`Fetching price data for analysis from API: ${API_BASE_URL}/history?${params}`);
+      console.log(
+        `Fetching price data for analysis from API: ${API_BASE_URL}/history?${params}`
+      );
 
       // Fetch from the API
       const response = await fetch(`${API_BASE_URL}/history?${params}`);
-      
+
       if (!response.ok) {
         throw new Error(`API error: ${response.status} ${response.statusText}`);
       }
 
-      const data = await response.json();
-      const candles = data.candles || data || [];
+      const data: any = await response.json();
+      const candles: Candle[] = data.candles || data || [];
 
       console.log(`API returned ${candles.length} candles`);
 
@@ -340,18 +420,26 @@ export const firestoreTools = {
       }
 
       // Normalize candle data structure
-      const normalizedCandles = candles.map((c) => ({
-        timestamp: c.timestamp || c.time || c.t,
-        open: c.open || c.o,
-        high: c.high || c.h,
-        low: c.low || c.l,
-        close: c.close || c.c,
-        volume: c.volume || c.v,
+      const normalizedCandles: NormalizedCandle[] = candles.map((c) => ({
+        timestamp: c.timestamp || c.time || c.t || 0,
+        open: c.open || c.o || 0,
+        high: c.high || c.h || 0,
+        low: c.low || c.l || 0,
+        close: c.close || c.c || 0,
+        volume: c.volume || c.v || 0,
       }));
 
       // Find local maxima (highs) and minima (lows)
-      const highs = [];
-      const lows = [];
+      const highs: Array<{
+        timestamp: number;
+        price: number;
+        candle: NormalizedCandle;
+      }> = [];
+      const lows: Array<{
+        timestamp: number;
+        price: number;
+        candle: NormalizedCandle;
+      }> = [];
 
       for (let i = 1; i < normalizedCandles.length - 1; i++) {
         const prev = normalizedCandles[i - 1];
@@ -413,13 +501,13 @@ export const firestoreTools = {
           lowest: Math.min(...normalizedCandles.map((c) => c.low)),
         },
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error analyzing price points:", error);
       throw new Error(`Failed to analyze price points: ${error.message}`);
     }
   },
 
-  formatResult(toolName, result) {
+  formatResult(toolName: string, result: any): string {
     switch (toolName) {
       case "get_price_data":
         if (result.candles.length === 0) {

@@ -61,9 +61,13 @@ export class MarketAPI {
         `  intervalMs: ${intervalMs} (${intervalMs / 1000 / 60} minutes)`
       );
 
-      // Align timestamps to interval boundaries
-      const alignedStart = Math.floor(startTime / intervalMs) * intervalMs;
-      const alignedEnd = Math.ceil(endTime / intervalMs) * intervalMs;
+      // Align timestamps to interval boundaries and ensure they're integers
+      const alignedStart = Math.floor(
+        Math.floor(startTime / intervalMs) * intervalMs
+      );
+      const alignedEnd = Math.floor(
+        Math.ceil(endTime / intervalMs) * intervalMs
+      );
 
       console.log("=== Timestamp Alignment Debug ===");
       console.log(`  Original start: ${startTime}`);
@@ -185,11 +189,12 @@ export class MarketAPI {
     endTime: number
   ): Promise<PriceCandle[]> {
     // Build query parameters
+    // Ensure timestamps are integers (no decimals)
     const params = new URLSearchParams();
     params.append("symbol", symbol);
     params.append("granularity", interval);
-    params.append("start_time", startTime.toString());
-    params.append("end_time", endTime.toString());
+    params.append("start_time", Math.floor(startTime).toString());
+    params.append("end_time", Math.floor(endTime).toString());
 
     console.log("=== fetchSingleBatch DEBUG ===");
     console.log(

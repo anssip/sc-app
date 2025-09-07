@@ -23,7 +23,7 @@
     "emulators:mcp": "cd functions && bun run build && cd .. && firebase emulators:start --only functions:mcpServer,firestore,auth --project spotcanvas-prod"
   },
   "dependencies": {
-    "@anssipiirainen/sc-charts": "^0.1.6",
+    "@anssipiirainen/sc-charts": "^0.1.7",
     "@headlessui/react": "^2.2.4",
     "@remix-run/node": "^2.16.8",
     "@remix-run/react": "^2.16.8",
