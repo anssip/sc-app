@@ -331,7 +331,7 @@ async function processWithLLM({
           if (toolCall.function.name === "draw_trend_line_from_analysis") {
             try {
               console.log("Using OpenAI to analyze trend lines...");
-              
+
               // Fetch candle data for the time range
               const candleData = await priceTools.execute(
                 "get_price_data",
@@ -344,7 +344,9 @@ async function processWithLLM({
                 db
               );
 
-              console.log(`Fetched ${candleData.candles.length} candles for analysis`);
+              console.log(
+                `Fetched ${candleData.candles.length} candles for analysis`
+              );
 
               // Prepare candles for OpenAI analysis
               const candles = candleData.candles.map((c: any) => ({
@@ -360,27 +362,23 @@ async function processWithLLM({
               const trendLinePrompt = `Analyze the following cryptocurrency price candle data and identify significant trend lines.
 
 CANDLE DATA (${args.symbol}, ${args.interval}):
-${JSON.stringify(candles.slice(0, 100), null, 2)} ${candles.length > 100 ? `... and ${candles.length - 100} more candles` : ''}
+${JSON.stringify(candles.slice(0, 100), null, 2)} ${
+                candles.length > 100
+                  ? `... and ${candles.length - 100} more candles`
+                  : ""
+              }
 
 TIME RANGE CONTEXT:
 - Start: ${new Date(args.startTime).toISOString()}
 - End: ${new Date(args.endTime).toISOString()}
-- User requested: ${args.type || 'both support and resistance'} trend lines
+- User requested: ${args.type || "both support and resistance"} trend lines
 
-INSTRUCTIONS:
-1. Analyze the price action and volume patterns
-2. Identify the most significant trend lines (up to 3-4 lines)
-3. For each trend line, provide:
-   - Two coordinate points (start and end) with timestamp and price
-   - Type: "support" or "resistance"
-   - Confidence level (high/medium/low)
-   - Brief explanation of why this line is significant
+1. Look for obvious swing highs and lows
+2. Mark zones, not single lines. Support/resistance works better as zones because price rarely reacts to a single tick.
+3. Recent vs. older levels. Most recent levels matter most for immediate trading.
+4. Volume context. If volume was high at a rejection → strong resistance. If volume was high at a support → strong defense from buyers.
 
-Consider:
-- Volume patterns at key price levels
-- Multiple touches/bounces off price levels
-- Historical significance of price levels
-- Recent vs older price action (weight recent action more heavily)
+If breakouts through these zones happen with high volume, you’d expect continuation.
 
 Return your analysis in this JSON format:
 {
@@ -398,24 +396,26 @@ Return your analysis in this JSON format:
 
               // Call OpenAI for trend line analysis
               const openaiClient = getOpenAI();
-              const analysisResponse = await openaiClient.chat.completions.create({
-                model: "gpt-4o",
-                messages: [
-                  {
-                    role: "system",
-                    content: "You are a technical analysis expert specializing in identifying trend lines, support, and resistance levels in cryptocurrency markets. Analyze price and volume data to find the most significant trend lines."
-                  },
-                  {
-                    role: "user",
-                    content: trendLinePrompt
-                  }
-                ],
-                temperature: 0.2,
-                max_tokens: 1500,
-                response_format: { type: "json_object" }
-              });
+              const analysisResponse =
+                await openaiClient.chat.completions.create({
+                  model: "gpt-5",
+                  messages: [
+                    {
+                      role: "system",
+                      content:
+                        "You are a technical analysis expert specializing in identifying trend lines, support, and resistance levels in cryptocurrency markets. Analyze price and volume data to find the most significant trend lines.",
+                    },
+                    {
+                      role: "user",
+                      content: trendLinePrompt,
+                    },
+                  ],
+                  response_format: { type: "json_object" },
+                });
 
-              const trendAnalysis = JSON.parse(analysisResponse.choices[0].message.content || "{}");
+              const trendAnalysis = JSON.parse(
+                analysisResponse.choices[0].message.content || "{}"
+              );
               console.log("OpenAI trend analysis:", trendAnalysis);
 
               // Stream the summary to the user
@@ -424,19 +424,27 @@ Return your analysis in this JSON format:
               }
 
               // Process each identified trend line
-              if (trendAnalysis.trendLines && Array.isArray(trendAnalysis.trendLines)) {
+              if (
+                trendAnalysis.trendLines &&
+                Array.isArray(trendAnalysis.trendLines)
+              ) {
                 for (const line of trendAnalysis.trendLines) {
                   if (!line.start || !line.end) continue;
 
                   // Stream explanation for this line
                   if (line.explanation) {
-                    onStream(`\n${line.type === 'resistance' ? '🔴' : '🟢'} ${line.type.charAt(0).toUpperCase() + line.type.slice(1)} line: ${line.explanation}`);
+                    onStream(
+                      `\n${line.type === "resistance" ? "🔴" : "🟢"} ${
+                        line.type.charAt(0).toUpperCase() + line.type.slice(1)
+                      } line: ${line.explanation}`
+                    );
                   }
 
                   // Determine color based on type
-                  const color = line.type === 'resistance' 
-                    ? (args.color || "#ff5252")  // Red for resistance
-                    : (args.color || "#4caf50"); // Green for support
+                  const color =
+                    line.type === "resistance"
+                      ? args.color || "#ff5252" // Red for resistance
+                      : args.color || "#4caf50"; // Green for support
 
                   const trendLineArgs = {
                     start: {
@@ -449,7 +457,12 @@ Return your analysis in this JSON format:
                     },
                     color: color,
                     lineWidth: args.lineWidth || 2,
-                    style: args.style || "solid",
+                    style:
+                      args.style || line.confidence === "high"
+                        ? "solid"
+                        : line.CONTEXT === "medium"
+                        ? "dashed"
+                        : "dotted",
                     extendLeft: args.extendLeft || false,
                     extendRight: args.extendRight || true, // Default to extending right
                   };
@@ -465,15 +478,27 @@ Return your analysis in this JSON format:
 
                   // Write trend line command to Firestore
                   await onToolCall(trendLineToolCall);
-                  
-                  console.log(`Added ${line.type} trend line from ${new Date(line.start.timestamp).toISOString()} to ${new Date(line.end.timestamp).toISOString()}`);
+
+                  console.log(
+                    `Added ${line.type} trend line from ${new Date(
+                      line.start.timestamp
+                    ).toISOString()} to ${new Date(
+                      line.end.timestamp
+                    ).toISOString()}`
+                  );
                 }
-                
+
                 // Confirm to user
                 const lineCount = trendAnalysis.trendLines.length;
-                onStream(`\n\n✓ Drew ${lineCount} trend line${lineCount > 1 ? 's' : ''} on the chart.`);
+                onStream(
+                  `\n\n✓ Drew ${lineCount} trend line${
+                    lineCount > 1 ? "s" : ""
+                  } on the chart.`
+                );
               } else {
-                onStream("\n\nNo significant trend lines identified in the current data.");
+                onStream(
+                  "\n\nNo significant trend lines identified in the current data."
+                );
               }
             } catch (error: any) {
               console.error("Error in combined trend line tool:", error);
