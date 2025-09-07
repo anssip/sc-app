@@ -63,19 +63,17 @@ export function AIChatPanel({
     let chartContext;
     if (chartApi) {
       try {
-        console.log('[AIChatPanel] Getting chart context, chartApi:', chartApi);
-        console.log('[AIChatPanel] Available methods:', Object.keys(chartApi).filter(k => typeof chartApi[k] === 'function'));
+        console.log('[AIChatPanel] Getting chart context from state');
         
+        // Get values from chart API (which now reads from state)
         const symbol = chartApi.getSymbol?.();
         const granularity = chartApi.getGranularity?.();
         const timeRange = chartApi.getTimeRange?.();
         const priceRange = chartApi.getPriceRange?.();
         
-        console.log('[AIChatPanel] Chart API values:', {
+        console.log('[AIChatPanel] Chart values from state:', {
           symbol,
-          symbolType: typeof symbol,
           granularity,
-          granularityType: typeof granularity,
           timeRange,
           priceRange
         });
@@ -103,15 +101,15 @@ export function AIChatPanel({
             hasSymbol: !!symbol,
             hasGranularity: !!granularity,
             hasTimeRange: !!timeRange,
-            hasPriceRange: !!priceRange,
-            symbol,
-            granularity,
-            timeRange,
-            priceRange
+            hasPriceRange: !!priceRange
           });
+          
+          // Log the actual values for debugging
+          if (!timeRange) console.warn('[AIChatPanel] timeRange is null/undefined');
+          if (!priceRange) console.warn('[AIChatPanel] priceRange is null/undefined');
         }
       } catch (error) {
-        console.warn('[AIChatPanel] Could not get chart context:', error);
+        console.warn('[AIChatPanel] Error getting chart context:', error);
       }
     } else {
       console.warn('[AIChatPanel] No chartApi provided');

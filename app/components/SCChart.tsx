@@ -34,6 +34,7 @@ export interface SCChartRef {
   getGranularity: () => Granularity;
   getTimeRange: () => { start: number; end: number } | null;
   getPriceRange: () => { min: number; max: number; range?: number } | null;
+  getState: () => any;
   api: ChartApi | null;
   activateTrendLineTool: () => void;
   deactivateTrendLineTool: () => void;
@@ -174,25 +175,71 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
           return apiRef.current?.getGranularity() || "ONE_HOUR";
         },
         getTimeRange: () => {
-          // Return the current visible time range from the chart
-          if (apiRef.current?.getTimeRange) {
-            const timeRange = apiRef.current.getTimeRange();
-            console.log('[SCChart] getTimeRange called, result:', timeRange);
-            return timeRange;
+          // Extract from chart state
+          try {
+            if (appRef.current && appRef.current._state) {
+              const state = appRef.current._state;
+              if (state.timeRange) {
+                console.log('[SCChart] getTimeRange from state:', state.timeRange);
+                return state.timeRange;
+              }
+            }
+            
+            // Check if chart element has the data
+            if (chartRef.current) {
+              const chart = chartRef.current.querySelector('chart-container');
+              if (chart && chart._state && chart._state.timeRange) {
+                console.log('[SCChart] getTimeRange from chart element:', chart._state.timeRange);
+                return chart._state.timeRange;
+              }
+            }
+          } catch (e) {
+            console.warn('[SCChart] Error getting timeRange from state:', e);
           }
-          // Fallback: return null if method doesn't exist
-          console.warn('[SCChart] getTimeRange method not available on API');
+          
+          console.warn('[SCChart] Could not get time range from state');
           return null;
         },
         getPriceRange: () => {
-          // Return the current visible price range from the chart
-          if (apiRef.current?.getPriceRange) {
-            const priceRange = apiRef.current.getPriceRange();
-            console.log('[SCChart] getPriceRange called, result:', priceRange);
-            return priceRange;
+          // Extract from chart state
+          try {
+            if (appRef.current && appRef.current._state) {
+              const state = appRef.current._state;
+              if (state.priceRange) {
+                console.log('[SCChart] getPriceRange from state:', state.priceRange);
+                return state.priceRange;
+              }
+            }
+            
+            // Check if chart element has the data
+            if (chartRef.current) {
+              const chart = chartRef.current.querySelector('chart-container');
+              if (chart && chart._state && chart._state.priceRange) {
+                console.log('[SCChart] getPriceRange from chart element:', chart._state.priceRange);
+                return chart._state.priceRange;
+              }
+            }
+          } catch (e) {
+            console.warn('[SCChart] Error getting priceRange from state:', e);
           }
-          // Fallback: return null if method doesn't exist
-          console.warn('[SCChart] getPriceRange method not available on API');
+          
+          console.warn('[SCChart] Could not get price range from state');
+          return null;
+        },
+        getState: () => {
+          // Get the full chart state for debugging/fallback
+          if (apiRef.current?.getState) {
+            return apiRef.current.getState();
+          }
+          if (appRef.current && appRef.current._state) {
+            return appRef.current._state;
+          }
+          if (chartRef.current) {
+            const chart = chartRef.current.querySelector('chart-container');
+            if (chart && chart._state) {
+              return chart._state;
+            }
+          }
           return null;
         },
         activateTrendLineTool: () => {
