@@ -331,6 +331,9 @@ async function processWithLLM({
           if (toolCall.function.name === "draw_trend_line_from_analysis") {
             try {
               console.log("Using OpenAI to analyze trend lines...");
+              
+              // Stream initial status to user
+              onStream("\n\n🔍 Analyzing chart data for trend lines...");
 
               // Fetch candle data for the time range
               const candleData = await priceTools.execute(
@@ -347,6 +350,9 @@ async function processWithLLM({
               console.log(
                 `Fetched ${candleData.candles.length} candles for analysis`
               );
+              
+              // Update user on progress
+              onStream(`\n📊 Processing ${candleData.candles.length} candles for ${args.type || 'trend line'} patterns...`);
 
               // Prepare candles for OpenAI analysis
               const candles = candleData.candles.map((c: any) => ({
@@ -358,6 +364,9 @@ async function processWithLLM({
                 volume: c.volume || c.v || 0,
               }));
 
+              // Inform user we're starting analysis
+              onStream(`\n🤖 Identifying key support and resistance levels...`);
+              
               // Build prompt for OpenAI to analyze trend lines
               const trendLinePrompt = `Analyze the following cryptocurrency price candle data and identify significant trend lines.
 
@@ -394,6 +403,9 @@ Return your analysis in this JSON format:
   "summary": "Overall market structure analysis"
 }`;
 
+              // Notify user that AI is analyzing
+              onStream(`\n⚡ Analyzing price action and volume patterns...`);
+
               // Call OpenAI for trend line analysis
               const openaiClient = getOpenAI();
               const analysisResponse =
@@ -417,6 +429,11 @@ Return your analysis in this JSON format:
                 analysisResponse.choices[0].message.content || "{}"
               );
               console.log("OpenAI trend analysis:", trendAnalysis);
+              
+              // Notify user we're drawing the lines
+              if (trendAnalysis.trendLines && trendAnalysis.trendLines.length > 0) {
+                onStream(`\n📈 Drawing ${trendAnalysis.trendLines.length} trend line${trendAnalysis.trendLines.length > 1 ? 's' : ''} on chart...`);
+              }
 
               // Stream the summary to the user
               if (trendAnalysis.summary) {

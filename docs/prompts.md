@@ -262,10 +262,10 @@ app.post("/api/chat", async (req, res) => {
             properties: {
               symbol: { type: "string" },
               timeframe: { type: "string" },
-              limit: { type: "number" }
-            }
-          }
-        }
+              limit: { type: "number" },
+            },
+          },
+        },
       },
       {
         type: "function",
@@ -274,11 +274,11 @@ app.post("/api/chat", async (req, res) => {
           description: "Change chart symbol",
           parameters: {
             type: "object",
-            properties: { symbol: { type: "string" } }
-          }
-        }
-      }
-    ]
+            properties: { symbol: { type: "string" } },
+          },
+        },
+      },
+    ],
   });
 
   // If the LLM called a tool
@@ -294,7 +294,9 @@ app.post("/api/chat", async (req, res) => {
   res.json({ reply: choice.content });
 });
 
-app.listen(3000, () => console.log("API server running on http://localhost:3000"));
+app.listen(3000, () =>
+  console.log("API server running on http://localhost:3000")
+);
 ```
 
 # chat enhancements
@@ -304,3 +306,11 @@ I think it would make sense if the AI Assistant chat client would send some cont
 "Draw a trend line that goes through three high price points, essentially this would represent a resistance level."
 
 The MCP server should somehow know that it can fetch the price history data by fetching it from Firestore. Is it now equipped with a tool that fetches data from Firestore? See docs/PRICE_INFO_FIRESTORE.md
+
+# trend line enhancements
+
+It's now possible to have names and descriptions for trend lines. See docs/CHART_API_REFERENCE.md for more information.
+
+Make this app save these properties also to Firestore, if not already done.
+
+Then enhance the mcpServer to send these properties when the tool generates trend lines. It should make the name be of format "<confidence> <support or resistance>", for example "hight confidence support". The description should come from the explanation field that we get from OpenAI.
