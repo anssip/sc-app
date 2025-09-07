@@ -15,6 +15,8 @@ export interface TrendLine {
   style?: 'solid' | 'dashed' | 'dotted';
   extendLeft?: boolean;
   extendRight?: boolean;
+  name?: string;
+  description?: string;
 }
 
 export interface TrendLineSettings {
@@ -23,6 +25,8 @@ export interface TrendLineSettings {
   style?: 'solid' | 'dashed' | 'dotted';
   extendLeft?: boolean;
   extendRight?: boolean;
+  name?: string;
+  description?: string;
 }
 
 // Chart configuration interface

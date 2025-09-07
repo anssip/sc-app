@@ -334,8 +334,7 @@ export const chartTools = {
             },
             color: {
               type: "string",
-              description: "Line color in hex format",
-              default: "#2962ff",
+              description: "Line color in hex format (optional - defaults to red for resistance, green for support)",
             },
             lineWidth: {
               type: "number",

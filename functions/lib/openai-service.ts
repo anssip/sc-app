@@ -331,7 +331,7 @@ async function processWithLLM({
           if (toolCall.function.name === "draw_trend_line_from_analysis") {
             try {
               console.log("Using OpenAI to analyze trend lines...");
-              
+
               // Stream initial status to user
               onStream("\n\n🔍 Analyzing chart data for trend lines...");
 
@@ -350,9 +350,13 @@ async function processWithLLM({
               console.log(
                 `Fetched ${candleData.candles.length} candles for analysis`
               );
-              
+
               // Update user on progress
-              onStream(`\n📊 Processing ${candleData.candles.length} candles for ${args.type || 'trend line'} patterns...`);
+              onStream(
+                `\n📊 Processing ${candleData.candles.length} candles for ${
+                  args.type || "trend line"
+                } patterns...`
+              );
 
               // Prepare candles for OpenAI analysis
               const candles = candleData.candles.map((c: any) => ({
@@ -365,8 +369,8 @@ async function processWithLLM({
               }));
 
               // Inform user we're starting analysis
-              onStream(`\n🤖 Identifying key support and resistance levels...`);
-              
+              onStream(`\n🤖 Identifying key levels...`);
+
               // Build prompt for OpenAI to analyze trend lines
               const trendLinePrompt = `Analyze the following cryptocurrency price candle data and identify significant trend lines.
 
@@ -386,6 +390,7 @@ TIME RANGE CONTEXT:
 2. Mark zones, not single lines. Support/resistance works better as zones because price rarely reacts to a single tick.
 3. Recent vs. older levels. Most recent levels matter most for immediate trading.
 4. Volume context. If volume was high at a rejection → strong resistance. If volume was high at a support → strong defense from buyers.
+5. Don't add more than 4 trend lines of one type. Favor the lines with strong confidence.
 
 If breakouts through these zones happen with high volume, you’d expect continuation.
 
@@ -404,7 +409,9 @@ Return your analysis in this JSON format:
 }`;
 
               // Notify user that AI is analyzing
-              onStream(`\n⚡ Analyzing price action and volume patterns...`);
+              onStream(
+                `\n⚡ Analyzing price action and volume patterns (this can take 2-3 minutes)...\n`
+              );
 
               // Call OpenAI for trend line analysis
               const openaiClient = getOpenAI();
@@ -429,10 +436,17 @@ Return your analysis in this JSON format:
                 analysisResponse.choices[0].message.content || "{}"
               );
               console.log("OpenAI trend analysis:", trendAnalysis);
-              
+
               // Notify user we're drawing the lines
-              if (trendAnalysis.trendLines && trendAnalysis.trendLines.length > 0) {
-                onStream(`\n📈 Drawing ${trendAnalysis.trendLines.length} trend line${trendAnalysis.trendLines.length > 1 ? 's' : ''} on chart...`);
+              if (
+                trendAnalysis.trendLines &&
+                trendAnalysis.trendLines.length > 0
+              ) {
+                onStream(
+                  `\n📈 Drawing ${trendAnalysis.trendLines.length} trend line${
+                    trendAnalysis.trendLines.length > 1 ? "s" : ""
+                  } on chart...`
+                );
               }
 
               // Stream the summary to the user
@@ -457,11 +471,18 @@ Return your analysis in this JSON format:
                     );
                   }
 
-                  // Determine color based on type
-                  const color =
+                  // Determine color: use user-specified color if provided, otherwise use type-based defaults
+                  const color = args.color || (
                     line.type === "resistance"
-                      ? args.color || "#ff5252" // Red for resistance
-                      : args.color || "#4caf50"; // Green for support
+                      ? "#ff5252" // Red for resistance
+                      : "#4caf50"  // Green for support
+                  );
+
+                  // Generate name based on confidence and type
+                  const confidenceLevel = line.confidence || "medium";
+                  const lineType =
+                    line.type === "resistance" ? "resistance" : "support";
+                  const name = `${confidenceLevel} confidence ${lineType}`;
 
                   const trendLineArgs = {
                     start: {
@@ -482,6 +503,8 @@ Return your analysis in this JSON format:
                         : "dotted",
                     extendLeft: args.extendLeft || false,
                     extendRight: args.extendRight || true, // Default to extending right
+                    name: name,
+                    description: line.explanation || undefined, // Use the explanation as description
                   };
 
                   // Create the add_trend_line command

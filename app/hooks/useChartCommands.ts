@@ -231,6 +231,8 @@ async function executeChartCommand(
         style: params.style || "solid",
         extendLeft: params.extendLeft || false,
         extendRight: params.extendRight || false,
+        name: params.name || undefined,
+        description: params.description || undefined,
         selected: false,
       });
       return { trendLineId: lineId };
