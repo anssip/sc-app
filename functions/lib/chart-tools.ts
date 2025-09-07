@@ -295,6 +295,73 @@ export const chartTools = {
         },
       },
     },
+    {
+      type: "function",
+      function: {
+        name: "draw_trend_line_from_analysis",
+        description:
+          "Analyze price data and automatically draw a trend line based on significant price points",
+        parameters: {
+          type: "object",
+          properties: {
+            symbol: {
+              type: "string",
+              description: "Trading pair symbol (e.g., BTC-USD, ETH-USD)",
+            },
+            interval: {
+              type: "string",
+              description: "Time interval for price data",
+            },
+            startTime: {
+              type: "number",
+              description: "Start timestamp in milliseconds",
+            },
+            endTime: {
+              type: "number",
+              description: "End timestamp in milliseconds",
+            },
+            type: {
+              type: "string",
+              enum: ["resistance", "support"],
+              description:
+                "Type of trend line (resistance uses highs, support uses lows)",
+            },
+            count: {
+              type: "number",
+              description:
+                "Number of significant points to analyze (default: 2)",
+              default: 2,
+            },
+            color: {
+              type: "string",
+              description: "Line color in hex format",
+              default: "#2962ff",
+            },
+            lineWidth: {
+              type: "number",
+              description: "Line width in pixels",
+              default: 2,
+            },
+            style: {
+              type: "string",
+              enum: ["solid", "dashed", "dotted"],
+              default: "solid",
+            },
+            extendLeft: {
+              type: "boolean",
+              description: "Extend line to the left",
+              default: false,
+            },
+            extendRight: {
+              type: "boolean",
+              description: "Extend line to the right",
+              default: false,
+            },
+          },
+          required: ["symbol", "interval", "startTime", "endTime", "type"],
+        },
+      },
+    },
   ] as ToolDefinition[],
 
   isChartTool(name: string): boolean {
@@ -315,6 +382,8 @@ export const chartTools = {
         return `✓ Removed ${args.id.replace(/-/g, " ")} indicator`;
       case "add_trend_line":
         return `✓ Drew trend line`;
+      case "draw_trend_line_from_analysis":
+        return `✓ Analyzed price data and drew ${args.type} trend line`;
       case "remove_trend_line":
         return `✓ Removed trend line`;
       case "clear_trend_lines":
@@ -327,8 +396,12 @@ export const chartTools = {
         return `✓ Entered fullscreen mode`;
       case "exit_fullscreen":
         return `✓ Exited fullscreen mode`;
+      case "get_chart_state":
+        return `✓ Retrieved chart state`;
       case "activate_trend_line_tool":
         return `✓ Trend line tool activated`;
+      case "get_candles":
+        return `✓ Fetched candle data`;
       default:
         return `✓ Executed ${toolName}`;
     }

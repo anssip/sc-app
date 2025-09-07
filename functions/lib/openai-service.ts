@@ -59,8 +59,8 @@ export async function processChat({
 }
 
 function getTimeframeExtractionPrompt(): String {
-  // Using 2025 date to match the mock data in the market API
-  const currentDate = new Date("2025-09-06T12:00:00Z");
+  // Use actual current date
+  const currentDate = new Date();
   return `
 IMPORTANT - Today's actual date: ${currentDate.toISOString()}
 Today is: ${currentDate.toLocaleDateString("en-US", {
@@ -143,6 +143,27 @@ async function processWithLLM({
     - Always use the exact indicator ID from the list above
     - When hiding indicators, you must provide the exact ID that was used to show it
 
+    TREND LINE WORKFLOW - USE COMBINED TOOL:
+    When user asks for trend lines (resistance, support, or any trend line):
+    1. Use "draw_trend_line_from_analysis" - this does BOTH analysis and drawing in one call
+    2. For resistance lines: use type: "resistance"
+    3. For support lines: use type: "support"
+    4. This tool automatically finds price points AND draws the line
+    5. NEVER use separate analyze_price_points + add_trend_line calls for trend lines
+
+    KEYWORDS that trigger trend line workflow (use draw_trend_line_from_analysis):
+    - "trend line", "trendline", "resistance", "support", "draw line"
+    - "connect highs", "connect lows", "resistance line", "support line"
+    - "add trend line", "draw trend line", "show resistance", "show support"
+    - "based on price action", "based on highs/lows", "technical analysis"
+
+    COMMON USER REQUESTS that use draw_trend_line_from_analysis:
+    - "Add a resistance trend line" → type: "resistance"
+    - "Draw support based on recent lows" → type: "support"
+    - "Show me a trend line for the past week" → type: "resistance" or "support"
+    - "Connect the highs/lows" → type: "resistance" or "support"
+    - "Draw a line connecting recent peaks" → type: "resistance"
+
     Interval/granularity: Map these EXACTLY:
        - "one day candles" or "daily" or "day candles" → "ONE_DAY"
        - "hourly" or "one hour" → "ONE_HOUR"
@@ -187,16 +208,47 @@ async function processWithLLM({
       "count": 3
     }
 
-    When drawing trend lines:
-    1. First call analyze_price_points to find significant highs or lows
-    2. Use the price points for add_trend_line
-    3. For resistance: use type: 'highs'
-    4. For support: use type: 'lows'`;
+    TREND LINE DRAWING PROCESS (USE COMBINED TOOL):
+    Use draw_trend_line_from_analysis - this does everything in ONE call
+
+    Example for drawing a resistance trend line:
+    {
+      "symbol": "${chartContext.symbol}",
+      "interval": "${chartContext.granularity}",
+      "startTime": ${Math.floor(chartContext.timeRange.start)},
+      "endTime": ${Math.floor(chartContext.timeRange.end)},
+      "type": "resistance",
+      "count": 2,
+      "color": "#FF0000",
+      "extendRight": true
+    }
+
+    Example for drawing a support trend line:
+    {
+      "symbol": "${chartContext.symbol}",
+      "interval": "${chartContext.granularity}",
+      "startTime": ${Math.floor(chartContext.timeRange.start)},
+      "endTime": ${Math.floor(chartContext.timeRange.end)},
+      "type": "support",
+      "count": 2,
+      "color": "#00FF00",
+      "extendRight": true
+    }
+
+    ONE TOOL CALL DOES EVERYTHING - analysis + drawing!`;
   }
 
   systemPrompt += `\n\nWhen the user asks you to perform chart actions, use the appropriate tools.
     When analyzing data, be concise and focus on key insights.
     Always confirm when you've executed commands on the chart.
+
+    CRITICAL REMINDERS:
+    - For ANY trend line request: Use draw_trend_line_from_analysis (ONE tool call)
+    - Resistance trend lines: type="resistance"
+    - Support trend lines: type="support"
+    - This tool does analysis AND drawing automatically
+    - NEVER use analyze_price_points + add_trend_line for trend lines
+
     ${getTimeframeExtractionPrompt()}`;
 
   // Build messages array
@@ -215,13 +267,13 @@ async function processWithLLM({
   // Create streaming chat completion
   const client = getOpenAI();
   const stream = await client.chat.completions.create({
-    model: "gpt-4-turbo-preview",
+    model: "gpt-4o",
     messages,
     tools,
     tool_choice: "auto",
     stream: true,
-    temperature: 0.7,
-    max_tokens: 1000,
+    temperature: 0.3,
+    max_tokens: 2000,
   });
 
   let functionCalls: any[] = [];
@@ -263,31 +315,117 @@ async function processWithLLM({
   }
 
   // Execute tool calls
+  console.log(`=== Processing ${functionCalls.length} tool calls ===`);
   for (const toolCall of functionCalls) {
     if (toolCall.function.name && toolCall.function.arguments) {
+      console.log(`Executing tool: ${toolCall.function.name}`);
+      console.log(`Arguments: ${toolCall.function.arguments}`);
+
       try {
         // Parse arguments
         const args = JSON.parse(toolCall.function.arguments);
 
         // Check if it's a chart command or data fetch
         if (chartTools.isChartTool(toolCall.function.name)) {
-          // Chart commands are written to Firestore for execution
-          await onToolCall(toolCall);
+          // Special handling for combined trend line tool
+          if (toolCall.function.name === "draw_trend_line_from_analysis") {
+            try {
+              // First, analyze price points
+              const analysisArgs = {
+                symbol: args.symbol,
+                interval: args.interval,
+                startTime: args.startTime,
+                endTime: args.endTime,
+                type: args.type === "resistance" ? "highs" : "lows",
+                count: args.count || 2,
+              };
 
-          // Send confirmation message
-          const confirmationMessage = chartTools.getConfirmationMessage(
-            toolCall.function.name,
-            args
-          );
-          onStream("\n\n" + confirmationMessage);
-          assistantMessage += "\n\n" + confirmationMessage;
+              const analysisResult = await priceTools.execute(
+                "analyze_price_points",
+                analysisArgs,
+                db
+              );
+
+              console.log("Analysis result for trend line:", analysisResult);
+
+              // Extract price points
+              const points =
+                args.type === "resistance"
+                  ? analysisResult.highs
+                  : analysisResult.lows;
+
+              if (points.length >= 2) {
+                // Create trend line using first two points
+                const trendLineArgs = {
+                  start: {
+                    timestamp: points[0].timestamp,
+                    price: points[0].price,
+                  },
+                  end: {
+                    timestamp: points[1].timestamp,
+                    price: points[1].price,
+                  },
+                  color: args.color || "#2962ff",
+                  lineWidth: args.lineWidth || 2,
+                  style: args.style || "solid",
+                  extendLeft: args.extendLeft || false,
+                  extendRight: args.extendRight || false,
+                };
+
+                // Create the actual add_trend_line command for Firestore
+                const trendLineToolCall = {
+                  ...toolCall,
+                  function: {
+                    name: "add_trend_line",
+                    arguments: JSON.stringify(trendLineArgs),
+                  },
+                };
+
+                // Write trend line command to Firestore
+                await onToolCall(trendLineToolCall);
+
+                // Send success message
+                const analysisMessage = priceTools.formatResult(
+                  "analyze_price_points",
+                  analysisResult
+                );
+                const trendMessage = `Drew ${args.type} trend line connecting ${points.length} significant price points`;
+                onStream("\n\n" + analysisMessage + "\n" + trendMessage);
+                assistantMessage +=
+                  "\n\n" + analysisMessage + "\n" + trendMessage;
+              } else {
+                onStream(
+                  `\n\nCould not find enough ${args.type} points (found ${points.length}, need at least 2) to draw trend line`
+                );
+                assistantMessage += `\n\nCould not find enough ${args.type} points to draw trend line`;
+              }
+            } catch (error: any) {
+              console.error("Error in combined trend line tool:", error);
+              onStream(`\n\nFailed to draw trend line: ${error.message}`);
+              assistantMessage += `\n\nFailed to draw trend line: ${error.message}`;
+            }
+          } else {
+            // Regular chart commands are written to Firestore for execution
+            await onToolCall(toolCall);
+
+            // Send confirmation message
+            const confirmationMessage = chartTools.getConfirmationMessage(
+              toolCall.function.name,
+              args
+            );
+            onStream("\n\n" + confirmationMessage);
+            assistantMessage += "\n\n" + confirmationMessage;
+          }
         } else if (priceTools.isPriceTool(toolCall.function.name)) {
-          // Firestore data tools are executed immediately
+          // Price data tools are executed immediately
+          console.log(`Executing price tool: ${toolCall.function.name}`);
           const result = await priceTools.execute(
             toolCall.function.name,
             args,
             db
           );
+
+          console.log(`Price tool result:`, result);
 
           // Send result summary
           const summary = priceTools.formatResult(
@@ -306,6 +444,8 @@ async function processWithLLM({
           `\n\nFailed to execute ${toolCall.function.name}: ${error.message}`
         );
       }
+    } else {
+      console.log("Incomplete tool call:", toolCall);
     }
   }
 

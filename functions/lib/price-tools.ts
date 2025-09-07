@@ -1,5 +1,6 @@
 // Firestore data access tools
 import { Firestore } from "firebase-admin/firestore";
+import { marketAPI, PriceCandle } from "./market-api.js";
 
 interface ToolDefinition {
   type: string;
@@ -231,7 +232,11 @@ export const priceTools = {
       const response = await fetch(`${API_BASE_URL}/history?${params}`);
 
       if (!response.ok) {
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
+        const errorText = await response.text();
+        console.error(`API Error Response: ${errorText}`);
+        throw new Error(
+          `API error: ${response.status} ${response.statusText} - ${errorText}`
+        );
       }
 
       const data: any = await response.json();
@@ -309,7 +314,11 @@ export const priceTools = {
       const response = await fetch(`${API_BASE_URL}/history?${params}`);
 
       if (!response.ok) {
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
+        const errorText = await response.text();
+        console.error(`API Error Response: ${errorText}`);
+        throw new Error(
+          `API error: ${response.status} ${response.statusText} - ${errorText}`
+        );
       }
 
       const data: any = await response.json();
@@ -371,8 +380,6 @@ export const priceTools = {
     count = 3,
   }: AnalyzePricePointsArgs): Promise<any> {
     try {
-      const API_BASE_URL = "https://market.spotcanvas.com";
-
       // Log the query parameters for debugging
       console.log("Analyzing price points:", {
         symbol,
@@ -383,31 +390,37 @@ export const priceTools = {
         count,
       });
 
-      // Build query parameters for the API
-      // Ensure timestamps are integers (no decimals)
-      const params = new URLSearchParams({
-        symbol,
-        granularity: interval || "ONE_HOUR",
-        start_time: Math.floor(startTime).toString(),
-        end_time: Math.floor(endTime).toString(),
-        exchange: "coinbase",
-      });
+      // Validate and potentially reduce time range
+      const intervalMs = this.getIntervalMilliseconds(interval || "ONE_HOUR");
+      const requestedCandles = Math.floor((endTime - startTime) / intervalMs);
+      const maxCandles = 200; // Conservative limit to avoid API errors
 
-      console.log(
-        `Fetching price data for analysis from API: ${API_BASE_URL}/history?${params}`
-      );
+      let adjustedStartTime = startTime;
+      let adjustedEndTime = endTime;
 
-      // Fetch from the API
-      const response = await fetch(`${API_BASE_URL}/history?${params}`);
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
+      if (requestedCandles > maxCandles) {
+        console.log(
+          `Requested ${requestedCandles} candles, but max is ${maxCandles}. Adjusting time range.`
+        );
+        // Keep the end time, reduce the start time
+        adjustedStartTime = endTime - maxCandles * intervalMs;
+        console.log(
+          `Adjusted time range: ${new Date(
+            adjustedStartTime
+          ).toISOString()} to ${new Date(adjustedEndTime).toISOString()}`
+        );
       }
 
-      const data: any = await response.json();
-      const candles: Candle[] = data.candles || data || [];
+      // Use MarketAPI which handles batching automatically
+      const candles: PriceCandle[] = await marketAPI.fetchPriceData(
+        symbol,
+        interval || "ONE_HOUR",
+        Math.floor(adjustedStartTime),
+        Math.floor(adjustedEndTime),
+        (message) => console.log(`MarketAPI: ${message}`)
+      );
 
-      console.log(`API returned ${candles.length} candles`);
+      console.log(`MarketAPI returned ${candles.length} candles`);
 
       if (candles.length === 0) {
         return {
@@ -419,14 +432,14 @@ export const priceTools = {
         };
       }
 
-      // Normalize candle data structure
+      // MarketAPI returns PriceCandle objects, so we can use them directly
       const normalizedCandles: NormalizedCandle[] = candles.map((c) => ({
-        timestamp: c.timestamp || c.time || c.t || 0,
-        open: c.open || c.o || 0,
-        high: c.high || c.h || 0,
-        low: c.low || c.l || 0,
-        close: c.close || c.c || 0,
-        volume: c.volume || c.v || 0,
+        timestamp: c.timestamp,
+        open: c.open,
+        high: c.high,
+        low: c.low,
+        close: c.close,
+        volume: c.volume || 0,
       }));
 
       // Find local maxima (highs) and minima (lows)
@@ -490,6 +503,10 @@ export const priceTools = {
         symbol,
         interval,
         timeRange: {
+          start: adjustedStartTime,
+          end: adjustedEndTime,
+        },
+        originalTimeRange: {
           start: startTime,
           end: endTime,
         },
@@ -505,6 +522,28 @@ export const priceTools = {
       console.error("Error analyzing price points:", error);
       throw new Error(`Failed to analyze price points: ${error.message}`);
     }
+  },
+
+  getIntervalMilliseconds(interval: string): number {
+    const intervals: Record<string, number> = {
+      ONE_MINUTE: 60 * 1000,
+      FIVE_MINUTE: 5 * 60 * 1000,
+      FIVE_MINUTES: 5 * 60 * 1000,
+      FIFTEEN_MINUTE: 15 * 60 * 1000,
+      FIFTEEN_MINUTES: 15 * 60 * 1000,
+      THIRTY_MINUTE: 30 * 60 * 1000,
+      THIRTY_MINUTES: 30 * 60 * 1000,
+      ONE_HOUR: 60 * 60 * 1000,
+      TWO_HOUR: 2 * 60 * 60 * 1000,
+      TWO_HOURS: 2 * 60 * 60 * 1000,
+      FOUR_HOUR: 4 * 60 * 60 * 1000,
+      FOUR_HOURS: 4 * 60 * 60 * 1000,
+      SIX_HOUR: 6 * 60 * 60 * 1000,
+      SIX_HOURS: 6 * 60 * 60 * 1000,
+      ONE_DAY: 24 * 60 * 60 * 1000,
+    };
+
+    return intervals[interval] || 60 * 60 * 1000; // Default to 1 hour
   },
 
   formatResult(toolName: string, result: any): string {
@@ -535,6 +574,16 @@ export const priceTools = {
           return result.message;
         }
         let summary = `Analyzed ${result.totalCandles} candles for ${result.symbol}. `;
+
+        // Check if time range was adjusted
+        if (
+          result.originalTimeRange &&
+          (result.timeRange.start !== result.originalTimeRange.start ||
+            result.timeRange.end !== result.originalTimeRange.end)
+        ) {
+          summary += `⚠️ Time range was adjusted to fit API limits. `;
+        }
+
         if (result.highs.length > 0) {
           summary += `Found ${result.highs.length} resistance points. `;
         }
