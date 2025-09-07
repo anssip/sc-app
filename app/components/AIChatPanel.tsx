@@ -63,12 +63,15 @@ export function AIChatPanel({
     let chartContext;
     if (chartApi) {
       try {
+        console.log('[AIChatPanel] Getting chart context, chartApi:', chartApi);
+        console.log('[AIChatPanel] Available methods:', Object.keys(chartApi).filter(k => typeof chartApi[k] === 'function'));
+        
         const symbol = chartApi.getSymbol?.();
         const granularity = chartApi.getGranularity?.();
         const timeRange = chartApi.getTimeRange?.();
         const priceRange = chartApi.getPriceRange?.();
         
-        console.log('Chart API values:', {
+        console.log('[AIChatPanel] Chart API values:', {
           symbol,
           symbolType: typeof symbol,
           granularity,
@@ -94,18 +97,24 @@ export function AIChatPanel({
             }
           }));
           
-          console.log('Chart context prepared:', chartContext);
+          console.log('[AIChatPanel] Chart context prepared:', chartContext);
         } else {
-          console.warn('Missing chart context values:', {
+          console.warn('[AIChatPanel] Missing chart context values:', {
             hasSymbol: !!symbol,
             hasGranularity: !!granularity,
             hasTimeRange: !!timeRange,
-            hasPriceRange: !!priceRange
+            hasPriceRange: !!priceRange,
+            symbol,
+            granularity,
+            timeRange,
+            priceRange
           });
         }
       } catch (error) {
-        console.warn('Could not get chart context:', error);
+        console.warn('[AIChatPanel] Could not get chart context:', error);
       }
+    } else {
+      console.warn('[AIChatPanel] No chartApi provided');
     }
 
     try {

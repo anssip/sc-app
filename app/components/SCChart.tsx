@@ -32,6 +32,8 @@ export interface SCChartRef {
   setGranularity: (granularity: Granularity) => Promise<void>;
   getSymbol: () => string;
   getGranularity: () => Granularity;
+  getTimeRange: () => { start: number; end: number } | null;
+  getPriceRange: () => { min: number; max: number; range?: number } | null;
   api: ChartApi | null;
   activateTrendLineTool: () => void;
   deactivateTrendLineTool: () => void;
@@ -170,6 +172,28 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
         },
         getGranularity: () => {
           return apiRef.current?.getGranularity() || "ONE_HOUR";
+        },
+        getTimeRange: () => {
+          // Return the current visible time range from the chart
+          if (apiRef.current?.getTimeRange) {
+            const timeRange = apiRef.current.getTimeRange();
+            console.log('[SCChart] getTimeRange called, result:', timeRange);
+            return timeRange;
+          }
+          // Fallback: return null if method doesn't exist
+          console.warn('[SCChart] getTimeRange method not available on API');
+          return null;
+        },
+        getPriceRange: () => {
+          // Return the current visible price range from the chart
+          if (apiRef.current?.getPriceRange) {
+            const priceRange = apiRef.current.getPriceRange();
+            console.log('[SCChart] getPriceRange called, result:', priceRange);
+            return priceRange;
+          }
+          // Fallback: return null if method doesn't exist
+          console.warn('[SCChart] getPriceRange method not available on API');
+          return null;
         },
         activateTrendLineTool: () => {
           if (apiRef.current?.activateTrendLineTool) {
