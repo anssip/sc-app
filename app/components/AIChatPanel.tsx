@@ -180,9 +180,9 @@ export function AIChatPanel({
   };
 
   return (
-    <div className="h-full flex flex-col bg-gray-900 text-white">
+    <div className="h-full max-h-full flex flex-col bg-gray-900 text-white overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-700">
+      <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-gray-700">
         <div className="flex items-center gap-2">
           <Bot className="w-5 h-5 text-blue-400" />
           <h2 className="font-semibold">AI Assistant</h2>
@@ -197,7 +197,7 @@ export function AIChatPanel({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 ? (
           <div className="text-center text-gray-400 mt-8">
             <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -249,7 +249,7 @@ export function AIChatPanel({
       </div>
 
       {/* Input */}
-      <div className="border-t border-gray-700 p-4">
+      <div className="flex-shrink-0 border-t border-gray-700 p-4">
         <div className="flex gap-2">
           <textarea
             ref={inputRef}
@@ -257,7 +257,7 @@ export function AIChatPanel({
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask about the chart..."
-            className="flex-1 bg-gray-800 text-white rounded-lg px-4 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 bg-gray-800 text-white rounded-lg px-4 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[40px] max-h-[80px] overflow-y-auto"
             rows={1}
             disabled={isLoading || !user}
           />

@@ -430,19 +430,6 @@ export const ChartApp: React.FC<ChartAppProps> = ({
       {/* Chart Panel with AI Chat */}
       <div className={`flex-1 relative bg-black ${isMobile() ? 'pb-5' : ''}`}>
         <PanelGroup direction="horizontal" className="h-full">
-          {/* AI Chat Panel */}
-          {showAIChat && (
-            <>
-              <Panel defaultSize={25} minSize={15} maxSize={40}>
-                <AIChatPanel 
-                  onClose={() => setShowAIChat(false)}
-                  chartApi={chartApi}
-                />
-              </Panel>
-              <PanelResizeHandle className="w-1 bg-gray-800 hover:bg-gray-700 transition-colors" />
-            </>
-          )}
-          
           {/* Main Chart Panel */}
           <Panel>
             <ChartPanel
@@ -453,6 +440,21 @@ export const ChartApp: React.FC<ChartAppProps> = ({
               onChartApiReady={setChartApi}
             />
           </Panel>
+          
+          {/* AI Chat Panel */}
+          {showAIChat && (
+            <>
+              <PanelResizeHandle className="w-1 bg-gray-800 hover:bg-gray-700 transition-colors" />
+              <Panel defaultSize={25} minSize={15} maxSize={40}>
+                <div className="h-full overflow-hidden">
+                  <AIChatPanel 
+                    onClose={() => setShowAIChat(false)}
+                    chartApi={chartApi}
+                  />
+                </div>
+              </Panel>
+            </>
+          )}
         </PanelGroup>
 
         {/* Subscription Overlay - dims charts and blocks interaction when no subscription */}
