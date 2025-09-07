@@ -406,7 +406,7 @@ export const ChartApp: React.FC<ChartAppProps> = ({
   };
 
   return (
-    <div className={`flex flex-col h-full bg-black ${className}`}>
+    <div className={`flex flex-col h-full bg-black overflow-hidden ${className}`}>
         {/* PWA Header Spacer for iPhone - pushes content below the notch */}
         {isIPhone() && isPWA() && (
         <div className="flex-shrink-0 h-11 bg-gray-900" />
@@ -428,7 +428,7 @@ export const ChartApp: React.FC<ChartAppProps> = ({
       />
 
       {/* Chart Panel with AI Chat */}
-      <div className={`flex-1 relative bg-black ${isMobile() ? 'pb-5' : ''}`}>
+      <div className={`flex-1 min-h-0 relative bg-black ${isMobile() ? 'pb-5' : ''}`}>
         <PanelGroup direction="horizontal" className="h-full">
           {/* Main Chart Panel */}
           <Panel>
