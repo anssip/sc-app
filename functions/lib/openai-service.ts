@@ -355,15 +355,229 @@ async function processWithLLM({
                   : analysisResult.lows;
 
               if (points.length >= 2) {
-                // Create trend line using first two points
+                // Sort points by timestamp to connect them chronologically
+                const sortedPoints = points
+                  .slice()
+                  .sort((a: any, b: any) => a.timestamp - b.timestamp);
+
+                // For a proper trend line, select points that span a good time range
+                // Use first and last chronologically, or if we have many points,
+                // use the most extreme ones that are far apart in time
+                let startPoint = sortedPoints[0];
+                let endPoint = sortedPoints[sortedPoints.length - 1];
+
+                // Calculate minimum time separation based on granularity
+                // Common heuristic in technical analysis: trend lines should span enough time
+                // to be meaningful. The standard approach is:
+                // - Intraday charts (1-30 min): Points should be 30-120 minutes apart
+                // - Hourly charts: Points should be at least 1-2 days apart
+                // - Daily charts: Points should be at least 10-20 days apart
+                // This ensures the trend line captures actual price movement patterns
+                // rather than noise or very short-term fluctuations
+                const getMinSeparation = (interval: string): number => {
+                  const intervalMs =
+                    {
+                      ONE_MINUTE: 60 * 1000,
+                      FIVE_MINUTE: 5 * 60 * 1000,
+                      FIFTEEN_MINUTE: 15 * 60 * 1000,
+                      THIRTY_MINUTE: 30 * 60 * 1000,
+                      ONE_HOUR: 60 * 60 * 1000,
+                      TWO_HOUR: 2 * 60 * 60 * 1000,
+                      FOUR_HOUR: 4 * 60 * 60 * 1000,
+                      SIX_HOUR: 6 * 60 * 60 * 1000,
+                      ONE_DAY: 24 * 60 * 60 * 1000,
+                    }[interval] || 60 * 60 * 1000;
+
+                  // Minimum separation rules based on granularity
+                  // These values represent the minimum number of candles between trend line points
+                  // The heuristic follows standard technical analysis practices:
+                  // - Shorter timeframes need proportionally more candles for stability
+                  // - Longer timeframes can work with fewer candles as each represents more time
+                  const minCandles =
+                    {
+                      ONE_MINUTE: 30, // 30 minutes apart (captures micro-trends)
+                      FIVE_MINUTE: 24, // 2 hours apart (filters out noise)
+                      FIFTEEN_MINUTE: 16, // 4 hours apart (half trading session)
+                      THIRTY_MINUTE: 12, // 6 hours apart (quarter trading day)
+                      ONE_HOUR: 24, // 1 day apart (full trading cycle)
+                      TWO_HOUR: 24, // 2 days apart (multi-day trend)
+                      FOUR_HOUR: 18, // 3 days apart (short-term swing)
+                      SIX_HOUR: 16, // 4 days apart (weekly pattern)
+                      ONE_DAY: 10, // 10 days apart (2 trading weeks)
+                    }[interval] || 24;
+
+                  return intervalMs * minCandles;
+                };
+
+                const minRequiredSeparation = getMinSeparation(
+                  analysisArgs.interval
+                );
+
+                // If we have more than 2 points, try to find better endpoints
+                if (sortedPoints.length > 2) {
+                  const timeSpan = endPoint.timestamp - startPoint.timestamp;
+                  // Use the greater of: minimum required separation or 30% of total span
+                  const minTimeSpan = Math.max(
+                    minRequiredSeparation,
+                    timeSpan * 0.3
+                  );
+
+                  // For resistance, we want the highest points that are far apart
+                  // For support, we want the lowest points that are far apart
+                  if (args.type === "resistance") {
+                    // Find two highest points that are far enough apart in time
+                    const highestPoints = sortedPoints
+                      .slice()
+                      .sort((a: any, b: any) => b.price - a.price);
+                    for (let i = 0; i < highestPoints.length - 1; i++) {
+                      for (let j = i + 1; j < highestPoints.length; j++) {
+                        const timeDiff = Math.abs(
+                          highestPoints[j].timestamp -
+                            highestPoints[i].timestamp
+                        );
+                        if (timeDiff >= minTimeSpan) {
+                          // Order by timestamp for proper line direction
+                          if (
+                            highestPoints[i].timestamp <
+                            highestPoints[j].timestamp
+                          ) {
+                            startPoint = highestPoints[i];
+                            endPoint = highestPoints[j];
+                          } else {
+                            startPoint = highestPoints[j];
+                            endPoint = highestPoints[i];
+                          }
+                          break;
+                        }
+                      }
+                      if (
+                        startPoint !== sortedPoints[0] ||
+                        endPoint !== sortedPoints[sortedPoints.length - 1]
+                      )
+                        break;
+                    }
+                  } else {
+                    // For support, find two lowest points that are far enough apart in time
+                    const lowestPoints = sortedPoints
+                      .slice()
+                      .sort((a: any, b: any) => a.price - b.price);
+                    for (let i = 0; i < lowestPoints.length - 1; i++) {
+                      for (let j = i + 1; j < lowestPoints.length; j++) {
+                        const timeDiff = Math.abs(
+                          lowestPoints[j].timestamp - lowestPoints[i].timestamp
+                        );
+                        if (timeDiff >= minTimeSpan) {
+                          // Order by timestamp for proper line direction
+                          if (
+                            lowestPoints[i].timestamp <
+                            lowestPoints[j].timestamp
+                          ) {
+                            startPoint = lowestPoints[i];
+                            endPoint = lowestPoints[j];
+                          } else {
+                            startPoint = lowestPoints[j];
+                            endPoint = lowestPoints[i];
+                          }
+                          break;
+                        }
+                      }
+                      if (
+                        startPoint !== sortedPoints[0] ||
+                        endPoint !== sortedPoints[sortedPoints.length - 1]
+                      )
+                        break;
+                    }
+                  }
+                }
+
+                // Check if selected points meet minimum separation requirement
+                const selectedTimeDiff = Math.abs(
+                  endPoint.timestamp - startPoint.timestamp
+                );
+                if (selectedTimeDiff < minRequiredSeparation) {
+                  console.warn(
+                    `Selected points are too close in time (${selectedTimeDiff}ms < ${minRequiredSeparation}ms required). ` +
+                      `Looking for points with better separation...`
+                  );
+
+                  // Try to find points with adequate separation
+                  let bestStart = sortedPoints[0];
+                  let bestEnd = sortedPoints[sortedPoints.length - 1];
+                  let maxSeparation = 0;
+
+                  for (let i = 0; i < sortedPoints.length - 1; i++) {
+                    for (let j = i + 1; j < sortedPoints.length; j++) {
+                      const separation =
+                        sortedPoints[j].timestamp - sortedPoints[i].timestamp;
+                      if (
+                        separation >= minRequiredSeparation &&
+                        separation > maxSeparation
+                      ) {
+                        maxSeparation = separation;
+                        bestStart = sortedPoints[i];
+                        bestEnd = sortedPoints[j];
+                      }
+                    }
+                  }
+
+                  if (maxSeparation >= minRequiredSeparation) {
+                    startPoint = bestStart;
+                    endPoint = bestEnd;
+                    console.log(
+                      `Found points with adequate separation: ${maxSeparation}ms`
+                    );
+                  } else {
+                    console.warn(
+                      `Could not find points with minimum separation (${minRequiredSeparation}ms). ` +
+                        `Using best available with ${maxSeparation}ms separation.`
+                    );
+                    startPoint = bestStart;
+                    endPoint = bestEnd;
+                  }
+                }
+
+                // Ensure we have valid start and end points
+                if (
+                  !startPoint ||
+                  !endPoint ||
+                  startPoint.timestamp === endPoint.timestamp
+                ) {
+                  console.warn(
+                    "Invalid points selected, falling back to first and last chronologically"
+                  );
+                  startPoint = sortedPoints[0];
+                  endPoint = sortedPoints[sortedPoints.length - 1];
+                }
+
+                console.log(
+                  `Analysis found ${points.length} ${args.type} points:`
+                );
+                points.forEach((point: any, index: number) => {
+                  console.log(
+                    `  ${index + 1}. ${new Date(
+                      point.timestamp
+                    ).toISOString()} - $${point.price.toFixed(2)}`
+                  );
+                });
+
+                console.log(
+                  `Selected trend line points: Start(${new Date(
+                    startPoint.timestamp
+                  ).toISOString()}, $${startPoint.price.toFixed(
+                    2
+                  )}) -> End(${new Date(
+                    endPoint.timestamp
+                  ).toISOString()}, $${endPoint.price.toFixed(2)})`
+                );
+
                 const trendLineArgs = {
                   start: {
-                    timestamp: points[0].timestamp,
-                    price: points[0].price,
+                    timestamp: startPoint.timestamp,
+                    price: startPoint.price,
                   },
                   end: {
-                    timestamp: points[1].timestamp,
-                    price: points[1].price,
+                    timestamp: endPoint.timestamp,
+                    price: endPoint.price,
                   },
                   color: args.color || "#2962ff",
                   lineWidth: args.lineWidth || 2,
@@ -389,7 +603,23 @@ async function processWithLLM({
                   "analyze_price_points",
                   analysisResult
                 );
-                const trendMessage = `Drew ${args.type} trend line connecting ${points.length} significant price points`;
+
+                // Calculate time separation for user info
+                const timeDiff = endPoint.timestamp - startPoint.timestamp;
+                const daysDiff = Math.round(timeDiff / (24 * 60 * 60 * 1000));
+                const hoursDiff = Math.round(timeDiff / (60 * 60 * 1000));
+                const separationText =
+                  daysDiff > 0 ? `${daysDiff} days` : `${hoursDiff} hours`;
+
+                const trendMessage = `✓ Drew ${
+                  args.type
+                } trend line (${separationText} span) connecting:\n  • ${new Date(
+                  startPoint.timestamp
+                ).toLocaleDateString()} at $${startPoint.price.toFixed(
+                  2
+                )}\n  • ${new Date(
+                  endPoint.timestamp
+                ).toLocaleDateString()} at $${endPoint.price.toFixed(2)}`;
                 onStream("\n\n" + analysisMessage + "\n" + trendMessage);
                 assistantMessage +=
                   "\n\n" + analysisMessage + "\n" + trendMessage;
