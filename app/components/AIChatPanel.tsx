@@ -3,6 +3,7 @@ import { Bot, Send, X, Loader2 } from 'lucide-react';
 import { useAuth } from '../lib/auth-context';
 import { useMCPClient } from '../hooks/useMCPClient';
 import { useChartCommands } from '../hooks/useChartCommands';
+import { ChatExamplePrompts } from './ChatExamplePrompts';
 
 interface Message {
   id: string;
@@ -45,13 +46,14 @@ export function AIChatPanel({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSend = async () => {
-    if (!inputValue.trim() || isLoading || !user) return;
+  const handleSend = async (messageText?: string) => {
+    const textToSend = messageText || inputValue;
+    if (!textToSend.trim() || isLoading || !user) return;
 
     const userMessage: Message = {
       id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       role: 'user',
-      content: inputValue,
+      content: textToSend,
       timestamp: new Date()
     };
 
@@ -126,7 +128,7 @@ export function AIChatPanel({
 
       setMessages(prev => [...prev, assistantMessage]);
 
-      await sendMessage(inputValue, {
+      await sendMessage(textToSend, {
         chartContext,
         onStream: (chunk) => {
           setMessages(prev => {
@@ -204,55 +206,51 @@ export function AIChatPanel({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         {messages.length === 0 ? (
-          <div className="text-center text-gray-400 mt-8">
-            <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>Ask me about the chart!</p>
-            <p className="text-sm mt-2">
-              Try: "Show BTC hourly chart with RSI"
-            </p>
-          </div>
+          <ChatExamplePrompts onSelectPrompt={(prompt) => handleSend(prompt)} />
         ) : (
-          messages.map((message, index) => (
-            <div
-              key={`${message.id}-${index}`}
-              className={`flex ${
-                message.role === 'user' ? 'justify-end' : 'justify-start'
-              }`}
-            >
+          <div className="p-4 space-y-4">
+            {messages.map((message, index) => (
               <div
-                className={`max-w-[80%] rounded-lg p-3 ${
-                  message.role === 'user'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-800 text-gray-100'
+                key={`${message.id}-${index}`}
+                className={`flex ${
+                  message.role === 'user' ? 'justify-end' : 'justify-start'
                 }`}
               >
-                <div className="whitespace-pre-wrap">{message.content}</div>
-                {message.commands && message.commands.length > 0 && (
-                  <div className="mt-2 space-y-1">
-                    {message.commands.map((cmd, cmdIndex) => (
-                      <div
-                        key={`${cmd.id}-${cmdIndex}`}
-                        className="text-xs bg-gray-700 rounded px-2 py-1 inline-block mr-1"
-                      >
-                        ✓ {cmd.command.replace(/_/g, ' ')}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <div
+                  className={`max-w-[80%] rounded-lg p-3 ${
+                    message.role === 'user'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-800 text-gray-100'
+                  }`}
+                >
+                  <div className="whitespace-pre-wrap">{message.content}</div>
+                  {message.commands && message.commands.length > 0 && (
+                    <div className="mt-2 space-y-1">
+                      {message.commands.map((cmd, cmdIndex) => (
+                        <div
+                          key={`${cmd.id}-${cmdIndex}`}
+                          className="text-xs bg-gray-700 rounded px-2 py-1 inline-block mr-1"
+                        >
+                          ✓ {cmd.command.replace(/_/g, ' ')}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))
-        )}
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-gray-800 rounded-lg p-3">
-              <Loader2 className="w-4 h-4 animate-spin" />
-            </div>
+            ))}
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-gray-800 rounded-lg p-3">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
           </div>
         )}
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}

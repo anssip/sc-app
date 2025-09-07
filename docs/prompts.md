@@ -314,3 +314,19 @@ It's now possible to have names and descriptions for trend lines. See docs/CHART
 Make this app save these properties also to Firestore, if not already done.
 
 Then enhance the mcpServer to send these properties when the tool generates trend lines. It should make the name be of format "<confidence> <support or resistance>", for example "hight confidence support". The description should come from the explanation field that we get from OpenAI.
+
+# Example prompts
+
+Initially, when the chat UI is empty, show some example prompts as boxes in the chart UI. Clicking on these boxes should send the prompt to the chat UI.
+
+Basic:
+
+- Enable the RSI indicator.
+- Enable the Moving Average indicator.
+- Enable the Volume indicator.
+- Switch to one day granularity.
+- Switch to ETH-USD symbol.
+
+Advanced:
+
+- Draw lines for support and resistance levels to this chart.
