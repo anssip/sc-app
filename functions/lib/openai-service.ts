@@ -143,26 +143,33 @@ async function processWithLLM({
     - Always use the exact indicator ID from the list above
     - When hiding indicators, you must provide the exact ID that was used to show it
 
-    TREND LINE WORKFLOW - USE COMBINED TOOL:
-    When user asks for trend lines (resistance, support, or any trend line):
-    1. Use "draw_trend_line_from_analysis" - this does BOTH analysis and drawing in one call
-    2. For resistance lines: use type: "resistance"
-    3. For support lines: use type: "support"
-    4. This tool automatically finds price points AND draws the line
-    5. NEVER use separate analyze_price_points + add_trend_line calls for trend lines
-
-    KEYWORDS that trigger trend line workflow (use draw_trend_line_from_analysis):
-    - "trend line", "trendline", "resistance", "support", "draw line"
-    - "connect highs", "connect lows", "resistance line", "support line"
-    - "add trend line", "draw trend line", "show resistance", "show support"
-    - "based on price action", "based on highs/lows", "technical analysis"
-
-    COMMON USER REQUESTS that use draw_trend_line_from_analysis:
-    - "Add a resistance trend line" → type: "resistance"
-    - "Draw support based on recent lows" → type: "support"
-    - "Show me a trend line for the past week" → type: "resistance" or "support"
-    - "Connect the highs/lows" → type: "resistance" or "support"
-    - "Draw a line connecting recent peaks" → type: "resistance"
+    SUPPORT & RESISTANCE WORKFLOW - DEFAULT TO API ENDPOINT:
+    
+    DEFAULT (use fetch_support_resistance_levels):
+    When user asks for support/resistance levels, trend lines WITHOUT specifying AI:
+    - "show support and resistance", "draw trend lines", "find levels"
+    - "resistance levels", "support levels", "key levels"
+    - This tool fetches pre-calculated levels from the market API
+    - Draws horizontal lines at each level with confidence scores
+    - More efficient and faster than AI analysis
+    
+    AI ANALYSIS (use draw_trend_line_from_analysis):
+    ONLY when user explicitly asks for AI-based analysis:
+    - "AI detected trend lines", "use AI to find support"
+    - "analyze with AI", "AI-based resistance"
+    - This tool uses OpenAI to analyze candle data
+    - Draws diagonal trend lines connecting price points
+    - More flexible but slower and costs more
+    
+    KEYWORDS for API-based levels (use fetch_support_resistance_levels):
+    - "support", "resistance", "levels", "key levels"
+    - "horizontal support", "horizontal resistance"
+    - Default for any support/resistance request
+    
+    KEYWORDS for AI analysis (use draw_trend_line_from_analysis):
+    - "AI detected", "AI analyzed", "use AI"
+    - "connect highs", "connect lows" (diagonal lines)
+    - "trend line analysis with AI"
 
     Interval/granularity: Map these EXACTLY:
        - "one day candles" or "daily" or "day candles" → "ONE_DAY"
@@ -208,10 +215,20 @@ async function processWithLLM({
       "count": 3
     }
 
-    TREND LINE DRAWING PROCESS (USE COMBINED TOOL):
-    Use draw_trend_line_from_analysis - this does everything in ONE call
-
-    Example for drawing a resistance trend line:
+    SUPPORT & RESISTANCE DRAWING:
+    
+    DEFAULT - Use fetch_support_resistance_levels for automatic levels:
+    {
+      "symbol": "${chartContext.symbol}",
+      "granularity": "${chartContext.granularity}",
+      "startTime": ${Math.floor(chartContext.timeRange.start)},
+      "endTime": ${Math.floor(chartContext.timeRange.end)},
+      "maxSupports": 3,
+      "maxResistances": 3
+    }
+    
+    AI ANALYSIS - ONLY when explicitly requested:
+    Use draw_trend_line_from_analysis for AI-detected trend lines:
     {
       "symbol": "${chartContext.symbol}",
       "interval": "${chartContext.granularity}",
@@ -221,21 +238,7 @@ async function processWithLLM({
       "count": 2,
       "color": "#FF0000",
       "extendRight": true
-    }
-
-    Example for drawing a support trend line:
-    {
-      "symbol": "${chartContext.symbol}",
-      "interval": "${chartContext.granularity}",
-      "startTime": ${Math.floor(chartContext.timeRange.start)},
-      "endTime": ${Math.floor(chartContext.timeRange.end)},
-      "type": "support",
-      "count": 2,
-      "color": "#00FF00",
-      "extendRight": true
-    }
-
-    ONE TOOL CALL DOES EVERYTHING - analysis + drawing!`;
+    }`;
   }
 
   systemPrompt += `\n\nWhen the user asks you to perform chart actions, use the appropriate tools.
@@ -243,11 +246,11 @@ async function processWithLLM({
     Always confirm when you've executed commands on the chart.
 
     CRITICAL REMINDERS:
-    - For ANY trend line request: Use draw_trend_line_from_analysis (ONE tool call)
-    - Resistance trend lines: type="resistance"
-    - Support trend lines: type="support"
-    - This tool does analysis AND drawing automatically
-    - NEVER use analyze_price_points + add_trend_line for trend lines
+    - DEFAULT for support/resistance: Use fetch_support_resistance_levels (API-based)
+    - ONLY use draw_trend_line_from_analysis when user explicitly asks for AI analysis
+    - fetch_support_resistance_levels draws horizontal lines at price levels
+    - draw_trend_line_from_analysis draws diagonal trend lines connecting points
+    - NEVER use analyze_price_points + add_trend_line separately
 
     ${getTimeframeExtractionPrompt()}`;
 
@@ -327,8 +330,139 @@ async function processWithLLM({
 
         // Check if it's a chart command or data fetch
         if (chartTools.isChartTool(toolCall.function.name)) {
-          // Special handling for combined trend line tool
-          if (toolCall.function.name === "draw_trend_line_from_analysis") {
+          // Special handling for API-based support/resistance levels
+          if (toolCall.function.name === "fetch_support_resistance_levels") {
+            try {
+              console.log("Fetching support/resistance levels from API...");
+              
+              // Stream initial status to user
+              onStream("\n\n📊 Fetching support and resistance levels...");
+              
+              // Call the price tool to get levels from API
+              const levelsData = await priceTools.execute(
+                "get_support_resistance_levels",
+                {
+                  symbol: args.symbol,
+                  granularity: args.granularity,
+                  startTime: args.startTime,
+                  endTime: args.endTime,
+                  maxSupports: args.maxSupports || 3,
+                  maxResistances: args.maxResistances || 3,
+                },
+                db
+              );
+              
+              console.log(`API returned ${levelsData.supports.length} support and ${levelsData.resistances.length} resistance levels`);
+              
+              // Stream summary to user
+              if (levelsData.supports.length > 0 || levelsData.resistances.length > 0) {
+                onStream(`\n✅ Found ${levelsData.supports.length} support and ${levelsData.resistances.length} resistance levels\n`);
+              } else {
+                onStream("\n⚠️ No significant support or resistance levels found in the current data\n");
+              }
+              
+              // Draw horizontal lines for each support level
+              for (const support of levelsData.supports) {
+                // Determine line style based on confidence
+                let lineStyle = "solid";
+                if (support.confidence < 50) {
+                  lineStyle = "dotted";
+                } else if (support.confidence < 70) {
+                  lineStyle = "dashed";
+                }
+                
+                // Create a horizontal line at the support price
+                const supportLineArgs = {
+                  start: {
+                    timestamp: args.startTime,
+                    price: support.price,
+                  },
+                  end: {
+                    timestamp: args.endTime,
+                    price: support.price,
+                  },
+                  color: args.supportColor || "#4caf50",
+                  lineWidth: 2,
+                  style: lineStyle,
+                  extendLeft: true,
+                  extendRight: true,
+                  name: `Support $${support.price.toFixed(2)}`,
+                  description: `Confidence: ${support.confidence.toFixed(0)}% | Tests: ${support.tests} | Last: ${new Date(support.lastTest).toLocaleDateString()}`,
+                };
+                
+                // Create the add_trend_line command
+                const supportLineToolCall = {
+                  ...toolCall,
+                  function: {
+                    name: "add_trend_line",
+                    arguments: JSON.stringify(supportLineArgs),
+                  },
+                };
+                
+                // Write trend line command to Firestore
+                await onToolCall(supportLineToolCall);
+                
+                onStream(`🟢 Support at $${support.price.toFixed(2)} (${support.confidence.toFixed(0)}% confidence)\n`);
+              }
+              
+              // Draw horizontal lines for each resistance level
+              for (const resistance of levelsData.resistances) {
+                // Determine line style based on confidence
+                let lineStyle = "solid";
+                if (resistance.confidence < 50) {
+                  lineStyle = "dotted";
+                } else if (resistance.confidence < 70) {
+                  lineStyle = "dashed";
+                }
+                
+                // Create a horizontal line at the resistance price
+                const resistanceLineArgs = {
+                  start: {
+                    timestamp: args.startTime,
+                    price: resistance.price,
+                  },
+                  end: {
+                    timestamp: args.endTime,
+                    price: resistance.price,
+                  },
+                  color: args.resistanceColor || "#ff5252",
+                  lineWidth: 2,
+                  style: lineStyle,
+                  extendLeft: true,
+                  extendRight: true,
+                  name: `Resistance $${resistance.price.toFixed(2)}`,
+                  description: `Confidence: ${resistance.confidence.toFixed(0)}% | Tests: ${resistance.tests} | Last: ${new Date(resistance.lastTest).toLocaleDateString()}`,
+                };
+                
+                // Create the add_trend_line command
+                const resistanceLineToolCall = {
+                  ...toolCall,
+                  function: {
+                    name: "add_trend_line",
+                    arguments: JSON.stringify(resistanceLineArgs),
+                  },
+                };
+                
+                // Write trend line command to Firestore
+                await onToolCall(resistanceLineToolCall);
+                
+                onStream(`🔴 Resistance at $${resistance.price.toFixed(2)} (${resistance.confidence.toFixed(0)}% confidence)\n`);
+              }
+              
+              // Final confirmation
+              const totalLines = levelsData.supports.length + levelsData.resistances.length;
+              if (totalLines > 0) {
+                onStream(`\n✓ Drew ${totalLines} support and resistance level${totalLines > 1 ? "s" : ""} on the chart.`);
+              }
+              
+            } catch (error: any) {
+              console.error("Error fetching support/resistance levels:", error);
+              onStream(`\n\nFailed to fetch support/resistance levels: ${error.message}`);
+              assistantMessage += `\n\nFailed to fetch support/resistance levels: ${error.message}`;
+            }
+          }
+          // Special handling for AI-based trend line tool
+          else if (toolCall.function.name === "draw_trend_line_from_analysis") {
             try {
               console.log("Using OpenAI to analyze trend lines...");
 

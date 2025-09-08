@@ -32,6 +32,15 @@ interface AnalyzePricePointsArgs {
   count?: number;
 }
 
+interface SupportResistanceLevelsArgs {
+  symbol?: string;
+  granularity?: string;
+  startTime?: number;
+  endTime?: number;
+  maxSupports?: number;
+  maxResistances?: number;
+}
+
 interface Candle {
   timestamp?: number;
   time?: number;
@@ -175,6 +184,47 @@ export const priceTools = {
         },
       },
     },
+    {
+      type: "function",
+      function: {
+        name: "get_support_resistance_levels",
+        description:
+          "Fetch automatically detected support and resistance levels from the market API using historical price data analysis",
+        parameters: {
+          type: "object",
+          properties: {
+            symbol: {
+              type: "string",
+              description: "Trading pair symbol (default: BTC-USD)",
+              default: "BTC-USD",
+            },
+            granularity: {
+              type: "string",
+              description: "Time granularity for analysis (default: ONE_HOUR)",
+              default: "ONE_HOUR",
+            },
+            startTime: {
+              type: "number",
+              description: "Start timestamp in milliseconds (default: 30 days ago)",
+            },
+            endTime: {
+              type: "number",
+              description: "End timestamp in milliseconds (default: now)",
+            },
+            maxSupports: {
+              type: "number",
+              description: "Maximum number of support levels to return (default: 5)",
+              default: 5,
+            },
+            maxResistances: {
+              type: "number",
+              description: "Maximum number of resistance levels to return (default: 5)",
+              default: 5,
+            },
+          },
+        },
+      },
+    },
   ] as ToolDefinition[],
 
   isPriceTool(name: string): boolean {
@@ -191,6 +241,8 @@ export const priceTools = {
         return await this.getAvailableSymbols(db);
       case "analyze_price_points":
         return await this.analyzePricePoints(args as AnalyzePricePointsArgs);
+      case "get_support_resistance_levels":
+        return await this.getSupportResistanceLevels(args as SupportResistanceLevelsArgs);
       default:
         throw new Error(`Unknown Firestore tool: ${toolName}`);
     }
@@ -524,6 +576,70 @@ export const priceTools = {
     }
   },
 
+  async getSupportResistanceLevels({
+    symbol = "BTC-USD",
+    granularity = "ONE_HOUR",
+    startTime,
+    endTime,
+    maxSupports = 5,
+    maxResistances = 5,
+  }: SupportResistanceLevelsArgs): Promise<any> {
+    try {
+      const API_BASE_URL = "https://market.spotcanvas.com";
+      
+      // Build query parameters
+      const params = new URLSearchParams();
+      params.append("symbol", symbol);
+      params.append("granularity", granularity);
+      
+      // Add optional parameters if provided
+      if (startTime) {
+        params.append("start_time", Math.floor(startTime).toString());
+      }
+      if (endTime) {
+        params.append("end_time", Math.floor(endTime).toString());
+      }
+      params.append("max_supports", maxSupports.toString());
+      params.append("max_resistances", maxResistances.toString());
+      
+      console.log(
+        `Fetching support/resistance levels from API: ${API_BASE_URL}/levels?${params}`
+      );
+      
+      const response = await fetch(`${API_BASE_URL}/levels?${params}`);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`API Error Response: ${errorText}`);
+        throw new Error(
+          `API error: ${response.status} ${response.statusText} - ${errorText}`
+        );
+      }
+      
+      const data: any = await response.json();
+      
+      // The API returns data in the format:
+      // {
+      //   "supports": [...],
+      //   "resistances": [...]
+      // }
+      
+      return {
+        symbol,
+        granularity,
+        supports: data.supports || [],
+        resistances: data.resistances || [],
+        timeRange: {
+          start: startTime,
+          end: endTime,
+        },
+      };
+    } catch (error: any) {
+      console.error("Error fetching support/resistance levels from API:", error);
+      throw new Error(`Failed to fetch support/resistance levels: ${error.message}`);
+    }
+  },
+
   getIntervalMilliseconds(interval: string): number {
     const intervals: Record<string, number> = {
       ONE_MINUTE: 60 * 1000,
@@ -594,6 +710,19 @@ export const priceTools = {
           2
         )} - $${result.priceRange.highest.toFixed(2)}`;
         return summary;
+
+      case "get_support_resistance_levels":
+        let levelsSummary = `Fetched support and resistance levels for ${result.symbol}. `;
+        if (result.supports.length > 0) {
+          levelsSummary += `Found ${result.supports.length} support levels. `;
+        }
+        if (result.resistances.length > 0) {
+          levelsSummary += `Found ${result.resistances.length} resistance levels. `;
+        }
+        if (result.supports.length === 0 && result.resistances.length === 0) {
+          levelsSummary = `No support or resistance levels found for ${result.symbol}.`;
+        }
+        return levelsSummary;
 
       default:
         return `Completed ${toolName}`;

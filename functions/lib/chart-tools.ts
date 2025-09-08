@@ -300,7 +300,7 @@ export const chartTools = {
       function: {
         name: "draw_trend_line_from_analysis",
         description:
-          "Analyze price data and automatically draw a trend line based on significant price points",
+          "Analyze price data using AI and automatically draw a trend line based on significant price points",
         parameters: {
           type: "object",
           properties: {
@@ -361,6 +361,56 @@ export const chartTools = {
         },
       },
     },
+    {
+      type: "function",
+      function: {
+        name: "fetch_support_resistance_levels",
+        description:
+          "Fetch and draw support and resistance levels from the market API based on historical price analysis",
+        parameters: {
+          type: "object",
+          properties: {
+            symbol: {
+              type: "string",
+              description: "Trading pair symbol (e.g., BTC-USD, ETH-USD)",
+            },
+            granularity: {
+              type: "string",
+              description: "Time granularity for analysis",
+            },
+            startTime: {
+              type: "number",
+              description: "Start timestamp in milliseconds",
+            },
+            endTime: {
+              type: "number",
+              description: "End timestamp in milliseconds",
+            },
+            maxSupports: {
+              type: "number",
+              description: "Maximum number of support levels to draw (default: 3)",
+              default: 3,
+            },
+            maxResistances: {
+              type: "number",
+              description: "Maximum number of resistance levels to draw (default: 3)",
+              default: 3,
+            },
+            supportColor: {
+              type: "string",
+              description: "Color for support lines (default: green)",
+              default: "#4caf50",
+            },
+            resistanceColor: {
+              type: "string",
+              description: "Color for resistance lines (default: red)",
+              default: "#ff5252",
+            },
+          },
+          required: ["symbol", "granularity", "startTime", "endTime"],
+        },
+      },
+    },
   ] as ToolDefinition[],
 
   isChartTool(name: string): boolean {
@@ -382,7 +432,9 @@ export const chartTools = {
       case "add_trend_line":
         return `✓ Drew trend line`;
       case "draw_trend_line_from_analysis":
-        return `✓ Analyzed price data and drew ${args.type} trend line`;
+        return `✓ Analyzed price data using AI and drew ${args.type} trend line`;
+      case "fetch_support_resistance_levels":
+        return `✓ Fetched and drew support/resistance levels from market data`;
       case "remove_trend_line":
         return `✓ Removed trend line`;
       case "clear_trend_lines":
