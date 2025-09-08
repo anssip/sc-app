@@ -361,6 +361,24 @@ async function processWithLLM({
                 onStream("\n⚠️ No significant support or resistance levels found in the current data\n");
               }
               
+              // Helper function to format granularity for display
+              const formatGranularity = (granularity: string): string => {
+                const formatMap: Record<string, string> = {
+                  'ONE_MINUTE': '1m',
+                  'FIVE_MINUTE': '5m',
+                  'FIFTEEN_MINUTE': '15m',
+                  'THIRTY_MINUTE': '30m',
+                  'ONE_HOUR': '1h',
+                  'TWO_HOUR': '2h',
+                  'FOUR_HOUR': '4h',
+                  'SIX_HOUR': '6h',
+                  'ONE_DAY': '1d',
+                };
+                return formatMap[granularity] || granularity.toLowerCase().replace(/_/g, ' ');
+              };
+              
+              const granularityLabel = formatGranularity(args.granularity);
+              
               // Draw horizontal lines for each support level
               for (const support of levelsData.supports) {
                 // Determine line style based on confidence
@@ -386,7 +404,7 @@ async function processWithLLM({
                   style: lineStyle,
                   extendLeft: true,
                   extendRight: true,
-                  name: `Support $${support.price.toFixed(2)}`,
+                  name: `${granularityLabel}: Support $${support.price.toFixed(2)}`,
                   description: `Confidence: ${support.confidence.toFixed(0)}% | Tests: ${support.tests} | Last: ${new Date(support.lastTest).toLocaleDateString()}`,
                 };
                 
@@ -430,7 +448,7 @@ async function processWithLLM({
                   style: lineStyle,
                   extendLeft: true,
                   extendRight: true,
-                  name: `Resistance $${resistance.price.toFixed(2)}`,
+                  name: `${granularityLabel}: Resistance $${resistance.price.toFixed(2)}`,
                   description: `Confidence: ${resistance.confidence.toFixed(0)}% | Tests: ${resistance.tests} | Last: ${new Date(resistance.lastTest).toLocaleDateString()}`,
                 };
                 
