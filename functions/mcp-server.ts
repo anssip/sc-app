@@ -78,17 +78,30 @@ const corsOptions: cors.CorsOptions = {
     // Allow requests with no origin (like mobile apps or curl)
     if (!origin) return callback(null, true);
 
-    // Allow localhost for development (including common Vite ports)
-    if (
-      origin.startsWith("http://localhost:") ||
-      origin.startsWith("https://localhost:") ||
-      origin.startsWith("http://127.0.0.1:") ||
-      origin.startsWith("https://127.0.0.1:") ||
-      origin.includes("spotcanvas-prod.web.app") ||
-      origin.includes("spotcanvas-prod.firebaseapp.com")
-    ) {
+    // List of allowed origins
+    const allowedOrigins = [
+      "http://localhost:3000",
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "http://localhost:4173",
+      "http://127.0.0.1:3000",
+      "http://127.0.0.1:5173",
+      "https://spotcanvas-prod.web.app",
+      "https://spotcanvas-prod.firebaseapp.com",
+      "https://spotcanvas.com",
+      "https://www.spotcanvas.com"
+    ];
+
+    // Check if origin matches any allowed origin or pattern
+    const isAllowed = allowedOrigins.some(allowed => origin === allowed) ||
+                     origin.startsWith("http://localhost:") ||
+                     origin.startsWith("https://localhost:") ||
+                     origin.startsWith("http://127.0.0.1:");
+
+    if (isAllowed) {
       callback(null, true);
     } else {
+      console.error(`CORS blocked origin: ${origin}`);
       callback(new Error("Not allowed by CORS"));
     }
   },
@@ -102,13 +115,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 // Handle preflight requests
-app.options("*", (req: Request, res: Response) => {
-  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
-  res.header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.header("Access-Control-Allow-Credentials", "true");
-  res.sendStatus(200);
-});
+app.options("*", cors(corsOptions));
 
 // Health check endpoint
 app.get("/health", (_req: Request, res: Response) => {
