@@ -116,17 +116,16 @@ async function processWithLLM({
   onStream,
   onToolCall,
 }: ProcessChatOptions): Promise<string> {
-  // Get recent chat history for context
+  // Get all chat history from current session for full context
   const historySnapshot = await db
     .collection("users")
     .doc(userId)
     .collection("chat_history")
     .where("sessionId", "==", sessionId)
-    .orderBy("timestamp", "desc")
-    .limit(10)
+    .orderBy("timestamp", "asc")
     .get();
 
-  const history = historySnapshot.docs.reverse().map((doc) => ({
+  const history = historySnapshot.docs.map((doc) => ({
     role: doc.data().role,
     content: doc.data().content,
   }));
