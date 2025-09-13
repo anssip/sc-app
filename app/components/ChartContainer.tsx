@@ -839,17 +839,28 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
                           console.warn("Could not extract endPoint:", e);
                         }
                         
-                        // Safely extract style
+                        // Safely extract style (line style like solid/dashed/dotted)
                         try {
-                          if (line.style) {
-                            cleanLine.style = {
-                              color: String(line.style.color || '#2962FF'),
-                              width: Number(line.style.width || 1),
-                              style: Number(line.style.style || 0)
-                            };
+                          // Check if there's a direct style property (string)
+                          if (typeof line.style === 'string') {
+                            cleanLine.style = line.style;
+                          } 
+                          // Check if style is nested in an object with a style property
+                          else if (line.style?.style !== undefined) {
+                            // Convert numeric style to string if needed
+                            const styleNum = Number(line.style.style);
+                            if (styleNum === 0) cleanLine.style = 'solid';
+                            else if (styleNum === 1) cleanLine.style = 'dotted';
+                            else if (styleNum === 2) cleanLine.style = 'dashed';
+                            else cleanLine.style = 'solid';
+                          }
+                          // Default to solid if no style found
+                          else {
+                            cleanLine.style = 'solid';
                           }
                         } catch (e) {
                           console.warn("Could not extract style:", e);
+                          cleanLine.style = 'solid';
                         }
                         
                         // Safely extract extend
@@ -871,6 +882,67 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
                           }
                         } catch (e) {
                           console.warn("Could not extract text:", e);
+                        }
+                        
+                        // Safely extract name
+                        try {
+                          if (line.name !== undefined && line.name !== null) {
+                            cleanLine.name = String(line.name);
+                          }
+                        } catch (e) {
+                          console.warn("Could not extract name:", e);
+                        }
+                        
+                        // Safely extract description
+                        try {
+                          if (line.description !== undefined && line.description !== null) {
+                            cleanLine.description = String(line.description);
+                          }
+                        } catch (e) {
+                          console.warn("Could not extract description:", e);
+                        }
+                        
+                        // Safely extract color (separate from style)
+                        try {
+                          if (line.color !== undefined && line.color !== null) {
+                            cleanLine.color = String(line.color);
+                          } else if (line.style?.color) {
+                            cleanLine.color = String(line.style.color);
+                          }
+                        } catch (e) {
+                          console.warn("Could not extract color:", e);
+                        }
+                        
+                        // Safely extract lineWidth (separate from style)
+                        try {
+                          if (line.lineWidth !== undefined && line.lineWidth !== null) {
+                            cleanLine.lineWidth = Number(line.lineWidth);
+                          } else if (line.style?.width !== undefined) {
+                            cleanLine.lineWidth = Number(line.style.width);
+                          }
+                        } catch (e) {
+                          console.warn("Could not extract lineWidth:", e);
+                        }
+                        
+                        // Safely extract extendLeft and extendRight (from extend or direct properties)
+                        try {
+                          if (line.extendLeft !== undefined) {
+                            cleanLine.extendLeft = Boolean(line.extendLeft);
+                          } else if (line.extend?.left !== undefined) {
+                            cleanLine.extendLeft = Boolean(line.extend.left);
+                          }
+                        } catch (e) {
+                          console.warn("Could not extract extendLeft:", e);
+                        }
+                        
+                        try {
+                          if (line.extendRight !== undefined) {
+                            cleanLine.extendRight = Boolean(line.extendRight);
+                          } else if (line.extend?.right !== undefined) {
+                            cleanLine.extendRight = Boolean(line.extend.right);
+                          }
+                        } catch (e) {
+                          console.warn("Could not extract extendRight:", e);
                         }
                         
                         currentTrendLines.push(cleanLine);
