@@ -334,8 +334,36 @@ async function processWithLLM({
             try {
               console.log("Fetching support/resistance levels from API...");
               
-              // Stream initial status to user
-              onStream("\n\n📊 Fetching support and resistance levels...");
+              // Helper function to format granularity for display
+              const formatGranularity = (granularity: string): string => {
+                const formatMap: Record<string, string> = {
+                  'ONE_MINUTE': '1m',
+                  'FIVE_MINUTE': '5m',
+                  'FIFTEEN_MINUTE': '15m',
+                  'THIRTY_MINUTE': '30m',
+                  'ONE_HOUR': '1h',
+                  'TWO_HOUR': '2h',
+                  'FOUR_HOUR': '4h',
+                  'SIX_HOUR': '6h',
+                  'ONE_DAY': '1d',
+                };
+                return formatMap[granularity] || granularity.toLowerCase().replace(/_/g, ' ');
+              };
+
+              // Format dates for display
+              const startDate = new Date(args.startTime).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+              });
+              const endDate = new Date(args.endTime).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+              });
+
+              // Stream initial status to user with details
+              onStream(`\n\n📊 Fetching support and resistance levels for ${args.symbol} (${formatGranularity(args.granularity)}) from ${startDate} to ${endDate}...`);
               
               // Call the price tool to get levels from API
               const levelsData = await priceTools.execute(
@@ -359,22 +387,6 @@ async function processWithLLM({
               } else {
                 onStream("\n⚠️ No significant support or resistance levels found in the current data\n");
               }
-              
-              // Helper function to format granularity for display
-              const formatGranularity = (granularity: string): string => {
-                const formatMap: Record<string, string> = {
-                  'ONE_MINUTE': '1m',
-                  'FIVE_MINUTE': '5m',
-                  'FIFTEEN_MINUTE': '15m',
-                  'THIRTY_MINUTE': '30m',
-                  'ONE_HOUR': '1h',
-                  'TWO_HOUR': '2h',
-                  'FOUR_HOUR': '4h',
-                  'SIX_HOUR': '6h',
-                  'ONE_DAY': '1d',
-                };
-                return formatMap[granularity] || granularity.toLowerCase().replace(/_/g, ' ');
-              };
               
               const granularityLabel = formatGranularity(args.granularity);
               
