@@ -5,7 +5,7 @@ import type {
   ChartConfig,
 } from "~/types";
 import type { PanelLayout } from "~/components/ChartPanel";
-import type { Granularity } from "@anssipiirainen/sc-charts";
+import type { Granularity } from "@anssip/rs-charts";
 
 /**
  * Converts from the new repository layout format to the existing ChartPanel format

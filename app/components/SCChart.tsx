@@ -14,7 +14,7 @@ import {
   UseChartSettingsReturn,
   type ChartSettings,
 } from "~/contexts/ChartSettingsContext";
-import type { ChartApi, Granularity } from "@anssipiirainen/sc-charts";
+import type { ChartApi, Granularity } from "@anssip/rs-charts";
 
 interface SCChartProps {
   firestore?: Firestore;
@@ -492,7 +492,7 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
 
           // Reinitialize the chart
           const { createChartContainer, initChartWithApi } = await import(
-            "@anssipiirainen/sc-charts"
+            "@anssip/rs-charts"
           );
 
           const chartContainer = createChartContainer();
@@ -689,7 +689,7 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
 
       const initializeChart = async (container: HTMLElement) => {
         const { createChartContainer, initChartWithApi } = await import(
-          "@anssipiirainen/sc-charts"
+          "@anssip/rs-charts"
         );
 
         if (!initChartWithApi) {

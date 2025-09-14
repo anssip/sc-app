@@ -20,10 +20,11 @@
     "firebase:emulators:all": "firebase emulators:start",
     "firebase:login": "firebase login",
     "emulators:dev": "FIRESTORE_EMULATOR_HOST=localhost:8090 FUNCTIONS_EMULATOR_HOST=localhost:5001 firebase emulators:start --only functions,firestore",
-    "emulators:mcp": "cd functions && bun run build && cd .. && firebase emulators:start --only functions:mcpServer,firestore,auth --project spotcanvas-prod"
+    "emulators:mcp": "cd functions && bun run build && cd .. && firebase emulators:start --only functions:mcpServer,firestore,auth --project spotcanvas-prod",
+    "add-emu-user": "node scripts/add-emulator-user.mjs"
   },
   "dependencies": {
-    "@anssipiirainen/sc-charts": "^0.1.9",
+    "@anssip/rs-charts": "1.2.3",
     "@headlessui/react": "^2.2.4",
     "@remix-run/node": "^2.16.8",
     "@remix-run/react": "^2.16.8",

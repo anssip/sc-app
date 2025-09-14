@@ -19,7 +19,7 @@
   },
   "main": "index.js",
   "dependencies": {
-    "@anssipiirainen/sc-charts": "file:./rs-charts",
+    "@anssip/rs-charts": "file:./rs-charts",
     "@headlessui/react": "^2.2.4",
     "@remix-run/express": "^2.16.8",
     "@remix-run/node": "^2.16.8",

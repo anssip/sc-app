@@ -34,7 +34,7 @@ App (Root)
     │                   │       │
     │                   │       └── SCChart (listens to symbolChange events)
     │                   │           ├── Context integration for symbol/granularity sync
-    │                   │           └── @anssipiirainen/sc-charts (3rd party)
+    │                   │           └── @anssip/rs-charts (3rd party)
     │                   │
     │                   └── Panel (split)
     │                       ├── PanelGroup

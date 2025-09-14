@@ -10,7 +10,7 @@ import { Menu, Transition } from "@headlessui/react";
 import { ChevronDownIcon } from "lucide-react";
 import { ToolbarButton, ToolbarDropdownButton } from "./ToolbarButton";
 import { UpgradePrompt } from "./UpgradePrompt";
-import type { Granularity } from "@anssipiirainen/sc-charts";
+import type { Granularity } from "@anssip/rs-charts";
 import type { IndicatorConfig } from "~/contexts/ChartSettingsContext";
 
 interface ChartToolbarProps {
@@ -323,24 +323,26 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
         </>
       )}
 
-        {/* Trend Line Button */}
-        <ToolbarButton
-          onClick={onToggleTrendLineTool}
-          title={isTrendLineToolActive ? "Stop Drawing Trend Lines" : "Draw Trend Line"}
-          active={isTrendLineToolActive}
+      {/* Trend Line Button */}
+      <ToolbarButton
+        onClick={onToggleTrendLineTool}
+        title={
+          isTrendLineToolActive ? "Stop Drawing Trend Lines" : "Draw Trend Line"
+        }
+        active={isTrendLineToolActive}
+      >
+        <svg
+          className="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
         >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            {/* Line with circles at both ends */}
-            <line x1="5" y1="19" x2="19" y2="5" strokeWidth={2} />
-            <circle cx="5" cy="19" r="2" fill="currentColor" />
-            <circle cx="19" cy="5" r="2" fill="currentColor" />
-          </svg>
-        </ToolbarButton>
+          {/* Line with circles at both ends */}
+          <line x1="5" y1="19" x2="19" y2="5" strokeWidth={2} />
+          <circle cx="5" cy="19" r="2" fill="currentColor" />
+          <circle cx="19" cy="5" r="2" fill="currentColor" />
+        </svg>
+      </ToolbarButton>
 
       {/* Indicator Dropdown */}
       <Menu as="div" className="relative">

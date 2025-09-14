@@ -28,4 +28,4 @@ The initial features;
 
 ## The charts module
 
-The chart module is available in npmjs.com as @anssipiirainen/sc-charts
+The chart module is available in npmjs.com as @anssip/rs-charts

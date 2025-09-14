@@ -1,7 +1,7 @@
 import React, { useRef, useCallback } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { ChartContainer } from "./ChartContainer";
-import type { Granularity } from "@anssipiirainen/sc-charts";
+import type { Granularity } from "@anssip/rs-charts";
 import type { ChartConfig } from "./ChartContainer";
 
 /**
@@ -243,13 +243,27 @@ export const ChartPanel: React.FC<ChartPanelProps> = ({
         {layout.children
           ? layout.children.map((child, index) => (
               <React.Fragment key={child.id}>
-                {renderPanelGroup(child, layoutId, onLayoutChange, layout, "", onChartApiReady)}
+                {renderPanelGroup(
+                  child,
+                  layoutId,
+                  onLayoutChange,
+                  layout,
+                  "",
+                  onChartApiReady
+                )}
                 {index < layout.children!.length - 1 && (
                   <ResizeHandle direction={layout.direction || "horizontal"} />
                 )}
               </React.Fragment>
             ))
-          : renderPanelGroup(layout, layoutId, onLayoutChange, layout, "", onChartApiReady)}
+          : renderPanelGroup(
+              layout,
+              layoutId,
+              onLayoutChange,
+              layout,
+              "",
+              onChartApiReady
+            )}
       </PanelGroup>
     </div>
   );

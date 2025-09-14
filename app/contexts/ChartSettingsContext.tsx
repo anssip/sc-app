@@ -7,7 +7,7 @@ import React, {
   useMemo,
   useEffect,
 } from "react";
-import type { Granularity } from "@anssipiirainen/sc-charts";
+import type { Granularity } from "@anssip/rs-charts";
 
 export interface IndicatorConfig {
   id: string;
@@ -35,7 +35,12 @@ export interface ChartSettingsContextValue {
   // Update methods
   setSymbol: (symbol: string, chartId?: string) => void;
   setGranularity: (granularity: Granularity, chartId?: string) => void;
-  setIndicators: (indicators: IndicatorConfig[] | ((prev: IndicatorConfig[]) => IndicatorConfig[]), chartId?: string) => void;
+  setIndicators: (
+    indicators:
+      | IndicatorConfig[]
+      | ((prev: IndicatorConfig[]) => IndicatorConfig[]),
+    chartId?: string
+  ) => void;
   setSettings: (settings: Partial<ChartSettings>, chartId?: string) => void;
 
   // Chart registration (for multi-chart support)
@@ -124,22 +129,32 @@ export const ChartSettingsProvider: React.FC<ChartSettingsProviderProps> = ({
   );
 
   const setIndicators = useCallback(
-    (indicators: IndicatorConfig[] | ((prev: IndicatorConfig[]) => IndicatorConfig[]), chartId?: string) => {
+    (
+      indicators:
+        | IndicatorConfig[]
+        | ((prev: IndicatorConfig[]) => IndicatorConfig[]),
+      chartId?: string
+    ) => {
       if (chartId) {
         const currentSettings = chartSettingsRef.current.get(chartId) || {
           ...settings,
         };
-        const resolvedIndicators = typeof indicators === 'function' 
-          ? indicators(currentSettings.indicators) 
-          : indicators;
-        const newSettings = { ...currentSettings, indicators: resolvedIndicators };
+        const resolvedIndicators =
+          typeof indicators === "function"
+            ? indicators(currentSettings.indicators)
+            : indicators;
+        const newSettings = {
+          ...currentSettings,
+          indicators: resolvedIndicators,
+        };
         chartSettingsRef.current.set(chartId, newSettings);
         onSettingsChange?.(newSettings, chartId);
         triggerUpdate();
       } else {
-        const resolvedIndicators = typeof indicators === 'function' 
-          ? indicators(settings.indicators) 
-          : indicators;
+        const resolvedIndicators =
+          typeof indicators === "function"
+            ? indicators(settings.indicators)
+            : indicators;
         const newSettings = { ...settings, indicators: resolvedIndicators };
         setSettingsState(newSettings);
         onSettingsChange?.(newSettings);
@@ -226,7 +241,11 @@ export interface UseChartSettingsReturn {
   settings: ChartSettings;
   setSymbol: (symbol: string) => void;
   setGranularity: (granularity: Granularity) => void;
-  setIndicators: (indicators: IndicatorConfig[] | ((prev: IndicatorConfig[]) => IndicatorConfig[])) => void;
+  setIndicators: (
+    indicators:
+      | IndicatorConfig[]
+      | ((prev: IndicatorConfig[]) => IndicatorConfig[])
+  ) => void;
   setSettings: (settings: Partial<ChartSettings>) => void;
   registerChart: (
     chartIdOrInitialSettings: string | ChartSettings,
@@ -255,8 +274,11 @@ export const useChartSettings = (chartId?: string): UseChartSettingsReturn => {
       setSymbol: (symbol: string) => context.setSymbol(symbol, chartId),
       setGranularity: (granularity: Granularity) =>
         context.setGranularity(granularity, chartId),
-      setIndicators: (indicators: IndicatorConfig[] | ((prev: IndicatorConfig[]) => IndicatorConfig[])) =>
-        context.setIndicators(indicators, chartId),
+      setIndicators: (
+        indicators:
+          | IndicatorConfig[]
+          | ((prev: IndicatorConfig[]) => IndicatorConfig[])
+      ) => context.setIndicators(indicators, chartId),
       setSettings: (settings: Partial<ChartSettings>) =>
         context.setSettings(settings, chartId),
       registerChart: (

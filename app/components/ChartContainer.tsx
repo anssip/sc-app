@@ -21,7 +21,7 @@ import {
   type ChartSettings,
   type IndicatorConfig,
 } from "~/contexts/ChartSettingsContext";
-import type { Granularity } from "@anssipiirainen/sc-charts";
+import type { Granularity } from "@anssip/rs-charts";
 
 export interface ChartConfig {
   id: string;

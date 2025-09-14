@@ -4,7 +4,7 @@
     "": {
       "name": "functions",
       "dependencies": {
-        "@anssipiirainen/sc-charts": "file:./rs-charts",
+        "@anssip/rs-charts": "file:./rs-charts",
         "@headlessui/react": "^2.2.4",
         "@remix-run/express": "^2.16.8",
         "@remix-run/node": "^2.16.8",
@@ -38,7 +38,7 @@
     },
   },
   "packages": {
-    "@anssipiirainen/sc-charts": ["@anssipiirainen/sc-charts@file:rs-charts", { "dependencies": { "@types/jsonwebtoken": "^9.0.7", "coinbase-api": "^1.0.2", "dotenv": "^16.4.5", "firebase-admin": "^12.0.0", "jsonwebtoken": "^9.0.2" }, "devDependencies": { "@types/bun": "^1.1.12", "bun-types": "latest", "concurrently": "^9.0.1", "typescript": "latest" }, "peerDependencies": { "@use-gesture/vanilla": "^10.3.1", "firebase": "^11.8.1", "lit": "^3.2.1", "lit-element": "^4.1.1", "lit-html": "^3.2.1", "xinjs": "^0.7.2" } }],
+    "@anssip/rs-charts": ["@anssip/rs-charts@file:rs-charts", { "dependencies": { "@types/jsonwebtoken": "^9.0.7", "coinbase-api": "^1.0.2", "dotenv": "^16.4.5", "firebase-admin": "^12.0.0", "jsonwebtoken": "^9.0.2" }, "devDependencies": { "@types/bun": "^1.1.12", "bun-types": "latest", "concurrently": "^9.0.1", "typescript": "latest" }, "peerDependencies": { "@use-gesture/vanilla": "^10.3.1", "firebase": "^11.8.1", "lit": "^3.2.1", "lit-element": "^4.1.1", "lit-html": "^3.2.1", "xinjs": "^0.7.2" } }],
 
     "@fastify/busboy": ["@fastify/busboy@3.2.0", "", {}, "sha512-m9FVDXU3GT2ITSe0UaMA5rU3QkfC/UXtCU8y0gSN/GugTqtVldOBWIB5V6V3sbmenVZUIpU6f+mPEO2+m5iTaA=="],
 
@@ -782,7 +782,7 @@
 
     "yocto-queue": ["yocto-queue@0.1.0", "", {}, "sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q=="],
 
-    "@anssipiirainen/sc-charts/dotenv": ["dotenv@16.6.1", "", {}, "sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow=="],
+    "@anssip/rs-charts/dotenv": ["dotenv@16.6.1", "", {}, "sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow=="],
 
     "@firebase/database-compat/@firebase/database-types": ["@firebase/database-types@1.0.15", "", { "dependencies": { "@firebase/app-types": "0.9.3", "@firebase/util": "1.12.1" } }, "sha512-XWHJ0VUJ0k2E9HDMlKxlgy/ZuTa9EvHCGLjaKSUvrQnwhgZuRU5N3yX6SZ+ftf2hTzZmfRkv+b3QRvGg40bKNw=="],
 

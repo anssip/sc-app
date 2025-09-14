@@ -1,4 +1,4 @@
-import type { Granularity } from "@anssipiirainen/sc-charts";
+import type { Granularity } from "@anssip/rs-charts";
 
 // Trend line types
 export interface TrendLinePoint {
@@ -12,7 +12,7 @@ export interface TrendLine {
   endPoint: TrendLinePoint;
   color?: string;
   lineWidth?: number;
-  style?: 'solid' | 'dashed' | 'dotted';
+  style?: "solid" | "dashed" | "dotted";
   extendLeft?: boolean;
   extendRight?: boolean;
   name?: string;
@@ -22,7 +22,7 @@ export interface TrendLine {
 export interface TrendLineSettings {
   color?: string;
   lineWidth?: number;
-  style?: 'solid' | 'dashed' | 'dotted';
+  style?: "solid" | "dashed" | "dotted";
   extendLeft?: boolean;
   extendRight?: boolean;
   name?: string;
@@ -137,10 +137,13 @@ export interface ILayoutRepository {
     updates: Partial<SavedLayout>
   ): Promise<SavedLayout>;
   deleteLayout(layoutId: string): Promise<void>;
-  
+
   // Layout-specific starred symbols
   getLayoutStarredSymbols(layoutId: string): Promise<string[]>;
-  updateLayoutStarredSymbols(layoutId: string, symbols: string[]): Promise<void>;
+  updateLayoutStarredSymbols(
+    layoutId: string,
+    symbols: string[]
+  ): Promise<void>;
 
   // Chart management (DEPRECATED: Charts are now embedded in layouts)
   getChart(chartId: string, layoutId?: string): Promise<ChartConfig | null>;
@@ -194,7 +197,7 @@ export interface IRepository
 }
 
 // Granularity type re-export for convenience
-export type { Granularity } from "@anssipiirainen/sc-charts";
+export type { Granularity } from "@anssip/rs-charts";
 
 // Common utility types
 export type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;

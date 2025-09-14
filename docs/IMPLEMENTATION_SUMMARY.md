@@ -39,7 +39,7 @@ The implementation successfully provides an API that enables external control of
 ### Initialization
 
 ```javascript
-import { initChartWithApi, createChartContainer } from '@anssipiirainen/sc-charts';
+import { initChartWithApi, createChartContainer } from '@anssip/rs-charts';
 
 const chartContainer = createChartContainer();
 const { app, api } = await initChartWithApi(chartContainer, firebaseConfig, initialState);
@@ -76,7 +76,7 @@ const isVisible = api.isIndicatorVisible("rsi");
 // Show indicator
 api.showIndicator({
   id: "rsi",
-  name: "RSI", 
+  name: "RSI",
   visible: true,
   display: "bottom"
 });
@@ -188,7 +188,7 @@ function TradingDashboard() {
     <div>
       <button onClick={() => handleSymbolChange('BTC-USD')}>BTC-USD</button>
       <button onClick={() => handleSymbolChange('ETH-USD')}>ETH-USD</button>
-      
+
       <ChartApiComponent
         ref={chartRef}
         firebaseConfig={firebaseConfig}
@@ -207,11 +207,11 @@ import { useChart } from './composables/useChart';
 export default {
   setup() {
     const { containerRef, api, loading } = useChart(firebaseConfig);
-    
+
     const changeSymbol = async (symbol) => {
       await api.value?.setSymbol(symbol);
     };
-    
+
     return { containerRef, api, loading, changeSymbol };
   }
 };
@@ -231,7 +231,7 @@ export class ChartComponent implements OnInit, OnDestroy {
   async ngOnInit() {
     const chartContainer = createChartContainer();
     this.containerRef.nativeElement.appendChild(chartContainer);
-    
+
     const { api } = await initChartWithApi(chartContainer, this.firebaseConfig);
     this.api = api;
   }

@@ -11,7 +11,7 @@ The Chart API now accepts **either** a Firebase config object or an initialized 
 ### Option 1: Using Firebase Config Object (Recommended)
 
 ```typescript
-import { initChartWithApi, createChartContainer } from '@anssipiirainen/sc-charts';
+import { initChartWithApi, createChartContainer } from '@anssip/rs-charts';
 
 // Firebase configuration object
 const firebaseConfig = {
@@ -38,7 +38,7 @@ const { app, api } = await initChartWithApi(chartContainer, firebaseConfig, {
 
 ```typescript
 import { initializeApp } from 'firebase/app';
-import { initChartWithApi, createChartContainer } from '@anssipiirainen/sc-charts';
+import { initChartWithApi, createChartContainer } from '@anssip/rs-charts';
 
 // Firebase configuration object
 const firebaseConfig = {
@@ -68,7 +68,7 @@ const { app, api } = await initChartWithApi(chartContainer, firebaseApp, {
 
 ```tsx
 import React, { useEffect, useRef, useState } from 'react';
-import { initChartWithApi, createChartContainer, ChartApi, App } from '@anssipiirainen/sc-charts';
+import { initChartWithApi, createChartContainer, ChartApi, App } from '@anssip/rs-charts';
 
 interface ChartComponentProps {
   firebaseConfig: {
@@ -196,7 +196,7 @@ import {
   initChartWithApi,
   FirebaseConfigOrApp,
   ChartApi
-} from '@anssipiirainen/sc-charts';
+} from '@anssip/rs-charts';
 
 // Type-safe Firebase config
 const config: FirebaseConfigOrApp = {
