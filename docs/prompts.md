@@ -330,3 +330,57 @@ Basic:
 Advanced:
 
 - Draw lines for support and resistance levels to this chart.
+
+# Example prompts
+
+Initially, when the chat UI is empty, show some example prompts as boxes in the chart UI. Clicking on these boxes should send the prompt to the chat UI.
+
+Basic:
+
+- Enable the RSI indicator.
+- Enable the Moving Average indicator.
+- Enable the Volume indicator.
+- Switch to one day granularity.
+- Switch to ETH-USD symbol.
+
+Advanced:
+
+- Draw lines for support and resistance levels to this chart.
+
+# Levels using API
+
+There is an endpoint in the market API that returns support and resistance levels for a given symbol and time range. This endpoint can be used to fetch the support and resistance levels and draw them on the chart.
+
+Lets create a second tool for the AI assistant which fetches the support and resistance levels using the market API endpoint.
+
+The current levels tool can be left in place too, but by default it should use the endpoint based tool when the user asks for trend lines. If he explicitly asks for AI detected lines, then it should use the old tool.
+
+The endpoint is described in docs/MARKET_API_README.md
+
+# Fix chat to show bold properly
+
+Fix the AI Assistant chat to show bold text properly. It now shows like so: **bolded text** - don't show the asterix characters here but show the enclosed text as bold. Handle italic text similarily.
+
+# Saved threads in the chat
+
+Make the AI assistant load the chat history from Firestore. It's already stored there in the chat_history collection. It should load the previous chat session thread from there when the page loads.
+
+Also add chat the ability to start new chat threads using a button. Add a button for this to the top of the chat view.
+
+We also need the ability to restore previous chat threads - add a dropdown that shows the previous 5 chats in a list. As the last item in this list there should be a "Show all..." item that opens a dialog that can be used to restore any chat from the complete history the user has in Firestore.
+
+# Trading advice general questions
+
+If the user asks a generic trading advice like so:
+
+- How can i trade this chart?
+- How can i trade this price action?
+- etc.
+
+It should propse the user to add support/resistance levels to the chart if the chart does not already have them.
+
+# Use indicators extra info in trend lines
+
+There is now a new field `indicators` in the data that the /levels endpoint in the market API returns. Store this in Firestore for each trendline and also supply this info to the user in the chat responses. This makes it possible to use the data when giving trading advice to the user, when he asks for some in later chat messages.
+
+The "get_support_resistance_levels" should also make the chart show the indicators that are found in the levels data, if those are not currently showing. The currently showing indicators are passed to the chat backend in the chartContext.
