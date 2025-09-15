@@ -13,6 +13,23 @@ interface Message {
   commands?: Array<{ id: string; command: string; status?: string }>;
 }
 
+// Helper function to render text with bold formatting
+function renderFormattedText(text: string) {
+  // Split text by ** markers
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+
+  return parts.map((part, index) => {
+    // Check if this part is bold (surrounded by **)
+    if (part.startsWith('**') && part.endsWith('**')) {
+      // Remove the ** markers and render as bold
+      const boldText = part.slice(2, -2);
+      return <strong key={index} className="font-semibold">{boldText}</strong>;
+    }
+    // Regular text
+    return <span key={index}>{part}</span>;
+  });
+}
+
 export function AIChatPanel({ 
   onClose,
   chartApi 
@@ -221,11 +238,13 @@ export function AIChatPanel({
                 <div
                   className={`max-w-[80%] rounded-lg p-3 ${
                     message.role === 'user'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-800 text-gray-100'
+                      ? 'bg-blue-600 text-gray-100'
+                      : 'bg-gray-800 text-gray-200'
                   }`}
                 >
-                  <div className="whitespace-pre-wrap">{message.content}</div>
+                  <div className="whitespace-pre-wrap font-light">
+                    {renderFormattedText(message.content)}
+                  </div>
                   {message.commands && message.commands.length > 0 && (
                     <div className="mt-2 space-y-1">
                       {message.commands.map((cmd, cmdIndex) => (

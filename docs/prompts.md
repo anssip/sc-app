@@ -384,3 +384,9 @@ It should propse the user to add support/resistance levels to the chart if the c
 There is now a new field `indicators` in the data that the /levels endpoint in the market API returns. Store this in Firestore for each trendline and also supply this info to the user in the chat responses. This makes it possible to use the data when giving trading advice to the user, when he asks for some in later chat messages.
 
 The "get_support_resistance_levels" should also make the chart show the indicators that are found in the levels data, if those are not currently showing. The currently showing indicators are passed to the chat backend in the chartContext.
+
+# Levels visualization
+
+Enhance the support/resistance levels line drawing according to docs/FRONTEND_VISUAL_GUIDE.md which describes how
+  the levels returned by market API /levels endpoing should be visualized. This app has a AI Assistance that has a
+  tool that uses the /levels endpoint and then draws lines to the chart based on the returned data.
