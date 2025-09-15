@@ -36,10 +36,8 @@ export const ChartHeader: React.FC<ChartHeaderProps> = ({
 }) => {
   return (
     <div
-      className={`flex items-center justify-between px-4 border-b relative z-50 overflow-visible transition-all duration-200 ${
-        isActive
-          ? 'bg-gray-800 py-2 border-gray-700'
-          : 'bg-gray-900 py-1 border-gray-800'
+      className={`flex items-center justify-between px-4 relative z-[300] overflow-visible transition-all duration-200 ${
+        isActive ? "bg-gray-800 py-2 border-b border-green-500/50" : "py-1"
       }`}
       onClick={isActive ? (e) => e.stopPropagation() : undefined}
     >
@@ -52,7 +50,7 @@ export const ChartHeader: React.FC<ChartHeaderProps> = ({
 
       {/* Toolbar for active charts */}
       {isActive && (
-        <div className="flex-1">
+        <div className="flex-1 flex justify-end">
           <ChartToolbar
             chartId={chartId}
             chartApiRef={chartApiRef}

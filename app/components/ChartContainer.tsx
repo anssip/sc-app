@@ -232,7 +232,12 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
   const { updateChart, saveChart } = useCharts();
   const { indicators: availableIndicators = [], isLoading: indicatorsLoading } =
     useIndicators(db);
-  const { activeChartId, setActiveChart, registerChartApi, unregisterChartApi } = useActiveChart();
+  const {
+    activeChartId,
+    setActiveChart,
+    registerChartApi,
+    unregisterChartApi,
+  } = useActiveChart();
   const unregisterRef = useRef(unregisterChartApi);
   unregisterRef.current = unregisterChartApi;
   const [chartError, setChartError] = useState<string | null>(null);
@@ -250,8 +255,8 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isTrendLineToolActive, setIsTrendLineToolActive] = useState(false);
   const [defaultTrendLineSettings, setDefaultTrendLineSettings] = useState({
-    color: '#3b82f6',
-    style: 'solid' as 'solid' | 'dashed' | 'dotted',
+    color: "#3b82f6",
+    style: "solid" as "solid" | "dashed" | "dotted",
     lineWidth: 2,
     extendLeft: false,
     extendRight: false,
@@ -381,7 +386,7 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
 
   // Detect if iOS
   const isIOS = useMemo(() => {
-    if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+    if (typeof window === "undefined" || typeof navigator === "undefined") {
       return false;
     }
     return (
@@ -391,7 +396,7 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
 
   // Detect if running as PWA (standalone mode)
   const isPWA = useMemo(() => {
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       return false;
     }
     return (
@@ -402,7 +407,7 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
 
   // Detect if iPhone specifically (not iPad)
   const isIPhone = useMemo(() => {
-    if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+    if (typeof window === "undefined" || typeof navigator === "undefined") {
       return false;
     }
     return /iPhone/.test(navigator.userAgent) && !(window as any).MSStream;
@@ -543,14 +548,14 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
   // Handler for activating/deactivating trend line tool
   const handleActivateTrendLineTool = useCallback(() => {
     if (!chartRef.current?.api) return;
-    
+
     const api = chartRef.current.api;
-    
+
     if (isTrendLineToolActive) {
       // Deactivate the tool
       api.deactivateTrendLineTool?.();
       setIsTrendLineToolActive(false);
-      
+
       // Deselect all trend lines when closing the tool
       api.deselectAllTrendLines?.();
       setSelectedTrendLineId(null);
@@ -571,11 +576,11 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
   // Handler for deactivating trend line tool (called from close button)
   const handleDeactivateTrendLineTool = useCallback(() => {
     if (!chartRef.current?.api) return;
-    
+
     const api = chartRef.current.api;
     api.deactivateTrendLineTool?.();
     setIsTrendLineToolActive(false);
-    
+
     // Deselect all trend lines when closing the tool
     api.deselectAllTrendLines?.();
     setSelectedTrendLineId(null);
@@ -585,7 +590,7 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
   // Update trend line tool defaults when settings change
   useEffect(() => {
     if (!chartRef.current?.api || !isTrendLineToolActive) return;
-    
+
     const api = chartRef.current.api;
     // Update the defaults for new trend lines when user changes settings
     api.setTrendLineDefaults?.({
@@ -607,27 +612,29 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
   }, [config.id]);
 
   // Handle click to activate chart
-  const handleChartActivation = useCallback((e: React.MouseEvent) => {
-    // Activate chart when clicking anywhere on it (if inactive)
-    if (!isActive) {
-      console.log('[ChartContainer] Activating chart on click:', config.id);
-      setActiveChart(config.id);
-      // Stop propagation to prevent bubbling
-      e.stopPropagation();
-    }
-  }, [isActive, config.id, setActiveChart]);
+  const handleChartActivation = useCallback(
+    (e: React.MouseEvent) => {
+      // Activate chart when clicking anywhere on it (if inactive)
+      if (!isActive) {
+        console.log("[ChartContainer] Activating chart on click:", config.id);
+        setActiveChart(config.id);
+        // Stop propagation to prevent bubbling
+        e.stopPropagation();
+      }
+    },
+    [isActive, config.id, setActiveChart]
+  );
 
   return (
     <div
       ref={containerRef}
-      className={`h-full flex flex-col bg-gray-900 rounded-lg overflow-hidden relative transition-all duration-200 ${
+      className={`h-full flex flex-col rounded-lg overflow-hidden relative transition-all duration-200 ${
         isActive
-          ? 'border-2 border-green-500/50 shadow-lg shadow-green-500/20'
-          : 'border border-gray-700 cursor-pointer'
+          ? "border-2 border-green-500/50 shadow-lg shadow-green-500/20"
+          : "cursor-pointer"
       }`}
       onClick={handleChartActivation}
     >
-
       <ChartHeader
         chartId={config.id}
         chartApiRef={chartRef}
@@ -654,7 +661,7 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
 
       {/* Chart Content - disable interactions when inactive */}
       <div
-        className={`flex-1 relative ${!isActive ? 'pointer-events-none' : ''}`}
+        className={`flex-1 relative ${!isActive ? "pointer-events-none" : ""}`}
       >
         {/* Trend Line Toolbar */}
         <ChartLineToolbar
@@ -704,7 +711,12 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
             className="trading-chart"
             onApiReady={(api) => {
               // Register the API with the ActiveChartContext
-              registerChartApi(config.id, api, settings.symbol, settings.granularity);
+              registerChartApi(
+                config.id,
+                api,
+                settings.symbol,
+                settings.granularity
+              );
 
               // Also call the original onApiReady if provided
               if (onApiReady) {
@@ -824,99 +836,116 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
                 const checkAndSaveTrendLines = async () => {
                   try {
                     const rawTrendLines = api.getTrendLines?.() || [];
-                    
+
                     // Convert to array first to avoid proxy issues, then process
                     const currentTrendLines = [];
-                    
+
                     for (let i = 0; i < rawTrendLines.length; i++) {
                       try {
                         // Access the proxy object carefully
                         const line = rawTrendLines[i];
-                        
+
                         // Build a clean object without touching proxy internals
                         const cleanLine: any = {};
-                        
+
                         // Safely extract id
                         try {
-                          cleanLine.id = String(line.id || `trend-line-${Date.now()}-${Math.random()}`);
+                          cleanLine.id = String(
+                            line.id ||
+                              `trend-line-${Date.now()}-${Math.random()}`
+                          );
                         } catch {
                           cleanLine.id = `trend-line-${Date.now()}-${Math.random()}`;
                         }
-                        
+
                         // Safely extract startPoint
                         try {
                           if (line.startPoint) {
                             const sp = line.startPoint;
                             // Check for both timestamp and time properties (library might use either)
-                            const timeValue = sp.timestamp !== undefined ? sp.timestamp : sp.time;
-                            const priceValue = sp.price !== undefined ? sp.price : sp.value;
-                            
-                            if (timeValue !== undefined && priceValue !== undefined) {
+                            const timeValue =
+                              sp.timestamp !== undefined
+                                ? sp.timestamp
+                                : sp.time;
+                            const priceValue =
+                              sp.price !== undefined ? sp.price : sp.value;
+
+                            if (
+                              timeValue !== undefined &&
+                              priceValue !== undefined
+                            ) {
                               cleanLine.startPoint = {
                                 timestamp: Number(timeValue),
-                                price: Number(priceValue)
+                                price: Number(priceValue),
                               };
                             }
                           }
                         } catch (e) {
                           console.warn("Could not extract startPoint:", e);
                         }
-                        
+
                         // Safely extract endPoint
                         try {
                           if (line.endPoint) {
                             const ep = line.endPoint;
                             // Check for both timestamp and time properties (library might use either)
-                            const timeValue = ep.timestamp !== undefined ? ep.timestamp : ep.time;
-                            const priceValue = ep.price !== undefined ? ep.price : ep.value;
-                            
-                            if (timeValue !== undefined && priceValue !== undefined) {
+                            const timeValue =
+                              ep.timestamp !== undefined
+                                ? ep.timestamp
+                                : ep.time;
+                            const priceValue =
+                              ep.price !== undefined ? ep.price : ep.value;
+
+                            if (
+                              timeValue !== undefined &&
+                              priceValue !== undefined
+                            ) {
                               cleanLine.endPoint = {
                                 timestamp: Number(timeValue),
-                                price: Number(priceValue)
+                                price: Number(priceValue),
                               };
                             }
                           }
                         } catch (e) {
                           console.warn("Could not extract endPoint:", e);
                         }
-                        
+
                         // Safely extract style (line style like solid/dashed/dotted)
                         try {
                           // Check if there's a direct style property (string)
-                          if (typeof line.style === 'string') {
+                          if (typeof line.style === "string") {
                             cleanLine.style = line.style;
-                          } 
+                          }
                           // Check if style is nested in an object with a style property
                           else if (line.style?.style !== undefined) {
                             // Convert numeric style to string if needed
                             const styleNum = Number(line.style.style);
-                            if (styleNum === 0) cleanLine.style = 'solid';
-                            else if (styleNum === 1) cleanLine.style = 'dotted';
-                            else if (styleNum === 2) cleanLine.style = 'dashed';
-                            else cleanLine.style = 'solid';
+                            if (styleNum === 0) cleanLine.style = "solid";
+                            else if (styleNum === 1) cleanLine.style = "dotted";
+                            else if (styleNum === 2) cleanLine.style = "dashed";
+                            else cleanLine.style = "solid";
                           }
                           // Default to solid if no style found
                           else {
-                            cleanLine.style = 'solid';
+                            cleanLine.style = "solid";
                           }
                         } catch (e) {
                           console.warn("Could not extract style:", e);
-                          cleanLine.style = 'solid';
+                          cleanLine.style = "solid";
                         }
-                        
+
                         // Safely extract extend
                         try {
                           if (line.extend) {
                             cleanLine.extend = {
                               left: Boolean(line.extend.left),
-                              right: Boolean(line.extend.right)
+                              right: Boolean(line.extend.right),
                             };
                           }
                         } catch (e) {
                           console.warn("Could not extract extend:", e);
                         }
-                        
+
                         // Safely extract text
                         try {
                           if (line.text !== undefined && line.text !== null) {
@@ -925,7 +954,7 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
                         } catch (e) {
                           console.warn("Could not extract text:", e);
                         }
-                        
+
                         // Safely extract name
                         try {
                           if (line.name !== undefined && line.name !== null) {
@@ -934,16 +963,19 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
                         } catch (e) {
                           console.warn("Could not extract name:", e);
                         }
-                        
+
                         // Safely extract description
                         try {
-                          if (line.description !== undefined && line.description !== null) {
+                          if (
+                            line.description !== undefined &&
+                            line.description !== null
+                          ) {
                             cleanLine.description = String(line.description);
                           }
                         } catch (e) {
                           console.warn("Could not extract description:", e);
                         }
-                        
+
                         // Safely extract color (separate from style)
                         try {
                           if (line.color !== undefined && line.color !== null) {
@@ -954,10 +986,13 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
                         } catch (e) {
                           console.warn("Could not extract color:", e);
                         }
-                        
+
                         // Safely extract lineWidth (separate from style)
                         try {
-                          if (line.lineWidth !== undefined && line.lineWidth !== null) {
+                          if (
+                            line.lineWidth !== undefined &&
+                            line.lineWidth !== null
+                          ) {
                             cleanLine.lineWidth = Number(line.lineWidth);
                           } else if (line.style?.width !== undefined) {
                             cleanLine.lineWidth = Number(line.style.width);
@@ -965,7 +1000,7 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
                         } catch (e) {
                           console.warn("Could not extract lineWidth:", e);
                         }
-                        
+
                         // Safely extract extendLeft and extendRight (from extend or direct properties)
                         try {
                           if (line.extendLeft !== undefined) {
@@ -976,7 +1011,7 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
                         } catch (e) {
                           console.warn("Could not extract extendLeft:", e);
                         }
-                        
+
                         try {
                           if (line.extendRight !== undefined) {
                             cleanLine.extendRight = Boolean(line.extendRight);
@@ -986,10 +1021,15 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
                         } catch (e) {
                           console.warn("Could not extract extendRight:", e);
                         }
-                        
+
                         currentTrendLines.push(cleanLine);
                       } catch (lineError) {
-                        console.error("Error processing trend line at index", i, ":", lineError);
+                        console.error(
+                          "Error processing trend line at index",
+                          i,
+                          ":",
+                          lineError
+                        );
                       }
                     }
 
@@ -1002,13 +1042,15 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
                         "📊 ChartContainer: Current trend lines from API:",
                         currentTrendLines
                       );
-                      
+
                       // Skip saving trend lines for anonymous users
                       if (!user?.email) {
-                        console.log("📊 ChartContainer: Skipping trend line save for anonymous user");
+                        console.log(
+                          "📊 ChartContainer: Skipping trend line save for anonymous user"
+                        );
                         return;
                       }
-                      
+
                       const repository = getRepository(user.email);
                       await repository.initialize();
 
@@ -1067,10 +1109,12 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
                     try {
                       // Skip deleting trend lines for anonymous users
                       if (!user?.email) {
-                        console.log("📊 ChartContainer: Skipping trend line delete for anonymous user");
+                        console.log(
+                          "📊 ChartContainer: Skipping trend line delete for anonymous user"
+                        );
                         return;
                       }
-                      
+
                       const repository = getRepository(user.email);
                       await repository.initialize();
                       await repository.deleteTrendLine(

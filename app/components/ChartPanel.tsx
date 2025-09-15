@@ -64,7 +64,7 @@ const ResizeHandle: React.FC<{ direction: "horizontal" | "vertical" }> = ({
     <div
       className={`
       ${direction === "horizontal" ? "w-0.5 h-6" : "h-0.5 w-6"}
-      bg-gray-600
+      bg-transparent
       group-hover:bg-gray-500
       transition-colors duration-200
     `}
