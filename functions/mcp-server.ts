@@ -3,16 +3,6 @@ import express, { Request, Response } from "express";
 import cors from "cors";
 import { getFirestore, FieldValue, Firestore } from "firebase-admin/firestore";
 import { initializeApp, getApps } from "firebase-admin/app";
-import dotenv from "dotenv";
-
-// Load environment variables only in local development
-// In production, OPENAI_API_KEY comes from Google Secret Manager
-if (process.env.FUNCTIONS_EMULATOR_HOST) {
-  // Load .env.local for local secrets
-  dotenv.config({ path: '.env.local', override: true });
-  // Also load .env for other config
-  dotenv.config({ override: false });
-}
 
 // Initialize Firebase Admin
 if (getApps().length === 0) {
@@ -33,11 +23,18 @@ if (
   console.log("Using production Firestore");
 }
 
-const apiKey = process.env.OPENAI_API_KEY;
-console.log("API Key loaded:", apiKey ? "Yes" : "No");
-if (apiKey) {
-  console.log("API Key ending:", apiKey.substring(apiKey.length - 4));
-}
+// Function to check API key status (called on first request)
+let apiKeyChecked = false;
+const checkApiKey = () => {
+  if (!apiKeyChecked) {
+    const apiKey = process.env.OPENAI_API_KEY;
+    console.log("API Key loaded:", apiKey ? "Yes" : "No");
+    if (apiKey) {
+      console.log("API Key ending:", apiKey.substring(apiKey.length - 4));
+    }
+    apiKeyChecked = true;
+  }
+};
 
 const app = express();
 
@@ -125,6 +122,7 @@ app.options("*", cors(corsOptions));
 
 // Health check endpoint
 app.get("/health", (_req: Request, res: Response) => {
+  checkApiKey(); // Check API key on first request
   const isEmulator = !!(
     process.env.FUNCTIONS_EMULATOR_HOST || process.env.FIRESTORE_EMULATOR_HOST
   );
@@ -134,6 +132,7 @@ app.get("/health", (_req: Request, res: Response) => {
     emulator: isEmulator,
     firestoreEmulator: process.env.FIRESTORE_EMULATOR_HOST || "not set",
     functionsEmulator: process.env.FUNCTIONS_EMULATOR_HOST || "not set",
+    apiKeyLoaded: !!process.env.OPENAI_API_KEY,
   });
 });
 
@@ -141,6 +140,7 @@ app.get("/health", (_req: Request, res: Response) => {
 app.post(
   "/chat",
   async (req: Request<{}, {}, ChatRequest>, res: Response): Promise<void> => {
+    checkApiKey(); // Check API key on first request
     try {
       const { message, userId, sessionId, chartContext } = req.body;
 
