@@ -43,6 +43,7 @@ interface ChatRequest {
   message: string;
   userId: string;
   sessionId?: string;
+  chartId?: string;
   chartContext?: any;
 }
 
@@ -142,7 +143,7 @@ app.post(
   async (req: Request<{}, {}, ChatRequest>, res: Response): Promise<void> => {
     checkApiKey(); // Check API key on first request
     try {
-      const { message, userId, sessionId, chartContext } = req.body;
+      const { message, userId, sessionId, chartId, chartContext } = req.body;
 
       if (!message || !userId) {
         res.status(400).json({
@@ -156,17 +157,42 @@ app.post(
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
 
-      // Store message in chat history
+      // Store message in chat history with chartId
       const chatRef = db
         .collection("users")
         .doc(userId)
         .collection("chat_history");
-      await chatRef.add({
+      const chatDoc = {
         role: "user",
         content: message,
         sessionId: sessionId || "default",
+        chartId: chartId || "default",
         timestamp: FieldValue.serverTimestamp(),
-      });
+      };
+      await chatRef.add(chatDoc);
+
+      // Update or create session metadata
+      const sessionRef = db
+        .collection("users")
+        .doc(userId)
+        .collection("chat_sessions")
+        .doc(sessionId || "default");
+      const sessionDoc = await sessionRef.get();
+      if (!sessionDoc.exists) {
+        await sessionRef.set({
+          id: sessionId || "default",
+          chartId: chartId || "default",
+          timestamp: FieldValue.serverTimestamp(),
+          firstMessage: message.substring(0, 100),
+          messageCount: 1,
+          lastUpdated: FieldValue.serverTimestamp(),
+        });
+      } else {
+        await sessionRef.update({
+          messageCount: FieldValue.increment(1),
+          lastUpdated: FieldValue.serverTimestamp(),
+        });
+      }
 
       // Process with OpenAI and stream response
       let assistantContent = "";
@@ -216,13 +242,25 @@ app.post(
         },
       });
 
-      // Store assistant response in chat history
+      // Store assistant response in chat history with chartId
       await chatRef.add({
         role: "assistant",
         content: assistantContent,
         commands: commandsExecuted,
         sessionId: sessionId || "default",
+        chartId: chartId || "default",
         timestamp: FieldValue.serverTimestamp(),
+      });
+
+      // Update session message count
+      const sessionUpdateRef = db
+        .collection("users")
+        .doc(userId)
+        .collection("chat_sessions")
+        .doc(sessionId || "default");
+      await sessionUpdateRef.update({
+        messageCount: FieldValue.increment(1),
+        lastUpdated: FieldValue.serverTimestamp(),
       });
 
       // Send completion signal
@@ -259,21 +297,29 @@ app.post(
 app.get("/chat/history/:userId", async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
-    const { sessionId = "default", limit = "50" } = req.query as {
+    const { sessionId = "default", chartId, limit = "50" } = req.query as {
       sessionId?: string;
+      chartId?: string;
       limit?: string;
     };
 
-    const chatHistory = await db
+    let chatHistoryQuery: any = db
       .collection("users")
       .doc(userId)
       .collection("chat_history")
-      .where("sessionId", "==", sessionId)
+      .where("sessionId", "==", sessionId);
+
+    // Also filter by chartId if provided
+    if (chartId) {
+      chatHistoryQuery = chatHistoryQuery.where("chartId", "==", chartId);
+    }
+
+    const chatHistory = await chatHistoryQuery
       .orderBy("timestamp", "desc")
       .limit(parseInt(limit))
       .get();
 
-    const messages = chatHistory.docs.map((doc) => ({
+    const messages = chatHistory.docs.map((doc: any) => ({
       id: doc.id,
       ...doc.data(),
       timestamp: doc.data().timestamp?.toDate(),
@@ -286,23 +332,76 @@ app.get("/chat/history/:userId", async (req: Request, res: Response) => {
   }
 });
 
+// Get chat sessions endpoint
+app.get("/chat/sessions/:userId", async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const { chartId, limit = "50" } = req.query as {
+      chartId?: string;
+      limit?: string;
+    };
+
+    let sessionsQuery: any = db
+      .collection("users")
+      .doc(userId)
+      .collection("chat_sessions");
+
+    // Filter by chartId if provided
+    if (chartId) {
+      sessionsQuery = sessionsQuery.where("chartId", "==", chartId);
+    }
+
+    const sessions = await sessionsQuery
+      .orderBy("timestamp", "desc")
+      .limit(parseInt(limit))
+      .get();
+
+    const sessionsList = sessions.docs.map((doc: any) => ({
+      id: doc.id,
+      ...doc.data(),
+      timestamp: doc.data().timestamp?.toDate(),
+    }));
+
+    res.json({ sessions: sessionsList });
+  } catch (error) {
+    console.error("Error fetching chat sessions:", error);
+    res.status(500).json({ error: "Failed to fetch chat sessions" });
+  }
+});
+
 // Clear chat history endpoint
 app.delete("/chat/history/:userId", async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;
-    const { sessionId = "default" } = req.body;
+    const { sessionId = "default", chartId } = req.body;
 
     const batch = db.batch();
-    const chatHistory = await db
+    let chatHistoryQuery: any = db
       .collection("users")
       .doc(userId)
       .collection("chat_history")
-      .where("sessionId", "==", sessionId)
-      .get();
+      .where("sessionId", "==", sessionId);
 
-    chatHistory.docs.forEach((doc) => {
+    // Also filter by chartId if provided
+    if (chartId) {
+      chatHistoryQuery = chatHistoryQuery.where("chartId", "==", chartId);
+    }
+
+    const chatHistory = await chatHistoryQuery.get();
+
+    chatHistory.docs.forEach((doc: any) => {
       batch.delete(doc.ref);
     });
+
+    // Also delete the session document if sessionId is provided
+    if (sessionId && sessionId !== "default") {
+      const sessionRef = db
+        .collection("users")
+        .doc(userId)
+        .collection("chat_sessions")
+        .doc(sessionId);
+      batch.delete(sessionRef);
+    }
 
     await batch.commit();
     res.json({ success: true, deleted: chatHistory.size });

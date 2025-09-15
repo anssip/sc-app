@@ -361,13 +361,25 @@ The endpoint is described in docs/MARKET_API_README.md
 
 Fix the AI Assistant chat to show bold text properly. It now shows like so: **bolded text** - don't show the asterix characters here but show the enclosed text as bold. Handle italic text similarily.
 
+# AI Assistant for multi-chart
+
+There can be several charts open in the PanelGroup and we need to make the AI Assistant to be aware of this. The AI Assistant should be able to detect which chart is currently active and use that chart's data as `chartContext` that
+it sends to the chat backend. Also when the chart tools in openai-service.ts are sending commands to the chart these
+need to be routed to the active chart.
+
+Let's make it possible to activate a chart by clicking on the empty area next to the ChartHeader. The active chart should have a slightly different color in the ChartHeader area.
+
+Additionally, the inactive charts should not have the ChartToolbar visible and the ChartHeader can be less tall.
+
 # Saved threads in the chat
 
 Make the AI assistant load the chat history from Firestore. It's already stored there in the chat_history collection. It should load the previous chat session thread from there when the page loads.
 
+It should always show the chat history of the chart that is currently active. When changing the active chart, the AI assistant should load the chat history for the new active chart.
+
 Also add chat the ability to start new chat threads using a button. Add a button for this to the top of the chat view.
 
-We also need the ability to restore previous chat threads - add a dropdown that shows the previous 5 chats in a list. As the last item in this list there should be a "Show all..." item that opens a dialog that can be used to restore any chat from the complete history the user has in Firestore.
+We also need the ability to restore previous chat threads - add a dropdown that shows the previous 5 chats in a list. Use similar design for the dropdown as with the symbol selector and with the time granularity selector dropdown. As the last item in this dropdown list there should be a "Show all..." item that opens a dialog that can be used to restore any chat from the complete history the user has in Firestore. The modal should be styled similarily as the LayoutSelectorModal.
 
 # Trading advice general questions
 

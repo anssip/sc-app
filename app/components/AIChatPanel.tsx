@@ -1,12 +1,14 @@
-import { useState, useEffect, useRef, KeyboardEvent } from 'react';
-import { Bot, Send, X, Loader2 } from 'lucide-react';
+import { useState, useEffect, useRef, KeyboardEvent, Fragment } from 'react';
+import { Bot, Send, X, Loader2, Plus, ChevronDown, MessageCircle, Clock } from 'lucide-react';
 import { useAuth } from '../lib/auth-context';
 import { useMCPClient } from '../hooks/useMCPClient';
 import { useChartCommands } from '../hooks/useChartCommands';
 import { useActiveChart } from '../contexts/ActiveChartContext';
 import { ChatExamplePrompts } from './ChatExamplePrompts';
+import { ChatHistoryModal } from './ChatHistoryModal';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Menu, Transition } from '@headlessui/react';
 
 interface Message {
   id: string;
@@ -14,6 +16,14 @@ interface Message {
   content: string;
   timestamp: Date;
   commands?: Array<{ id: string; command: string; status?: string }>;
+}
+
+interface ChatSession {
+  id: string;
+  chartId: string;
+  timestamp: Date;
+  firstMessage?: string;
+  messageCount: number;
 }
 
 // Custom components for Markdown rendering
@@ -152,11 +162,21 @@ export function AIChatPanel({
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [recentSessions, setRecentSessions] = useState<ChatSession[]>([]);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [loadingSessions, setLoadingSessions] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { activeChartId, getActiveChartApi } = useActiveChart();
 
-  const { sendMessage, loadHistory } = useMCPClient(user?.uid);
+  const {
+    sendMessage,
+    loadHistory,
+    loadSessions,
+    startNewSession,
+    loadSession,
+    sessionId: currentSessionId
+  } = useMCPClient(user?.uid, activeChartId);
 
   // Get the active chart's API
   const activeChart = getActiveChartApi();
@@ -165,14 +185,22 @@ export function AIChatPanel({
   // Set up command listener for the active chart
   useChartCommands(user?.uid, activeChartApi, activeChartId);
 
-  // Load chat history on mount
+  // Load chat history and sessions when component mounts or active chart changes
   useEffect(() => {
-    if (user?.uid) {
+    if (user?.uid && activeChartId) {
+      // Load current session's messages
       loadHistory().then(history => {
         setMessages(history);
       });
+
+      // Load recent sessions for dropdown
+      setLoadingSessions(true);
+      loadSessions(5).then(sessions => {
+        setRecentSessions(sessions);
+        setLoadingSessions(false);
+      });
     }
-  }, [user?.uid, loadHistory]);
+  }, [user?.uid, activeChartId, loadHistory, loadSessions]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -336,13 +364,132 @@ export function AIChatPanel({
             )}
           </div>
         </div>
-        <button
-          onClick={onClose}
-          className="p-1 hover:bg-gray-800 rounded transition-colors"
-          aria-label="Close AI panel"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-2">
+          {/* New Chat Button */}
+          <button
+            onClick={() => {
+              const newId = startNewSession();
+              setMessages([]);
+              // Reload sessions list
+              loadSessions(5).then(sessions => {
+                setRecentSessions(sessions);
+              });
+            }}
+            className="p-1.5 bg-blue-600 hover:bg-blue-700 rounded transition-colors"
+            title="Start new chat"
+            aria-label="Start new chat"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+
+          {/* Chat History Dropdown */}
+          <Menu as="div" className="relative">
+            <Menu.Button className="p-1.5 hover:bg-gray-800 rounded transition-colors flex items-center gap-1">
+              <MessageCircle className="w-4 h-4" />
+              <ChevronDown className="w-3 h-3" />
+            </Menu.Button>
+
+            <Transition
+              as={Fragment}
+              enter="transition ease-out duration-100"
+              enterFrom="transform opacity-0 scale-95"
+              enterTo="transform opacity-100 scale-100"
+              leave="transition ease-in duration-75"
+              leaveFrom="transform opacity-100 scale-100"
+              leaveTo="transform opacity-0 scale-95"
+            >
+              <Menu.Items className="absolute right-0 mt-2 w-64 bg-black border border-gray-700 rounded-md shadow-lg z-[350]">
+                <div className="py-1">
+                  {loadingSessions ? (
+                    <div className="px-4 py-3 text-center text-gray-400">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b border-gray-400 mx-auto"></div>
+                    </div>
+                  ) : recentSessions.length === 0 ? (
+                    <div className="px-4 py-3 text-center text-gray-400 text-sm">
+                      No previous chats
+                    </div>
+                  ) : (
+                    <>
+                      {recentSessions.map((session) => (
+                        <Menu.Item key={session.id}>
+                          {({ active }) => (
+                            <button
+                              onClick={() => {
+                                loadSession(session.id).then(history => {
+                                  setMessages(history);
+                                });
+                              }}
+                              className={`w-full px-4 py-2 text-left text-sm transition-colors ${
+                                active ? "bg-gray-900" : ""
+                              } ${
+                                session.id === currentSessionId
+                                  ? "text-blue-400"
+                                  : "text-gray-300 hover:text-white"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <p className="truncate">
+                                    {session.firstMessage || "New conversation"}
+                                  </p>
+                                  <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                                    <Clock className="w-3 h-3" />
+                                    {new Date(session.timestamp).toLocaleDateString()}
+                                  </p>
+                                </div>
+                                {session.id === currentSessionId && (
+                                  <svg
+                                    className="w-3 h-3 text-blue-400 flex-shrink-0 ml-2"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                )}
+                              </div>
+                            </button>
+                          )}
+                        </Menu.Item>
+                      ))}
+
+                      {/* Separator */}
+                      <div className="h-px bg-gray-800 my-1"></div>
+
+                      {/* Show All option */}
+                      <Menu.Item>
+                        {({ active }) => (
+                          <button
+                            onClick={() => {
+                              setIsHistoryModalOpen(true);
+                            }}
+                            className={`w-full px-4 py-2 text-left text-sm transition-colors text-gray-300 hover:text-white flex items-center ${
+                              active ? "bg-gray-900" : ""
+                            }`}
+                          >
+                            <MessageCircle className="w-3 h-3 mr-2" />
+                            Show all...
+                          </button>
+                        )}
+                      </Menu.Item>
+                    </>
+                  )}
+                </div>
+              </Menu.Items>
+            </Transition>
+          </Menu>
+
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-gray-800 rounded transition-colors"
+            aria-label="Close AI panel"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* Messages */}
@@ -428,6 +575,24 @@ export function AIChatPanel({
           </p>
         )}
       </div>
+
+      {/* Chat History Modal */}
+      <ChatHistoryModal
+        isOpen={isHistoryModalOpen}
+        onClose={() => setIsHistoryModalOpen(false)}
+        onSelectSession={(sessionId) => {
+          loadSession(sessionId).then(history => {
+            setMessages(history);
+            // Reload recent sessions
+            loadSessions(5).then(sessions => {
+              setRecentSessions(sessions);
+            });
+          });
+        }}
+        sessions={recentSessions}
+        currentSessionId={currentSessionId}
+        loading={loadingSessions}
+      />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
 interface ChartContext {
   symbol: string;
@@ -21,9 +21,28 @@ interface MCPClientOptions {
   chartContext?: ChartContext;
 }
 
-export function useMCPClient(userId?: string) {
+interface ChatSession {
+  id: string;
+  chartId: string;
+  timestamp: Date;
+  firstMessage?: string;
+  messageCount: number;
+}
+
+interface Message {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+  commands?: Array<{ id: string; command: string; status?: string }>;
+}
+
+export function useMCPClient(userId?: string, chartId?: string) {
   const [isConnected, setIsConnected] = useState(false);
-  const [sessionId] = useState(() => `session_${Date.now()}`);
+  const [currentSessionId, setCurrentSessionId] = useState<string>(() =>
+    `session_${chartId || 'default'}_${Date.now()}`
+  );
+  const sessionsCache = useRef<Map<string, ChatSession[]>>(new Map());
 
   const sendMessage = useCallback(async (
     message: string,
@@ -36,7 +55,7 @@ export function useMCPClient(userId?: string) {
 
     try {
       // Get the function URL - use environment variable for dev/prod
-      const functionUrl = import.meta.env.VITE_MCP_SERVER_URL 
+      const functionUrl = import.meta.env.VITE_MCP_SERVER_URL
         ? `${import.meta.env.VITE_MCP_SERVER_URL}/chat`
         : 'https://us-central1-spotcanvas-prod.cloudfunctions.net/mcpServer/chat';
 
@@ -50,7 +69,8 @@ export function useMCPClient(userId?: string) {
         body: JSON.stringify({
           message,
           userId,
-          sessionId,
+          sessionId: currentSessionId,
+          chartId: chartId || 'default',
           chartContext: options.chartContext
         })
       });
@@ -74,7 +94,7 @@ export function useMCPClient(userId?: string) {
 
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
-        
+
         // Keep the last incomplete line in the buffer
         buffer = lines.pop() || '';
 
@@ -84,7 +104,7 @@ export function useMCPClient(userId?: string) {
             if (data.trim()) {
               try {
                 const event = JSON.parse(data);
-                
+
                 switch (event.type) {
                   case 'content':
                     options.onStream?.(event.content);
@@ -110,21 +130,22 @@ export function useMCPClient(userId?: string) {
       console.error('Error sending message:', error);
       options.onError?.(error as Error);
     }
-  }, [userId, sessionId]);
+  }, [userId, currentSessionId, chartId]);
 
-  const loadHistory = useCallback(async () => {
+  const loadHistory = useCallback(async (sessionId?: string): Promise<Message[]> => {
     if (!userId) return [];
 
     try {
-      const baseUrl = import.meta.env.VITE_MCP_SERVER_URL 
+      const baseUrl = import.meta.env.VITE_MCP_SERVER_URL
         || 'https://us-central1-spotcanvas-prod.cloudfunctions.net/mcpServer';
-      const functionUrl = `${baseUrl}/chat/history/${userId}?sessionId=${sessionId}`;
+      const sessionToLoad = sessionId || currentSessionId;
+      const functionUrl = `${baseUrl}/chat/history/${userId}?sessionId=${sessionToLoad}&chartId=${chartId || 'default'}`;
 
       const response = await fetch(functionUrl, {
         credentials: 'omit',
         mode: 'cors'
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -141,13 +162,56 @@ export function useMCPClient(userId?: string) {
       console.error('Error loading history:', error);
       return [];
     }
-  }, [userId, sessionId]);
+  }, [userId, currentSessionId, chartId]);
+
+  const loadSessions = useCallback(async (limit?: number): Promise<ChatSession[]> => {
+    if (!userId || !chartId) return [];
+
+    // Check cache first
+    const cacheKey = `${userId}_${chartId}`;
+    if (sessionsCache.current.has(cacheKey)) {
+      const cached = sessionsCache.current.get(cacheKey)!;
+      return limit ? cached.slice(0, limit) : cached;
+    }
+
+    try {
+      const baseUrl = import.meta.env.VITE_MCP_SERVER_URL
+        || 'https://us-central1-spotcanvas-prod.cloudfunctions.net/mcpServer';
+      const functionUrl = `${baseUrl}/chat/sessions/${userId}?chartId=${chartId}${limit ? `&limit=${limit}` : ''}`;
+
+      const response = await fetch(functionUrl, {
+        credentials: 'omit',
+        mode: 'cors'
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const sessions = data.sessions.map((session: any) => ({
+        id: session.id,
+        chartId: session.chartId,
+        timestamp: new Date(session.timestamp),
+        firstMessage: session.firstMessage,
+        messageCount: session.messageCount
+      }));
+
+      // Cache the result
+      sessionsCache.current.set(cacheKey, sessions);
+
+      return sessions;
+    } catch (error) {
+      console.error('Error loading sessions:', error);
+      return [];
+    }
+  }, [userId, chartId]);
 
   const clearHistory = useCallback(async () => {
     if (!userId) return;
 
     try {
-      const baseUrl = import.meta.env.VITE_MCP_SERVER_URL 
+      const baseUrl = import.meta.env.VITE_MCP_SERVER_URL
         || 'https://us-central1-spotcanvas-prod.cloudfunctions.net/mcpServer';
       const functionUrl = `${baseUrl}/chat/history/${userId}`;
 
@@ -158,22 +222,49 @@ export function useMCPClient(userId?: string) {
         },
         credentials: 'omit',
         mode: 'cors',
-        body: JSON.stringify({ sessionId })
+        body: JSON.stringify({ sessionId: currentSessionId, chartId: chartId || 'default' })
       });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      // Clear cache for this chart
+      if (chartId) {
+        const cacheKey = `${userId}_${chartId}`;
+        sessionsCache.current.delete(cacheKey);
+      }
     } catch (error) {
       console.error('Error clearing history:', error);
     }
-  }, [userId, sessionId]);
+  }, [userId, currentSessionId, chartId]);
+
+  const startNewSession = useCallback(() => {
+    const newSessionId = `session_${chartId || 'default'}_${Date.now()}`;
+    setCurrentSessionId(newSessionId);
+
+    // Clear cache to force reload
+    if (userId && chartId) {
+      const cacheKey = `${userId}_${chartId}`;
+      sessionsCache.current.delete(cacheKey);
+    }
+
+    return newSessionId;
+  }, [chartId, userId]);
+
+  const loadSession = useCallback(async (sessionId: string): Promise<Message[]> => {
+    setCurrentSessionId(sessionId);
+    return loadHistory(sessionId);
+  }, [loadHistory]);
 
   return {
     isConnected,
     sendMessage,
     loadHistory,
+    loadSessions,
     clearHistory,
-    sessionId
+    startNewSession,
+    loadSession,
+    sessionId: currentSessionId
   };
 }

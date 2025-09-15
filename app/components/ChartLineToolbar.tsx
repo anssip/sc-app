@@ -1,31 +1,36 @@
-import React, { useRef, Fragment, useState, useEffect } from 'react'
-import { Menu, Popover, Transition } from '@headlessui/react'
-import { ChevronDownIcon, GripVerticalIcon } from 'lucide-react'
-import { ToolbarButton, ToolbarDropdownButton } from './ToolbarButton'
-import type { TrendLine } from '~/types'
+import React, { useRef, Fragment, useState, useEffect } from "react";
+import { Menu, Popover, Transition } from "@headlessui/react";
+import { ChevronDownIcon, GripVerticalIcon } from "lucide-react";
+import { ToolbarButton, ToolbarDropdownButton } from "./ToolbarButton";
+import type { TrendLine } from "~/types";
 
-export type LineStyle = 'solid' | 'dashed' | 'dotted'
-export type LineThickness = 1 | 2 | 3 | 4
+export type LineStyle = "solid" | "dashed" | "dotted";
+export type LineThickness = 1 | 2 | 3 | 4;
 
 export interface LineSettings {
-  color: string
-  style: LineStyle
-  thickness: LineThickness
-  extendLeft: boolean
-  extendRight: boolean
+  color: string;
+  style: LineStyle;
+  thickness: LineThickness;
+  extendLeft: boolean;
+  extendRight: boolean;
 }
 
 interface ChartLineToolbarProps {
-  trendLine: TrendLine | null
-  onUpdateSettings: (settings: Partial<LineSettings>) => void
-  onDelete: () => void
-  isVisible: boolean
-  onClose?: () => void
-  defaultSettings?: Partial<LineSettings>
-  onDefaultSettingsChange?: (settings: Partial<LineSettings>) => void
+  trendLine: TrendLine | null;
+  onUpdateSettings: (settings: Partial<LineSettings>) => void;
+  onDelete: () => void;
+  isVisible: boolean;
+  onClose?: () => void;
+  defaultSettings?: Partial<LineSettings>;
+  onDefaultSettingsChange?: (settings: Partial<LineSettings>) => void;
 }
 
-const LinePreview: React.FC<{ color: string; style: LineStyle; thickness: number; compact?: boolean }> = ({ color, style, thickness, compact = false }) => (
+const LinePreview: React.FC<{
+  color: string;
+  style: LineStyle;
+  thickness: number;
+  compact?: boolean;
+}> = ({ color, style, thickness, compact = false }) => (
   <div
     className={compact ? "w-6" : "w-12"}
     style={{
@@ -34,7 +39,7 @@ const LinePreview: React.FC<{ color: string; style: LineStyle; thickness: number
       borderTopStyle: style,
     }}
   />
-)
+);
 
 export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
   trendLine,
@@ -45,198 +50,238 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
   defaultSettings,
   onDefaultSettingsChange,
 }) => {
-  const colorInputRef = useRef<HTMLInputElement>(null)
-  const toolbarRef = useRef<HTMLDivElement>(null)
-  const [isMobile, setIsMobile] = useState(false)
-  const [position, setPosition] = useState({ x: 50, y: 12 }) // Default position (centered horizontally, 12px from top)
-  const [isDragging, setIsDragging] = useState(false)
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
-  const [startPosition, setStartPosition] = useState({ x: 0, y: 0 })
+  const colorInputRef = useRef<HTMLInputElement>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [position, setPosition] = useState({ x: 12, y: 12 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [startPosition, setStartPosition] = useState({ x: 0, y: 0 });
 
   // Check for mobile screen and set initial position
   useEffect(() => {
     const checkMobile = () => {
-      const mobile = window.innerWidth < 640
-      setIsMobile(mobile)
-      if (mobile) {
-        setPosition({ x: 12, y: 12 }) // Position at left edge on mobile
-      }
-    }
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
+      const mobile = window.innerWidth < 640;
+      setIsMobile(mobile);
+      // Center the toolbar horizontally on all screen widths
+      const toolbarWidth = mobile ? 300 : 400; // Approximate toolbar width
+      const centerX = Math.max(12, (window.innerWidth - toolbarWidth) / 2);
+      setPosition({ x: centerX, y: 12 });
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   useEffect(() => {
     const handleMove = (clientX: number, clientY: number) => {
-      if (!isDragging || !toolbarRef.current) return
+      if (!isDragging || !toolbarRef.current) return;
 
-      const parent = toolbarRef.current.parentElement
-      if (!parent) return
+      const parent = toolbarRef.current.parentElement;
+      if (!parent) return;
 
-      const parentRect = parent.getBoundingClientRect()
-      const toolbarRect = toolbarRef.current.getBoundingClientRect()
-      
+      const parentRect = parent.getBoundingClientRect();
+      const toolbarRect = toolbarRef.current.getBoundingClientRect();
+
       // Calculate new position relative to parent
-      const deltaX = clientX - dragStart.x
-      const deltaY = clientY - dragStart.y
-      
-      let newX = startPosition.x + deltaX
-      let newY = startPosition.y + deltaY
-      
+      const deltaX = clientX - dragStart.x;
+      const deltaY = clientY - dragStart.y;
+
+      let newX = startPosition.x + deltaX;
+      let newY = startPosition.y + deltaY;
+
       // Allow partial clipping on left and right edges
       // Keep at least the grab handles visible (about 30px)
-      const minVisibleWidth = 30
-      const maxX = parentRect.width - minVisibleWidth
-      const maxY = parentRect.height - toolbarRect.height - 16
-      
-      newX = Math.max(-toolbarRect.width + minVisibleWidth, Math.min(newX, maxX))
-      newY = Math.max(12, Math.min(newY, maxY))
-      
-      setPosition({ x: newX, y: newY })
-    }
+      const minVisibleWidth = 30;
+      const maxX = parentRect.width - minVisibleWidth;
+      const maxY = parentRect.height - toolbarRect.height - 16;
+
+      newX = Math.max(
+        -toolbarRect.width + minVisibleWidth,
+        Math.min(newX, maxX)
+      );
+      newY = Math.max(12, Math.min(newY, maxY));
+
+      setPosition({ x: newX, y: newY });
+    };
 
     const handleMouseMove = (e: MouseEvent) => {
-      handleMove(e.clientX, e.clientY)
-    }
+      handleMove(e.clientX, e.clientY);
+    };
 
     const handleTouchMove = (e: TouchEvent) => {
       if (e.touches.length === 1) {
-        e.preventDefault() // Prevent scrolling while dragging
-        const touch = e.touches[0]
-        handleMove(touch.clientX, touch.clientY)
+        e.preventDefault(); // Prevent scrolling while dragging
+        const touch = e.touches[0];
+        handleMove(touch.clientX, touch.clientY);
       }
-    }
+    };
 
     const handleEnd = () => {
-      setIsDragging(false)
-    }
+      setIsDragging(false);
+    };
 
     if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove)
-      document.addEventListener('mouseup', handleEnd)
-      document.addEventListener('touchmove', handleTouchMove, { passive: false })
-      document.addEventListener('touchend', handleEnd)
-      
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleEnd);
+      document.addEventListener("touchmove", handleTouchMove, {
+        passive: false,
+      });
+      document.addEventListener("touchend", handleEnd);
+
       return () => {
-        document.removeEventListener('mousemove', handleMouseMove)
-        document.removeEventListener('mouseup', handleEnd)
-        document.removeEventListener('touchmove', handleTouchMove)
-        document.removeEventListener('touchend', handleEnd)
-      }
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleEnd);
+        document.removeEventListener("touchmove", handleTouchMove);
+        document.removeEventListener("touchend", handleEnd);
+      };
     }
-  }, [isDragging, dragStart, startPosition])
+  }, [isDragging, dragStart, startPosition]);
 
   const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault()
-    setIsDragging(true)
-    
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
-    
-    setDragStart({ x: clientX, y: clientY })
-    setStartPosition(position)
-  }
+    e.preventDefault();
+    setIsDragging(true);
 
-  if (!isVisible) return null
+    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
+
+    setDragStart({ x: clientX, y: clientY });
+    setStartPosition(position);
+  };
+
+  if (!isVisible) return null;
 
   const quickColors = [
-    '#10b981', // emerald
-    '#3b82f6', // blue
-    '#ef4444', // red
-    '#f59e0b', // amber
-    '#8b5cf6', // violet
-    '#06b6d4', // cyan
-    '#e5e5e5', // gray
-  ]
+    "#10b981", // emerald
+    "#3b82f6", // blue
+    "#ef4444", // red
+    "#f59e0b", // amber
+    "#8b5cf6", // violet
+    "#06b6d4", // cyan
+    "#e5e5e5", // gray
+  ];
 
   // Helper function to convert style value to LineStyle string
   const getStyleString = (style: any): LineStyle => {
-    if (typeof style === 'string' && ['solid', 'dashed', 'dotted'].includes(style)) {
+    if (
+      typeof style === "string" &&
+      ["solid", "dashed", "dotted"].includes(style)
+    ) {
       return style as LineStyle;
     }
     // Handle numeric styles (0 = solid, 1 = dotted, 2 = dashed)
-    if (typeof style === 'number') {
+    if (typeof style === "number") {
       switch (style) {
-        case 1: return 'dotted';
-        case 2: return 'dashed';
-        default: return 'solid';
+        case 1:
+          return "dotted";
+        case 2:
+          return "dashed";
+        default:
+          return "solid";
       }
     }
-    return 'solid';
-  }
+    return "solid";
+  };
 
   // Use trend line settings if available, otherwise use default settings
-  const currentSettings: LineSettings = trendLine ? {
-    color: trendLine.color || '#3b82f6',
-    style: getStyleString(trendLine.style),
-    thickness: (Number(trendLine.lineWidth) || 2) as LineThickness,
-    extendLeft: trendLine.extendLeft || false,
-    extendRight: trendLine.extendRight || false,
-  } : {
-    color: defaultSettings?.color || '#3b82f6',
-    style: getStyleString(defaultSettings?.style),
-    thickness: (Number(defaultSettings?.thickness) || 2) as LineThickness,
-    extendLeft: defaultSettings?.extendLeft || false,
-    extendRight: defaultSettings?.extendRight || false,
-  }
+  const currentSettings: LineSettings = trendLine
+    ? {
+        color: trendLine.color || "#3b82f6",
+        style: getStyleString(trendLine.style),
+        thickness: (Number(trendLine.lineWidth) || 2) as LineThickness,
+        extendLeft: trendLine.extendLeft || false,
+        extendRight: trendLine.extendRight || false,
+      }
+    : {
+        color: defaultSettings?.color || "#3b82f6",
+        style: getStyleString(defaultSettings?.style),
+        thickness: (Number(defaultSettings?.thickness) || 2) as LineThickness,
+        extendLeft: defaultSettings?.extendLeft || false,
+        extendRight: defaultSettings?.extendRight || false,
+      };
 
   const handleQuickColor = (color: string) => {
     if (trendLine) {
-      onUpdateSettings({ color })
+      onUpdateSettings({ color });
     } else if (onDefaultSettingsChange) {
-      onDefaultSettingsChange({ ...defaultSettings, color })
+      onDefaultSettingsChange({ ...defaultSettings, color });
     }
-  }
-  
+  };
+
   const handleSettingsChange = (settings: Partial<LineSettings>) => {
     if (trendLine) {
-      onUpdateSettings(settings)
+      onUpdateSettings(settings);
     } else if (onDefaultSettingsChange) {
-      onDefaultSettingsChange({ ...defaultSettings, ...settings })
+      onDefaultSettingsChange({ ...defaultSettings, ...settings });
     }
-  }
+  };
 
   const styleLabel = (s: LineStyle) => {
-    const str = String(s || 'solid');
+    const str = String(s || "solid");
     return str.charAt(0).toUpperCase() + str.slice(1);
-  }
+  };
 
   return (
-    <div 
+    <div
       ref={toolbarRef}
-      className="absolute z-[60] pointer-events-none"
+      className="absolute z-[101] pointer-events-none"
       style={{
         left: `${position.x}px`,
         top: `${position.y}px`,
       }}
     >
-      <div className={`flex items-center rounded-md border border-gray-700 bg-black/90 shadow-lg backdrop-blur pointer-events-auto ${isDragging ? 'cursor-grabbing opacity-90' : ''}`}>
+      <div
+        className={`flex items-center rounded-md border border-gray-700 bg-black/90 shadow-lg backdrop-blur pointer-events-auto ${
+          isDragging ? "cursor-grabbing opacity-90" : ""
+        }`}
+      >
         {/* Drag Handle */}
         <div
           className={`flex items-center px-1 py-1 hover:bg-gray-800 rounded-l-md transition-colors border-r border-gray-700 ${
-            isDragging ? 'cursor-grabbing bg-gray-800' : 'cursor-grab'
+            isDragging ? "cursor-grabbing bg-gray-800" : "cursor-grab"
           }`}
           onMouseDown={handleDragStart}
           onTouchStart={handleDragStart}
           title="Drag to reposition"
         >
-          <GripVerticalIcon className={`h-4 w-4 ${isDragging ? 'text-gray-300' : 'text-gray-400 hover:text-gray-300'}`} />
+          <GripVerticalIcon
+            className={`h-4 w-4 ${
+              isDragging ? "text-gray-300" : "text-gray-400 hover:text-gray-300"
+            }`}
+          />
         </div>
-        
+
         {/* Toolbar Controls */}
-        <div className={`flex items-center ${isMobile ? 'gap-1 px-1' : 'gap-2 px-2'} py-1`}>
+        <div
+          className={`flex items-center ${
+            isMobile ? "gap-1 px-1" : "gap-2 px-2"
+          } py-1`}
+        >
           {/* Line Color */}
           <Popover className="relative">
-            <Popover.Button as={ToolbarDropdownButton} title="Line color" className={isMobile ? 'px-1' : ''}>
+            <Popover.Button
+              as={ToolbarDropdownButton}
+              title="Line color"
+              className={isMobile ? "px-1" : ""}
+            >
               <span
                 className="h-4 w-4 rounded"
                 style={{ backgroundColor: currentSettings.color }}
                 aria-label="Current line color"
               />
               {!isMobile && <span className="hidden sm:inline">Color</span>}
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
+                />
               </svg>
             </Popover.Button>
 
@@ -269,7 +314,9 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
                     ref={colorInputRef}
                     type="color"
                     value={currentSettings.color}
-                    onChange={(e) => handleSettingsChange({ color: e.target.value })}
+                    onChange={(e) =>
+                      handleSettingsChange({ color: e.target.value })
+                    }
                     className="h-8 w-full cursor-pointer bg-transparent"
                     aria-label="Line color picker"
                   />
@@ -280,148 +327,237 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
 
           {/* Line Style */}
           <Menu as="div" className="relative">
-            <Menu.Button as={ToolbarDropdownButton} title={`Style: ${styleLabel(currentSettings.style)}`} className={isMobile ? 'px-1' : ''}>
-              <LinePreview color={currentSettings.color} style={currentSettings.style} thickness={currentSettings.thickness} compact={isMobile} />
+            <Menu.Button
+              as={ToolbarDropdownButton}
+              title={`Style: ${styleLabel(currentSettings.style)}`}
+              className={isMobile ? "px-1" : ""}
+            >
+              <LinePreview
+                color={currentSettings.color}
+                style={currentSettings.style}
+                thickness={currentSettings.thickness}
+                compact={isMobile}
+              />
               <ChevronDownIcon className="h-4 w-4" />
             </Menu.Button>
 
-          <Transition
-            as={Fragment}
-            enter="transition ease-out duration-100"
-            enterFrom="transform opacity-0 scale-95"
-            enterTo="transform opacity-100 scale-100"
-            leave="transition ease-in duration-75"
-            leaveFrom="transform opacity-100 scale-100"
-            leaveTo="transform opacity-0 scale-95"
-          >
-            <Menu.Items className="absolute left-0 mt-2 w-40 bg-gray-800 border border-gray-700 rounded-md shadow-xl z-[200]">
-              <div className="p-1">
-                <div className="px-2 py-1 text-xs text-gray-400">Line style</div>
-                {(['solid', 'dashed', 'dotted'] as LineStyle[]).map((s) => (
-                  <Menu.Item key={s}>
-                    {({ active }) => (
-                      <button
-                        onClick={() => handleSettingsChange({ style: s })}
-                        className={`${
-                          active ? 'bg-gray-700' : ''
-                        } group flex items-center w-full px-2 py-2 text-sm text-white rounded`}
-                      >
-                        <div className="mr-3">
-                          <LinePreview color={currentSettings.color} style={s} thickness={currentSettings.thickness} />
-                        </div>
-                        {styleLabel(s)}
-                      </button>
-                    )}
-                  </Menu.Item>
-                ))}
-              </div>
-            </Menu.Items>
-          </Transition>
-        </Menu>
+            <Transition
+              as={Fragment}
+              enter="transition ease-out duration-100"
+              enterFrom="transform opacity-0 scale-95"
+              enterTo="transform opacity-100 scale-100"
+              leave="transition ease-in duration-75"
+              leaveFrom="transform opacity-100 scale-100"
+              leaveTo="transform opacity-0 scale-95"
+            >
+              <Menu.Items className="absolute left-0 mt-2 w-40 bg-gray-800 border border-gray-700 rounded-md shadow-xl z-[200]">
+                <div className="p-1">
+                  <div className="px-2 py-1 text-xs text-gray-400">
+                    Line style
+                  </div>
+                  {(["solid", "dashed", "dotted"] as LineStyle[]).map((s) => (
+                    <Menu.Item key={s}>
+                      {({ active }) => (
+                        <button
+                          onClick={() => handleSettingsChange({ style: s })}
+                          className={`${
+                            active ? "bg-gray-700" : ""
+                          } group flex items-center w-full px-2 py-2 text-sm text-white rounded`}
+                        >
+                          <div className="mr-3">
+                            <LinePreview
+                              color={currentSettings.color}
+                              style={s}
+                              thickness={currentSettings.thickness}
+                            />
+                          </div>
+                          {styleLabel(s)}
+                        </button>
+                      )}
+                    </Menu.Item>
+                  ))}
+                </div>
+              </Menu.Items>
+            </Transition>
+          </Menu>
 
           {/* Thickness */}
           <Menu as="div" className="relative">
-            <Menu.Button as={ToolbarDropdownButton} title={`Thickness: ${currentSettings.thickness}px`} className={isMobile ? 'px-1' : ''}>
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={currentSettings.thickness} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
+            <Menu.Button
+              as={ToolbarDropdownButton}
+              title={`Thickness: ${currentSettings.thickness}px`}
+              className={isMobile ? "px-1" : ""}
+            >
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={currentSettings.thickness}
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M20 12H4"
+                />
               </svg>
-              {!isMobile && <span className="text-xs">{currentSettings.thickness || 2}</span>}
+              {!isMobile && (
+                <span className="text-xs">
+                  {currentSettings.thickness || 2}
+                </span>
+              )}
               <ChevronDownIcon className="h-4 w-4" />
             </Menu.Button>
 
-          <Transition
-            as={Fragment}
-            enter="transition ease-out duration-100"
-            enterFrom="transform opacity-0 scale-95"
-            enterTo="transform opacity-100 scale-100"
-            leave="transition ease-in duration-75"
-            leaveFrom="transform opacity-100 scale-100"
-            leaveTo="transform opacity-0 scale-95"
-          >
-            <Menu.Items className="absolute left-0 mt-2 w-32 bg-gray-800 border border-gray-700 rounded-md shadow-xl z-[200]">
-              <div className="p-1">
-                <div className="px-2 py-1 text-xs text-gray-400">Line thickness</div>
-                {[1, 2, 3, 4].map((t) => (
-                  <Menu.Item key={t}>
-                    {({ active }) => (
-                      <button
-                        onClick={() => handleSettingsChange({ thickness: t as LineThickness })}
-                        className={`${
-                          active ? 'bg-gray-700' : ''
-                        } group flex items-center w-full px-2 py-2 text-sm text-white rounded`}
-                      >
-                        <svg className="mr-3 h-4 w-4" fill="none" stroke="currentColor" strokeWidth={t} viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
-                        </svg>
-                        {String(t)}px
-                      </button>
-                    )}
-                  </Menu.Item>
-                ))}
-              </div>
-            </Menu.Items>
-          </Transition>
-        </Menu>
+            <Transition
+              as={Fragment}
+              enter="transition ease-out duration-100"
+              enterFrom="transform opacity-0 scale-95"
+              enterTo="transform opacity-100 scale-100"
+              leave="transition ease-in duration-75"
+              leaveFrom="transform opacity-100 scale-100"
+              leaveTo="transform opacity-0 scale-95"
+            >
+              <Menu.Items className="absolute left-0 mt-2 w-32 bg-gray-800 border border-gray-700 rounded-md shadow-xl z-[200]">
+                <div className="p-1">
+                  <div className="px-2 py-1 text-xs text-gray-400">
+                    Line thickness
+                  </div>
+                  {[1, 2, 3, 4].map((t) => (
+                    <Menu.Item key={t}>
+                      {({ active }) => (
+                        <button
+                          onClick={() =>
+                            handleSettingsChange({
+                              thickness: t as LineThickness,
+                            })
+                          }
+                          className={`${
+                            active ? "bg-gray-700" : ""
+                          } group flex items-center w-full px-2 py-2 text-sm text-white rounded`}
+                        >
+                          <svg
+                            className="mr-3 h-4 w-4"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={t}
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M20 12H4"
+                            />
+                          </svg>
+                          {String(t)}px
+                        </button>
+                      )}
+                    </Menu.Item>
+                  ))}
+                </div>
+              </Menu.Items>
+            </Transition>
+          </Menu>
 
           {/* Extend */}
           <Menu as="div" className="relative">
-            <Menu.Button as={ToolbarDropdownButton} title="Extend line" className={isMobile ? 'px-1' : ''}>
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+            <Menu.Button
+              as={ToolbarDropdownButton}
+              title="Extend line"
+              className={isMobile ? "px-1" : ""}
+            >
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+                />
               </svg>
               <ChevronDownIcon className="h-4 w-4" />
             </Menu.Button>
 
-          <Transition
-            as={Fragment}
-            enter="transition ease-out duration-100"
-            enterFrom="transform opacity-0 scale-95"
-            enterTo="transform opacity-100 scale-100"
-            leave="transition ease-in duration-75"
-            leaveFrom="transform opacity-100 scale-100"
-            leaveTo="transform opacity-0 scale-95"
-          >
-            <Menu.Items className="absolute left-0 mt-2 w-40 bg-gray-800 border border-gray-700 rounded-md shadow-xl z-[200]">
-              <div className="p-1">
-                <div className="px-2 py-1 text-xs text-gray-400">Extend line</div>
-                <Menu.Item>
-                  {({ active }) => (
-                    <button
-                      onClick={() => handleSettingsChange({ extendLeft: !currentSettings.extendLeft })}
-                      className={`${
-                        active ? 'bg-gray-700' : ''
-                      } group flex items-center justify-between w-full px-2 py-2 text-sm text-white rounded`}
-                    >
-                      <span>Extend left</span>
-                      {currentSettings.extendLeft && (
-                        <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </button>
-                  )}
-                </Menu.Item>
-                <Menu.Item>
-                  {({ active }) => (
-                    <button
-                      onClick={() => handleSettingsChange({ extendRight: !currentSettings.extendRight })}
-                      className={`${
-                        active ? 'bg-gray-700' : ''
-                      } group flex items-center justify-between w-full px-2 py-2 text-sm text-white rounded`}
-                    >
-                      <span>Extend right</span>
-                      {currentSettings.extendRight && (
-                        <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </button>
-                  )}
-                </Menu.Item>
-              </div>
-            </Menu.Items>
-          </Transition>
-        </Menu>
+            <Transition
+              as={Fragment}
+              enter="transition ease-out duration-100"
+              enterFrom="transform opacity-0 scale-95"
+              enterTo="transform opacity-100 scale-100"
+              leave="transition ease-in duration-75"
+              leaveFrom="transform opacity-100 scale-100"
+              leaveTo="transform opacity-0 scale-95"
+            >
+              <Menu.Items className="absolute left-0 mt-2 w-40 bg-gray-800 border border-gray-700 rounded-md shadow-xl z-[200]">
+                <div className="p-1">
+                  <div className="px-2 py-1 text-xs text-gray-400">
+                    Extend line
+                  </div>
+                  <Menu.Item>
+                    {({ active }) => (
+                      <button
+                        onClick={() =>
+                          handleSettingsChange({
+                            extendLeft: !currentSettings.extendLeft,
+                          })
+                        }
+                        className={`${
+                          active ? "bg-gray-700" : ""
+                        } group flex items-center justify-between w-full px-2 py-2 text-sm text-white rounded`}
+                      >
+                        <span>Extend left</span>
+                        {currentSettings.extendLeft && (
+                          <svg
+                            className="h-4 w-4"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        )}
+                      </button>
+                    )}
+                  </Menu.Item>
+                  <Menu.Item>
+                    {({ active }) => (
+                      <button
+                        onClick={() =>
+                          handleSettingsChange({
+                            extendRight: !currentSettings.extendRight,
+                          })
+                        }
+                        className={`${
+                          active ? "bg-gray-700" : ""
+                        } group flex items-center justify-between w-full px-2 py-2 text-sm text-white rounded`}
+                      >
+                        <span>Extend right</span>
+                        {currentSettings.extendRight && (
+                          <svg
+                            className="h-4 w-4"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        )}
+                      </button>
+                    )}
+                  </Menu.Item>
+                </div>
+              </Menu.Items>
+            </Transition>
+          </Menu>
 
           {/* Delete button (only when a line is selected) */}
           {trendLine && (
@@ -430,13 +566,23 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
               variant="danger"
               title="Delete line"
             >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                />
               </svg>
             </ToolbarButton>
           )}
         </div>
-        
+
         {/* Close button - always visible */}
         {onClose && (
           <div className="flex items-center border-l border-gray-700">
@@ -450,25 +596,39 @@ export const ChartLineToolbar: React.FC<ChartLineToolbarProps> = ({
               title="Close trend line tool"
               type="button"
             >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
         )}
-        
+
         {/* Right Drag Handle */}
         <div
           className={`flex items-center px-1 py-1 hover:bg-gray-800 rounded-r-md transition-colors border-l border-gray-700 ${
-            isDragging ? 'cursor-grabbing bg-gray-800' : 'cursor-grab'
+            isDragging ? "cursor-grabbing bg-gray-800" : "cursor-grab"
           }`}
           onMouseDown={handleDragStart}
           onTouchStart={handleDragStart}
           title="Drag to reposition"
         >
-          <GripVerticalIcon className={`h-4 w-4 ${isDragging ? 'text-gray-300' : 'text-gray-400 hover:text-gray-300'}`} />
+          <GripVerticalIcon
+            className={`h-4 w-4 ${
+              isDragging ? "text-gray-300" : "text-gray-400 hover:text-gray-300"
+            }`}
+          />
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
