@@ -182,8 +182,8 @@ export const chartTools = {
             },
             levelType: {
               type: "string",
-              enum: ["swing", "horizontal"],
-              description: "Type of support/resistance level",
+              enum: ["spike", "swing", "horizontal"],
+              description: "Type of support/resistance level (spike = extreme reversal, swing = regular reversal, horizontal = consolidation)",
             },
             opacity: {
               type: "number",
@@ -222,6 +222,34 @@ export const chartTools = {
             zIndex: {
               type: "number",
               description: "Z-index for layering (higher = on top)",
+            },
+            animation: {
+              type: "object",
+              description: "Optional animation configuration (e.g., for spike levels)",
+              properties: {
+                type: {
+                  type: "string",
+                  enum: ["pulse"],
+                  description: "Animation type (currently only pulse is supported)",
+                },
+                duration: {
+                  type: "number",
+                  description: "Duration of one animation cycle in milliseconds",
+                  default: 2000,
+                },
+                intensity: {
+                  type: "number",
+                  description: "Intensity of the animation (0.0 to 1.0)",
+                  default: 0.3,
+                  minimum: 0,
+                  maximum: 1,
+                },
+                enabled: {
+                  type: "boolean",
+                  description: "Whether the animation is enabled",
+                  default: true,
+                },
+              },
             },
             lastTest: {
               type: "number",

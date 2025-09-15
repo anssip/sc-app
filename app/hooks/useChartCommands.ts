@@ -260,6 +260,7 @@ async function executeChartCommand(
         opacity: params.opacity || undefined,
         markers: params.markers || undefined,
         zIndex: params.zIndex || undefined,
+        animation: params.animation || undefined,
       });
       return { trendLineId: lineId };
 

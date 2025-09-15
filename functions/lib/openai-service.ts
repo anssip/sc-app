@@ -446,7 +446,9 @@ async function processWithLLM({
               const generateLevelNote = (level: any, type: 'support' | 'resistance'): string => {
                 const notes = [];
 
-                if (level.type === 'swing') {
+                if (level.type === 'spike') {
+                  notes.push('⚠️ Extreme reversal with high volatility');
+                } else if (level.type === 'swing') {
                   notes.push('Major reversal point');
                 } else {
                   notes.push('Consolidation zone');
@@ -467,9 +469,13 @@ async function processWithLLM({
 
               // Define color schemes for different level types
               const colors = {
+                spike: {
+                  support: '#00FF00',     // Electric green (maximum saturation)
+                  resistance: '#FF0000'   // Electric red (maximum saturation)
+                },
                 swing: {
-                  support: '#00FF00',     // Bright green (full saturation)
-                  resistance: '#FF0000'   // Bright red (full saturation)
+                  support: '#22DD22',     // Bright green (85% saturation)
+                  resistance: '#DD2222'   // Bright red (85% saturation)
                 },
                 horizontal: {
                   support: '#66CC66',     // Soft green (60% saturation)
@@ -485,7 +491,7 @@ async function processWithLLM({
               // Draw horizontal lines for each support level
               for (let index = 0; index < levelsData.supports.length; index++) {
                 const support = levelsData.supports[index];
-                const levelType: 'swing' | 'horizontal' = support.type || 'horizontal';
+                const levelType: 'spike' | 'swing' | 'horizontal' = support.type || 'horizontal';
                 const adjustedConfidence = support.adjustedConfidence || support.confidence;
 
                 // Determine line style based on adjusted confidence
@@ -509,28 +515,42 @@ async function processWithLLM({
 
                   // Enhanced visual properties based on level type
                   color: colors[levelType].support,
-                  lineWidth: levelType === 'swing' ? 3 : 1.5,
+                  lineWidth: levelType === 'spike' ? 4 : (levelType === 'swing' ? 3 : 1.5),
                   style: lineStyle,
                   opacity: 0.5 + (adjustedConfidence / 100) * 0.5,
 
                   // New properties for advanced visualization
                   levelType: levelType,
-                  zIndex: levelType === 'swing' ? 100 : 90,
-                  markers: levelType === 'swing' ? {
+                  zIndex: levelType === 'spike' ? 110 : (levelType === 'swing' ? 100 : 90),
+                  markers: levelType === 'spike' ? {
+                    enabled: true,
+                    symbol: 'triangle' as const,
+                    size: 6,
+                    spacing: 80,
+                    color: colors[levelType].support
+                  } : (levelType === 'swing' ? {
                     enabled: true,
                     symbol: 'diamond' as const,
                     size: 4,
                     spacing: 100,
                     color: colors[levelType].support
+                  } : undefined),
+
+                  // Add pulsating animation for spike levels
+                  animation: levelType === 'spike' ? {
+                    type: 'pulse' as const,
+                    duration: 2000,
+                    intensity: 0.3,
+                    enabled: true
                   } : undefined,
 
                   // Existing properties
                   extendLeft: true,
                   extendRight: true,
-                  name: `${levelType === 'swing' ? '◆ Swing' : '— Horizontal'} ${granularityLabel}: Support $${support.price.toFixed(
+                  name: `${levelType === 'spike' ? '⚡ Spike' : (levelType === 'swing' ? '◆ Swing' : '— Horizontal')} ${granularityLabel}: Support $${support.price.toFixed(
                     2
                   )}`,
-                  description: support.description || `${levelType === 'swing' ? 'Swing Level' : 'Horizontal Level'} | Confidence: ${adjustedConfidence.toFixed(
+                  description: support.description || `${levelType === 'spike' ? 'Spike Level (Extreme Reversal)' : (levelType === 'swing' ? 'Swing Level' : 'Horizontal Level')} | Confidence: ${adjustedConfidence.toFixed(
                     0
                   )}%${
                     adjustedConfidence !== support.confidence
@@ -555,8 +575,8 @@ async function processWithLLM({
 
                 // Output detailed information for this support level
                 onStream(
-                  `\n**${index + 1}. ${levelType === 'swing' ? '◆ Strong Swing' : '— Horizontal'} Support at $${support.price.toFixed(2)}**\n` +
-                  `- **Type:** ${levelType === 'swing' ? 'Swing Level (Precise Reversal Point)' : 'Horizontal Level (Consolidation Zone)'}\n` +
+                  `\n**${index + 1}. ${levelType === 'spike' ? '⚡ Critical Spike' : (levelType === 'swing' ? '◆ Strong Swing' : '— Horizontal')} Support at $${support.price.toFixed(2)}**\n` +
+                  `- **Type:** ${levelType === 'spike' ? 'Spike Level (Extreme Price Rejection)' : (levelType === 'swing' ? 'Swing Level (Precise Reversal Point)' : 'Horizontal Level (Consolidation Zone)')}\n` +
                   `- **Confidence:** ${adjustedConfidence.toFixed(0)}%${
                     adjustedConfidence !== support.confidence
                       ? ` (adjusted from ${support.confidence.toFixed(0)}% by indicators)`
@@ -565,7 +585,7 @@ async function processWithLLM({
                   `- **Strength:** ${getStrengthLabel(adjustedConfidence)} - Tested ${support.tests} time${support.tests !== 1 ? 's' : ''}\n` +
                   `- **Last Test:** ${getRelativeTime(support.lastTest)} <span class="timestamp-utc" data-timestamp="${support.lastTest}">(loading time...)</span>\n` +
                   `- **Visual:** ${lineStyle === 'solid' ? 'Solid' : lineStyle === 'dashed' ? 'Dashed' : 'Dotted'} line${
-                    levelType === 'swing' ? ' with diamond markers' : ', no markers'
+                    levelType === 'spike' ? ' with triangle markers and pulsating animation' : (levelType === 'swing' ? ' with diamond markers' : ', no markers')
                   }\n` +
                   `- **Note:** ${generateLevelNote(support, 'support')}\n\n`
                 );
@@ -579,7 +599,7 @@ async function processWithLLM({
               // Draw horizontal lines for each resistance level
               for (let index = 0; index < levelsData.resistances.length; index++) {
                 const resistance = levelsData.resistances[index];
-                const levelType: 'swing' | 'horizontal' = resistance.type || 'horizontal';
+                const levelType: 'spike' | 'swing' | 'horizontal' = resistance.type || 'horizontal';
                 const adjustedConfidence = resistance.adjustedConfidence || resistance.confidence;
 
                 // Determine line style based on adjusted confidence
@@ -603,28 +623,42 @@ async function processWithLLM({
 
                   // Enhanced visual properties based on level type
                   color: colors[levelType].resistance,
-                  lineWidth: levelType === 'swing' ? 3 : 1.5,
+                  lineWidth: levelType === 'spike' ? 4 : (levelType === 'swing' ? 3 : 1.5),
                   style: lineStyle,
                   opacity: 0.5 + (adjustedConfidence / 100) * 0.5,
 
                   // New properties for advanced visualization
                   levelType: levelType,
-                  zIndex: levelType === 'swing' ? 100 : 90,
-                  markers: levelType === 'swing' ? {
+                  zIndex: levelType === 'spike' ? 110 : (levelType === 'swing' ? 100 : 90),
+                  markers: levelType === 'spike' ? {
+                    enabled: true,
+                    symbol: 'triangle' as const,
+                    size: 6,
+                    spacing: 80,
+                    color: colors[levelType].resistance
+                  } : (levelType === 'swing' ? {
                     enabled: true,
                     symbol: 'diamond' as const,
                     size: 4,
                     spacing: 100,
                     color: colors[levelType].resistance
+                  } : undefined),
+
+                  // Add pulsating animation for spike levels
+                  animation: levelType === 'spike' ? {
+                    type: 'pulse' as const,
+                    duration: 2000,
+                    intensity: 0.3,
+                    enabled: true
                   } : undefined,
 
                   // Existing properties
                   extendLeft: true,
                   extendRight: true,
-                  name: `${levelType === 'swing' ? '◆ Swing' : '— Horizontal'} ${granularityLabel}: Resistance $${resistance.price.toFixed(
+                  name: `${levelType === 'spike' ? '⚡ Spike' : (levelType === 'swing' ? '◆ Swing' : '— Horizontal')} ${granularityLabel}: Resistance $${resistance.price.toFixed(
                     2
                   )}`,
-                  description: resistance.description || `${levelType === 'swing' ? 'Swing Level' : 'Horizontal Level'} | Confidence: ${adjustedConfidence.toFixed(
+                  description: resistance.description || `${levelType === 'spike' ? 'Spike Level (Extreme Reversal)' : (levelType === 'swing' ? 'Swing Level' : 'Horizontal Level')} | Confidence: ${adjustedConfidence.toFixed(
                     0
                   )}%${
                     adjustedConfidence !== resistance.confidence
@@ -649,8 +683,8 @@ async function processWithLLM({
 
                 // Output detailed information for this resistance level
                 onStream(
-                  `\n**${index + 1}. ${levelType === 'swing' ? '◆ Strong Swing' : '— Horizontal'} Resistance at $${resistance.price.toFixed(2)}**\n` +
-                  `- **Type:** ${levelType === 'swing' ? 'Swing Level (Precise Reversal Point)' : 'Horizontal Level (Consolidation Zone)'}\n` +
+                  `\n**${index + 1}. ${levelType === 'spike' ? '⚡ Critical Spike' : (levelType === 'swing' ? '◆ Strong Swing' : '— Horizontal')} Resistance at $${resistance.price.toFixed(2)}**\n` +
+                  `- **Type:** ${levelType === 'spike' ? 'Spike Level (Extreme Price Rejection)' : (levelType === 'swing' ? 'Swing Level (Precise Reversal Point)' : 'Horizontal Level (Consolidation Zone)')}\n` +
                   `- **Confidence:** ${adjustedConfidence.toFixed(0)}%${
                     adjustedConfidence !== resistance.confidence
                       ? ` (adjusted from ${resistance.confidence.toFixed(0)}% by indicators)`
@@ -659,7 +693,7 @@ async function processWithLLM({
                   `- **Strength:** ${getStrengthLabel(adjustedConfidence)} - Tested ${resistance.tests} time${resistance.tests !== 1 ? 's' : ''}\n` +
                   `- **Last Test:** ${getRelativeTime(resistance.lastTest)} <span class="timestamp-utc" data-timestamp="${resistance.lastTest}">(loading time...)</span>\n` +
                   `- **Visual:** ${lineStyle === 'solid' ? 'Solid' : lineStyle === 'dashed' ? 'Dashed' : 'Dotted'} line${
-                    levelType === 'swing' ? ' with diamond markers' : ', no markers'
+                    levelType === 'spike' ? ' with triangle markers and pulsating animation' : (levelType === 'swing' ? ' with diamond markers' : ', no markers')
                   }\n` +
                   `- **Note:** ${generateLevelNote(resistance, 'resistance')}\n\n`
                 );
@@ -682,6 +716,7 @@ async function processWithLLM({
                     , levelsData.resistances[0])
                   : null;
 
+                const spikeLevelsCount = [...levelsData.supports, ...levelsData.resistances].filter((l: any) => l.type === 'spike').length;
                 const swingLevelsCount = [...levelsData.supports, ...levelsData.resistances].filter((l: any) => l.type === 'swing').length;
                 const horizontalLevelsCount = [...levelsData.supports, ...levelsData.resistances].filter((l: any) => l.type === 'horizontal').length;
 
@@ -692,8 +727,9 @@ async function processWithLLM({
                   `• Support Levels: ${levelsData.supports.length}\n` +
                   `• Resistance Levels: ${levelsData.resistances.length}\n\n` +
                   `**Level Types:**\n` +
-                  `• Swing Levels (Precise Reversals): ${swingLevelsCount}\n` +
-                  `• Horizontal Levels (Consolidation Zones): ${horizontalLevelsCount}\n\n` +
+                  (spikeLevelsCount > 0 ? `• ⚡ Spike Levels (Extreme Reversals): ${spikeLevelsCount}\n` : '') +
+                  `• ◆ Swing Levels (Precise Reversals): ${swingLevelsCount}\n` +
+                  `• — Horizontal Levels (Consolidation Zones): ${horizontalLevelsCount}\n\n` +
                   `**Key Levels to Watch:**\n` +
                   (strongestSupport ?
                     `• Strongest Support: $${strongestSupport.price.toFixed(2)} ` +
@@ -706,8 +742,10 @@ async function processWithLLM({
                   `\n**Visual Guide:**\n` +
                   `• 🟢 Green lines = Support levels (price floor)\n` +
                   `• 🔴 Red lines = Resistance levels (price ceiling)\n` +
-                  `• Thicker lines = Swing levels (strong reversal points)\n` +
-                  `• Thinner lines = Horizontal levels (consolidation areas)\n` +
+                  `• ⚡ Pulsating lines = Spike levels (extreme reversals with highest priority)\n` +
+                  `• ◆ Diamond markers = Swing levels (strong reversal points)\n` +
+                  `• — No markers = Horizontal levels (consolidation areas)\n` +
+                  `• Line thickness: Spike (4px) > Swing (3px) > Horizontal (1.5px)\n` +
                   `• Line style indicates confidence: Solid (>70%), Dashed (40-70%), Dotted (<40%)\n\n` +
                   `💡 **Trading Tip:** Pay special attention to levels with high confidence and multiple tests, ` +
                   `as these tend to be more reliable for planning entry/exit points.\n\n` +
