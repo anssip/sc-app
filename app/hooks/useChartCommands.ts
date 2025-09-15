@@ -11,7 +11,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
-export function useChartCommands(userId: string | undefined, chartApi: any) {
+export function useChartCommands(userId: string | undefined, chartApi: any, activeChartId?: string | null) {
   const processedCommands = useRef(new Set<string>());
 
   useEffect(() => {
@@ -53,10 +53,20 @@ export function useChartCommands(userId: string | undefined, chartApi: any) {
           processedCommands.current.add(commandId);
           const command = commandDoc.data();
 
+          // Check if command has a target chart ID and if it matches the active chart
+          if (command.targetChartId && command.targetChartId !== activeChartId) {
+            console.log(
+              `[ChartCommands] Skipping command for different chart. Target: ${command.targetChartId}, Active: ${activeChartId}`
+            );
+            continue;
+          }
+
           console.log("[ChartCommands] Processing command:", {
             commandId,
             command: command.command,
             parameters: command.parameters,
+            targetChartId: command.targetChartId,
+            activeChartId
           });
 
           try {
@@ -106,7 +116,7 @@ export function useChartCommands(userId: string | undefined, chartApi: any) {
       unsubscribe();
       processedCommands.current.clear();
     };
-  }, [userId, chartApi]);
+  }, [userId, chartApi, activeChartId]);
 }
 
 async function executeChartCommand(

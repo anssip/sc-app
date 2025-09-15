@@ -21,6 +21,7 @@ import {
   type ChartSettings,
   type IndicatorConfig,
 } from "~/contexts/ChartSettingsContext";
+import { useActiveChart } from "~/contexts/ActiveChartContext";
 import type { Granularity } from "@anssip/rs-charts";
 
 export interface ChartConfig {
@@ -231,6 +232,9 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
   const { updateChart, saveChart } = useCharts();
   const { indicators: availableIndicators = [], isLoading: indicatorsLoading } =
     useIndicators(db);
+  const { activeChartId, setActiveChart, registerChartApi, unregisterChartApi } = useActiveChart();
+  const unregisterRef = useRef(unregisterChartApi);
+  unregisterRef.current = unregisterChartApi;
   const [chartError, setChartError] = useState<string | null>(null);
   const [isChangingSymbol, setIsChangingSymbol] = useState(false);
   const [isChangingGranularity, setIsChangingGranularity] = useState(false);
@@ -256,6 +260,7 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
   const chartRef = useRef<SCChartRef>(null);
   const { settings } = useChartSettings(config.id);
   const { user } = useAuth();
+  const isActive = activeChartId === config.id;
 
   // Load trend lines when layout and chart are available
   useEffect(() => {
@@ -592,11 +597,37 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
     });
   }, [defaultTrendLineSettings, isTrendLineToolActive]);
 
+  // Unregister chart API on unmount only
+  useEffect(() => {
+    const chartId = config.id;
+    return () => {
+      // Use the ref to ensure we have the latest unregister function
+      unregisterRef.current(chartId);
+    };
+  }, [config.id]);
+
+  // Handle click to activate chart
+  const handleChartActivation = useCallback((e: React.MouseEvent) => {
+    // Activate chart when clicking anywhere on it (if inactive)
+    if (!isActive) {
+      console.log('[ChartContainer] Activating chart on click:', config.id);
+      setActiveChart(config.id);
+      // Stop propagation to prevent bubbling
+      e.stopPropagation();
+    }
+  }, [isActive, config.id, setActiveChart]);
+
   return (
     <div
       ref={containerRef}
-      className="h-full flex flex-col bg-gray-900 border border-gray-800 rounded-lg overflow-hidden relative"
+      className={`h-full flex flex-col bg-gray-900 rounded-lg overflow-hidden relative transition-all duration-200 ${
+        isActive
+          ? 'border-2 border-green-500/50 shadow-lg shadow-green-500/20'
+          : 'border border-gray-700 cursor-pointer'
+      }`}
+      onClick={handleChartActivation}
     >
+
       <ChartHeader
         chartId={config.id}
         chartApiRef={chartRef}
@@ -611,6 +642,7 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
         layoutId={layoutId}
         isTrendLineToolActive={isTrendLineToolActive}
         onToggleTrendLineTool={handleActivateTrendLineTool}
+        isActive={isActive}
       />
 
       {/* Symbol Manager Modal */}
@@ -620,8 +652,10 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
         layoutId={layoutId}
       />
 
-      {/* Chart Content */}
-      <div className="flex-1 relative">
+      {/* Chart Content - disable interactions when inactive */}
+      <div
+        className={`flex-1 relative ${!isActive ? 'pointer-events-none' : ''}`}
+      >
         {/* Trend Line Toolbar */}
         <ChartLineToolbar
           trendLine={selectedTrendLine}
@@ -668,7 +702,15 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
             initialState={initialState}
             style={{ width: "100%", height: "100%" }}
             className="trading-chart"
-            onApiReady={onApiReady}
+            onApiReady={(api) => {
+              // Register the API with the ActiveChartContext
+              registerChartApi(config.id, api, settings.symbol, settings.granularity);
+
+              // Also call the original onApiReady if provided
+              if (onApiReady) {
+                onApiReady(api);
+              }
+            }}
             chartId={config.id}
             onReady={() => {
               // Set up trend line event listeners when chart is ready

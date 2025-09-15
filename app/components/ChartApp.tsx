@@ -20,6 +20,7 @@ import {
   convertFromChartPanelLayout,
   convertToChartPanelLayout,
 } from "~/utils/layoutConverter";
+import { ActiveChartProvider } from "~/contexts/ActiveChartContext";
 import type { PanelLayout } from "./ChartPanel";
 import type { ChartConfig, SavedLayout } from "~/types";
 
@@ -406,56 +407,57 @@ export const ChartApp: React.FC<ChartAppProps> = ({
   };
 
   return (
-    <div className={`flex flex-col h-full bg-black overflow-hidden ${className}`}>
-        {/* PWA Header Spacer for iPhone - pushes content below the notch */}
-        {isIPhone() && isPWA() && (
-        <div className="flex-shrink-0 h-11 bg-gray-900" />
-      )}
-      
-      {/* PWA Install Banner - shows only once for mobile users */}
-      <PWAInstallBanner />
-      <AppToolbar
-        repository={repository}
-        currentLayout={currentLayout}
-        currentLayoutId={currentLayoutId}
-        onLayoutChange={handleLayoutSelection}
-        migrationStatus={migrationStatus}
-        hasPreviewAccess={hasPreviewAccess}
-        previewStartTime={previewStartTime}
-        onPreviewExpire={() => window.location.reload()}
-        showAIChat={showAIChat}
-        onToggleAIChat={() => setShowAIChat(prev => !prev)}
-      />
+    <ActiveChartProvider>
+      <div className={`flex flex-col h-full bg-black overflow-hidden ${className}`}>
+          {/* PWA Header Spacer for iPhone - pushes content below the notch */}
+          {isIPhone() && isPWA() && (
+          <div className="flex-shrink-0 h-11 bg-gray-900" />
+        )}
 
-      {/* Chart Panel with AI Chat */}
-      <div className={`flex-1 min-h-0 relative bg-black ${isMobile() ? 'pb-5' : ''}`}>
-        <PanelGroup direction="horizontal" className="h-full">
-          {/* Main Chart Panel */}
-          <Panel>
-            <ChartPanel
-              layout={currentLayout}
-              layoutId={currentLayoutId || undefined}
-              onLayoutChange={handleLayoutChange}
-              className="h-full"
-              onChartApiReady={setChartApi}
-            />
-          </Panel>
-          
-          {/* AI Chat Panel */}
-          {showAIChat && (
-            <>
-              <PanelResizeHandle className="w-1 bg-gray-800 hover:bg-gray-700 transition-colors" />
-              <Panel defaultSize={25} minSize={15} maxSize={40}>
-                <div className="h-full overflow-hidden">
-                  <AIChatPanel 
-                    onClose={() => setShowAIChat(false)}
-                    chartApi={chartApi}
-                  />
-                </div>
-              </Panel>
-            </>
-          )}
-        </PanelGroup>
+        {/* PWA Install Banner - shows only once for mobile users */}
+        <PWAInstallBanner />
+        <AppToolbar
+          repository={repository}
+          currentLayout={currentLayout}
+          currentLayoutId={currentLayoutId}
+          onLayoutChange={handleLayoutSelection}
+          migrationStatus={migrationStatus}
+          hasPreviewAccess={hasPreviewAccess}
+          previewStartTime={previewStartTime}
+          onPreviewExpire={() => window.location.reload()}
+          showAIChat={showAIChat}
+          onToggleAIChat={() => setShowAIChat(prev => !prev)}
+        />
+
+        {/* Chart Panel with AI Chat */}
+        <div className={`flex-1 min-h-0 relative bg-black ${isMobile() ? 'pb-5' : ''}`}>
+          <PanelGroup direction="horizontal" className="h-full">
+            {/* Main Chart Panel */}
+            <Panel>
+              <ChartPanel
+                layout={currentLayout}
+                layoutId={currentLayoutId || undefined}
+                onLayoutChange={handleLayoutChange}
+                className="h-full"
+                onChartApiReady={setChartApi}
+              />
+            </Panel>
+
+            {/* AI Chat Panel */}
+            {showAIChat && (
+              <>
+                <PanelResizeHandle className="w-1 bg-gray-800 hover:bg-gray-700 transition-colors" />
+                <Panel defaultSize={25} minSize={15} maxSize={40}>
+                  <div className="h-full overflow-hidden">
+                    <AIChatPanel
+                      onClose={() => setShowAIChat(false)}
+                      chartApi={chartApi}
+                    />
+                  </div>
+                </Panel>
+              </>
+            )}
+          </PanelGroup>
 
         {/* Subscription Overlay - dims charts and blocks interaction when no subscription */}
         {shouldShowSubscriptionOverlay && (
@@ -499,6 +501,7 @@ export const ChartApp: React.FC<ChartAppProps> = ({
         )}
       </div>
     </div>
+    </ActiveChartProvider>
   );
 };
 

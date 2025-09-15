@@ -3,6 +3,7 @@ import { Bot, Send, X, Loader2 } from 'lucide-react';
 import { useAuth } from '../lib/auth-context';
 import { useMCPClient } from '../hooks/useMCPClient';
 import { useChartCommands } from '../hooks/useChartCommands';
+import { useActiveChart } from '../contexts/ActiveChartContext';
 import { ChatExamplePrompts } from './ChatExamplePrompts';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -140,10 +141,10 @@ function preprocessContent(text: string): string {
   return processedText;
 }
 
-export function AIChatPanel({ 
+export function AIChatPanel({
   onClose,
-  chartApi 
-}: { 
+  chartApi
+}: {
   onClose: () => void;
   chartApi: any; // ChartApi instance
 }) {
@@ -153,11 +154,16 @@ export function AIChatPanel({
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  
+  const { activeChartId, getActiveChartApi } = useActiveChart();
+
   const { sendMessage, loadHistory } = useMCPClient(user?.uid);
-  
-  // Set up command listener
-  useChartCommands(user?.uid, chartApi);
+
+  // Get the active chart's API
+  const activeChart = getActiveChartApi();
+  const activeChartApi = activeChart?.api || chartApi; // Fall back to passed chartApi if no active chart
+
+  // Set up command listener for the active chart
+  useChartCommands(user?.uid, activeChartApi, activeChartId);
 
   // Load chat history on mount
   useEffect(() => {
@@ -188,17 +194,17 @@ export function AIChatPanel({
     setInputValue('');
     setIsLoading(true);
 
-    // Get chart context if available
+    // Get chart context from active chart if available
     let chartContext;
-    if (chartApi) {
+    if (activeChartApi) {
       try {
-        console.log('[AIChatPanel] Getting chart context from state');
-        
-        // Get values from chart API (which now reads from state)
-        const symbol = chartApi.getSymbol?.();
-        const granularity = chartApi.getGranularity?.();
-        const timeRange = chartApi.getTimeRange?.();
-        const priceRange = chartApi.getPriceRange?.();
+        console.log('[AIChatPanel] Getting chart context from active chart:', activeChartId);
+
+        // Get values from active chart API
+        const symbol = activeChartApi.getSymbol?.();
+        const granularity = activeChartApi.getGranularity?.();
+        const timeRange = activeChartApi.getTimeRange?.();
+        const priceRange = activeChartApi.getPriceRange?.();
         
         console.log('[AIChatPanel] Chart values from state:', {
           symbol,
@@ -241,7 +247,7 @@ export function AIChatPanel({
         console.warn('[AIChatPanel] Error getting chart context:', error);
       }
     } else {
-      console.warn('[AIChatPanel] No chartApi provided');
+      console.warn('[AIChatPanel] No active chart available');
     }
 
     try {
@@ -321,7 +327,14 @@ export function AIChatPanel({
       <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-gray-700">
         <div className="flex items-center gap-2">
           <Bot className="w-5 h-5 text-blue-400" />
-          <h2 className="font-semibold">AI Assistant</h2>
+          <div>
+            <h2 className="font-semibold">AI Assistant</h2>
+            {activeChart && (
+              <p className="text-xs text-gray-400">
+                Active: {activeChart.symbol || 'Chart'} • {activeChart.granularity || ''}
+              </p>
+            )}
+          </div>
         </div>
         <button
           onClick={onClose}
