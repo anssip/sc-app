@@ -223,6 +223,27 @@ async function executeChartCommand(
       return { indicator: params.id, visible: false };
 
     case "add_trend_line":
+      // Format description with local timezone if lastTest is provided
+      let description = params.description || undefined;
+      if (params.lastTest) {
+        const date = new Date(params.lastTest);
+        const localDateStr = date.toLocaleString(undefined, {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          timeZoneName: 'short'
+        });
+
+        // Append local time to description
+        if (description) {
+          description += ` | Last tested: ${localDateStr}`;
+        } else {
+          description = `Last tested: ${localDateStr}`;
+        }
+      }
+
       const lineId = api.addTrendLine({
         startPoint: params.start,
         endPoint: params.end,
@@ -232,8 +253,13 @@ async function executeChartCommand(
         extendLeft: params.extendLeft || false,
         extendRight: params.extendRight || false,
         name: params.name || undefined,
-        description: params.description || undefined,
+        description: description,
         selected: false,
+        // New properties for support/resistance visualization
+        levelType: params.levelType || undefined,
+        opacity: params.opacity || undefined,
+        markers: params.markers || undefined,
+        zIndex: params.zIndex || undefined,
       });
       return { trendLineId: lineId };
 

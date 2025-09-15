@@ -172,6 +172,61 @@ export const chartTools = {
               description: "Extend line to the right",
               default: false,
             },
+            name: {
+              type: "string",
+              description: "Name/label for the trend line",
+            },
+            description: {
+              type: "string",
+              description: "Detailed description of the trend line",
+            },
+            levelType: {
+              type: "string",
+              enum: ["swing", "horizontal"],
+              description: "Type of support/resistance level",
+            },
+            opacity: {
+              type: "number",
+              description: "Opacity value (0.0 to 1.0)",
+              minimum: 0,
+              maximum: 1,
+            },
+            markers: {
+              type: "object",
+              description: "Optional markers along the line",
+              properties: {
+                enabled: {
+                  type: "boolean",
+                  description: "Enable markers",
+                },
+                symbol: {
+                  type: "string",
+                  enum: ["diamond", "circle", "square", "triangle"],
+                  description: "Marker symbol type",
+                },
+                size: {
+                  type: "number",
+                  description: "Marker size in pixels",
+                },
+                spacing: {
+                  type: "number",
+                  description: "Spacing between markers in pixels",
+                },
+                color: {
+                  type: "string",
+                  description: "Marker color (defaults to line color)",
+                },
+              },
+              required: ["enabled", "symbol", "size", "spacing"],
+            },
+            zIndex: {
+              type: "number",
+              description: "Z-index for layering (higher = on top)",
+            },
+            lastTest: {
+              type: "string",
+              description: "ISO timestamp of when this level was last tested (for browser timezone conversion)",
+            },
           },
           required: ["start", "end"],
         },

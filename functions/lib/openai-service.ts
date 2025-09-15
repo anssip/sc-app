@@ -191,7 +191,7 @@ async function processWithLLM({
     - Timeframe/Interval: ${chartContext.granularity}
     - Visible Time Range, use only if the user does not specify otherwise in the prompt: from ${
       chartContext.timeRange.start
-    } to ${chartContext.timeRange.end} (timestamps in milliseconds)
+    } to ${chartContext.timeRange.end} (timestamps in UTC milliseconds)
     - Visible Price Range: $${chartContext.priceRange.min.toFixed(
       2
     )} to $${chartContext.priceRange.max.toFixed(2)}
@@ -202,7 +202,10 @@ async function processWithLLM({
     - startTime: ${chartContext.timeRange.start}
     - endTime: ${chartContext.timeRange.end}
 
-    CRITICAL: All timestamps MUST be integers (no decimals). Use Math.floor() if needed.
+    CRITICAL:
+    - All timestamps are already in UTC milliseconds including time of day
+    - All timestamps MUST be integers (no decimals). Use Math.floor() if needed.
+    - Preserve the exact time values from the chart context (they include hours, minutes, seconds)
 
     Example for analyze_price_points:
     {
@@ -353,31 +356,33 @@ async function processWithLLM({
                 );
               };
 
-              // Format dates for display
-              const startDate = new Date(args.startTime).toLocaleDateString(
-                "en-US",
-                {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                }
-              );
-              const endDate = new Date(args.endTime).toLocaleDateString(
-                "en-US",
-                {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                }
-              );
+              // Format dates for display in UTC with time component
+              const formatUTCDateTime = (timestamp: number): string => {
+                const date = new Date(timestamp);
+                const year = date.getUTCFullYear();
+                const month = date.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
+                const day = date.getUTCDate();
+                const hours = date.getUTCHours().toString().padStart(2, '0');
+                const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+                return `${month} ${day}, ${year} ${hours}:${minutes} UTC`;
+              };
 
-              // Stream initial status to user with details
+              const startDateTime = formatUTCDateTime(args.startTime);
+              const endDateTime = formatUTCDateTime(args.endTime);
+
+              // Stream initial status to user with UTC times
               onStream(
                 `\n\n📊 Fetching support and resistance levels for ${
                   args.symbol
                 } (${formatGranularity(
                   args.granularity
-                )}) from ${startDate} to ${endDate}...`
+                )}) from ${startDateTime} to ${endDateTime}...`
+              );
+
+              // Log the exact timestamps being used for debugging
+              console.log(
+                `Using exact UTC timestamps - Start: ${args.startTime} (${new Date(args.startTime).toISOString()}), ` +
+                `End: ${args.endTime} (${new Date(args.endTime).toISOString()})`
               );
 
               // Call the price tool to get levels from API
@@ -399,29 +404,112 @@ async function processWithLLM({
                 JSON.stringify(levelsData, null, 2)
               );
 
-              // Stream summary to user
+              // Stream summary header to user
               if (
                 levelsData.supports.length > 0 ||
                 levelsData.resistances.length > 0
               ) {
                 onStream(
-                  `\n✅ Found ${levelsData.supports.length} support and ${levelsData.resistances.length} resistance levels\n`
+                  `\n📊 Support/Resistance Analysis Summary:\n` +
+                  `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`
                 );
               } else {
                 onStream(
                   "\n⚠️ No significant support or resistance levels found in the current data\n"
                 );
+                continue; // Skip to next tool call if no levels found
               }
 
               const granularityLabel = formatGranularity(args.granularity);
 
+              // Helper functions for enhanced output
+              const getStrengthLabel = (confidence: number): string => {
+                if (confidence >= 80) return 'VERY HIGH';
+                if (confidence >= 60) return 'HIGH';
+                if (confidence >= 40) return 'MEDIUM';
+                return 'LOW';
+              };
+
+              const getRelativeTime = (timestamp: string): string => {
+                const now = new Date();
+                const date = new Date(timestamp);
+                const diffMs = now.getTime() - date.getTime();
+                const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+                if (diffDays === 0) return 'Today';
+                if (diffDays === 1) return 'Yesterday';
+                if (diffDays < 7) return `${diffDays} days ago`;
+                if (diffDays < 30) return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? 's' : ''} ago`;
+                return `${Math.floor(diffDays / 30)} month${Math.floor(diffDays / 30) > 1 ? 's' : ''} ago`;
+              };
+
+              const formatUTCDate = (timestamp: string): string => {
+                const date = new Date(timestamp);
+                const month = date.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
+                const day = date.getUTCDate();
+                const hours = date.getUTCHours().toString().padStart(2, '0');
+                const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+                return `${month} ${day} ${hours}:${minutes} UTC`;
+              };
+
+              // Format date for display in browser's local timezone
+              const formatLocalDate = (timestamp: string): string => {
+                const date = new Date(timestamp);
+                // This will be converted to browser's local timezone when displayed
+                // Using ISO string format that the browser will interpret
+                return date.toISOString();
+              };
+
+              const generateLevelNote = (level: any, type: 'support' | 'resistance'): string => {
+                const notes = [];
+
+                if (level.type === 'swing') {
+                  notes.push('Major reversal point');
+                } else {
+                  notes.push('Consolidation zone');
+                }
+
+                if (level.tests >= 4) {
+                  notes.push(`strong ${type === 'support' ? 'buyer' : 'seller'} interest`);
+                } else if (level.tests >= 2) {
+                  notes.push(`moderate ${type === 'support' ? 'buying' : 'selling'} pressure`);
+                }
+
+                if (level.adjustedConfidence && level.adjustedConfidence > level.confidence) {
+                  notes.push('indicators confirm strength');
+                }
+
+                return notes.join(', ');
+              };
+
+              // Define color schemes for different level types
+              const colors = {
+                swing: {
+                  support: '#00FF00',     // Bright green (full saturation)
+                  resistance: '#FF0000'   // Bright red (full saturation)
+                },
+                horizontal: {
+                  support: '#66CC66',     // Soft green (60% saturation)
+                  resistance: '#CC6666'   // Soft red (60% saturation)
+                }
+              };
+
+              // Output support levels header if we have supports
+              if (levelsData.supports.length > 0) {
+                onStream(`\n🟢 SUPPORT LEVELS (${levelsData.supports.length} found):\n\n`);
+              }
+
               // Draw horizontal lines for each support level
-              for (const support of levelsData.supports) {
-                // Determine line style based on confidence
+              for (let index = 0; index < levelsData.supports.length; index++) {
+                const support = levelsData.supports[index];
+                const levelType: 'swing' | 'horizontal' = support.type || 'horizontal';
+                const adjustedConfidence = support.adjustedConfidence || support.confidence;
+
+                // Determine line style based on adjusted confidence
                 let lineStyle = "solid";
-                if (support.confidence < 50) {
+                if (adjustedConfidence < 50) {
                   lineStyle = "dotted";
-                } else if (support.confidence < 70) {
+                } else if (adjustedConfidence < 70) {
                   lineStyle = "dashed";
                 }
 
@@ -435,19 +523,39 @@ async function processWithLLM({
                     timestamp: args.endTime,
                     price: support.price,
                   },
-                  color: args.supportColor || "#4caf50",
-                  lineWidth: 2,
+
+                  // Enhanced visual properties based on level type
+                  color: colors[levelType].support,
+                  lineWidth: levelType === 'swing' ? 3 : 1.5,
                   style: lineStyle,
+                  opacity: 0.5 + (adjustedConfidence / 100) * 0.5,
+
+                  // New properties for advanced visualization
+                  levelType: levelType,
+                  zIndex: levelType === 'swing' ? 100 : 90,
+                  markers: levelType === 'swing' ? {
+                    enabled: true,
+                    symbol: 'diamond' as const,
+                    size: 4,
+                    spacing: 100,
+                    color: colors[levelType].support
+                  } : undefined,
+
+                  // Existing properties
                   extendLeft: true,
                   extendRight: true,
-                  name: `${granularityLabel}: Support $${support.price.toFixed(
+                  name: `${levelType === 'swing' ? '◆' : '—'} ${granularityLabel}: Support $${support.price.toFixed(
                     2
                   )}`,
-                  description: support.description || `Confidence: ${support.confidence.toFixed(
+                  description: support.description || `Confidence: ${adjustedConfidence.toFixed(
                     0
-                  )}% | Tests: ${support.tests} | Last: ${new Date(
-                    support.lastTest
-                  ).toLocaleDateString()}`,
+                  )}%${
+                    adjustedConfidence !== support.confidence
+                      ? ` (adjusted from ${support.confidence.toFixed(0)}% by indicators)`
+                      : ''
+                  } | Tests: ${support.tests}`,
+                  // Add lastTest field for browser to convert to local timezone
+                  lastTest: support.lastTest ? formatLocalDate(support.lastTest) : undefined,
                 };
 
                 // Create the add_trend_line command
@@ -462,20 +570,40 @@ async function processWithLLM({
                 // Write trend line command to Firestore
                 await onToolCall(supportLineToolCall);
 
+                // Output detailed information for this support level
                 onStream(
-                  `🟢 Support at $${support.price.toFixed(
-                    2
-                  )} (${support.confidence.toFixed(0)}% confidence)\n`
+                  `${index + 1}. ${levelType === 'swing' ? '◆ Strong Swing' : '— Horizontal'} Support at $${support.price.toFixed(2)}\n` +
+                  `   • Type: ${levelType === 'swing' ? 'Swing Level (Precise Reversal Point)' : 'Horizontal Level (Consolidation Zone)'}\n` +
+                  `   • Confidence: ${adjustedConfidence.toFixed(0)}%${
+                    adjustedConfidence !== support.confidence
+                      ? ` (adjusted from ${support.confidence.toFixed(0)}% by indicators)`
+                      : ''
+                  }\n` +
+                  `   • Strength: ${getStrengthLabel(adjustedConfidence)} - Tested ${support.tests} time${support.tests !== 1 ? 's' : ''}\n` +
+                  `   • Last Test: ${getRelativeTime(support.lastTest)} (${formatUTCDate(support.lastTest)})\n` +
+                  `   • Visual: ${lineStyle === 'solid' ? 'Solid' : lineStyle === 'dashed' ? 'Dashed' : 'Dotted'} line${
+                    levelType === 'swing' ? ' with diamond markers' : ', no markers'
+                  }\n` +
+                  `   • Note: ${generateLevelNote(support, 'support')}\n\n`
                 );
               }
 
+              // Output resistance levels header if we have resistances
+              if (levelsData.resistances.length > 0) {
+                onStream(`\n🔴 RESISTANCE LEVELS (${levelsData.resistances.length} found):\n\n`);
+              }
+
               // Draw horizontal lines for each resistance level
-              for (const resistance of levelsData.resistances) {
-                // Determine line style based on confidence
+              for (let index = 0; index < levelsData.resistances.length; index++) {
+                const resistance = levelsData.resistances[index];
+                const levelType: 'swing' | 'horizontal' = resistance.type || 'horizontal';
+                const adjustedConfidence = resistance.adjustedConfidence || resistance.confidence;
+
+                // Determine line style based on adjusted confidence
                 let lineStyle = "solid";
-                if (resistance.confidence < 50) {
+                if (adjustedConfidence < 50) {
                   lineStyle = "dotted";
-                } else if (resistance.confidence < 70) {
+                } else if (adjustedConfidence < 70) {
                   lineStyle = "dashed";
                 }
 
@@ -489,19 +617,39 @@ async function processWithLLM({
                     timestamp: args.endTime,
                     price: resistance.price,
                   },
-                  color: args.resistanceColor || "#ff5252",
-                  lineWidth: 2,
+
+                  // Enhanced visual properties based on level type
+                  color: colors[levelType].resistance,
+                  lineWidth: levelType === 'swing' ? 3 : 1.5,
                   style: lineStyle,
+                  opacity: 0.5 + (adjustedConfidence / 100) * 0.5,
+
+                  // New properties for advanced visualization
+                  levelType: levelType,
+                  zIndex: levelType === 'swing' ? 100 : 90,
+                  markers: levelType === 'swing' ? {
+                    enabled: true,
+                    symbol: 'diamond' as const,
+                    size: 4,
+                    spacing: 100,
+                    color: colors[levelType].resistance
+                  } : undefined,
+
+                  // Existing properties
                   extendLeft: true,
                   extendRight: true,
-                  name: `${granularityLabel}: Resistance $${resistance.price.toFixed(
+                  name: `${levelType === 'swing' ? '◆' : '—'} ${granularityLabel}: Resistance $${resistance.price.toFixed(
                     2
                   )}`,
-                  description: resistance.description || `Confidence: ${resistance.confidence.toFixed(
+                  description: resistance.description || `Confidence: ${adjustedConfidence.toFixed(
                     0
-                  )}% | Tests: ${resistance.tests} | Last: ${new Date(
-                    resistance.lastTest
-                  ).toLocaleDateString()}`,
+                  )}%${
+                    adjustedConfidence !== resistance.confidence
+                      ? ` (adjusted from ${resistance.confidence.toFixed(0)}% by indicators)`
+                      : ''
+                  } | Tests: ${resistance.tests}`,
+                  // Add lastTest field for browser to convert to local timezone
+                  lastTest: resistance.lastTest ? formatLocalDate(resistance.lastTest) : undefined,
                 };
 
                 // Create the add_trend_line command
@@ -516,21 +664,71 @@ async function processWithLLM({
                 // Write trend line command to Firestore
                 await onToolCall(resistanceLineToolCall);
 
+                // Output detailed information for this resistance level
                 onStream(
-                  `🔴 Resistance at $${resistance.price.toFixed(
-                    2
-                  )} (${resistance.confidence.toFixed(0)}% confidence)\n`
+                  `${index + 1}. ${levelType === 'swing' ? '◆ Strong Swing' : '— Horizontal'} Resistance at $${resistance.price.toFixed(2)}\n` +
+                  `   • Type: ${levelType === 'swing' ? 'Swing Level (Precise Reversal Point)' : 'Horizontal Level (Consolidation Zone)'}\n` +
+                  `   • Confidence: ${adjustedConfidence.toFixed(0)}%${
+                    adjustedConfidence !== resistance.confidence
+                      ? ` (adjusted from ${resistance.confidence.toFixed(0)}% by indicators)`
+                      : ''
+                  }\n` +
+                  `   • Strength: ${getStrengthLabel(adjustedConfidence)} - Tested ${resistance.tests} time${resistance.tests !== 1 ? 's' : ''}\n` +
+                  `   • Last Test: ${getRelativeTime(resistance.lastTest)} (${formatUTCDate(resistance.lastTest)})\n` +
+                  `   • Visual: ${lineStyle === 'solid' ? 'Solid' : lineStyle === 'dashed' ? 'Dashed' : 'Dotted'} line${
+                    levelType === 'swing' ? ' with diamond markers' : ', no markers'
+                  }\n` +
+                  `   • Note: ${generateLevelNote(resistance, 'resistance')}\n\n`
                 );
               }
 
-              // Final confirmation
-              const totalLines =
-                levelsData.supports.length + levelsData.resistances.length;
+              // Add comprehensive summary at the end
+              const totalLines = levelsData.supports.length + levelsData.resistances.length;
+
               if (totalLines > 0) {
+                // Find strongest levels
+                const strongestSupport = levelsData.supports.length > 0
+                  ? levelsData.supports.reduce((max: any, s: any) =>
+                      (s.adjustedConfidence || s.confidence || 0) > (max.adjustedConfidence || max.confidence || 0) ? s : max
+                    , levelsData.supports[0])
+                  : null;
+
+                const strongestResistance = levelsData.resistances.length > 0
+                  ? levelsData.resistances.reduce((max: any, r: any) =>
+                      (r.adjustedConfidence || r.confidence || 0) > (max.adjustedConfidence || max.confidence || 0) ? r : max
+                    , levelsData.resistances[0])
+                  : null;
+
+                const swingLevelsCount = [...levelsData.supports, ...levelsData.resistances].filter((l: any) => l.type === 'swing').length;
+                const horizontalLevelsCount = [...levelsData.supports, ...levelsData.resistances].filter((l: any) => l.type === 'horizontal').length;
+
                 onStream(
-                  `\n✓ Drew ${totalLines} support and resistance level${
-                    totalLines > 1 ? "s" : ""
-                  } on the chart.`
+                  `\n## 📈 **Analysis Summary**\n` +
+                  `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+                  `**Total Levels Identified:** ${totalLines}\n` +
+                  `• Support Levels: ${levelsData.supports.length}\n` +
+                  `• Resistance Levels: ${levelsData.resistances.length}\n\n` +
+                  `**Level Types:**\n` +
+                  `• Swing Levels (Precise Reversals): ${swingLevelsCount}\n` +
+                  `• Horizontal Levels (Consolidation Zones): ${horizontalLevelsCount}\n\n` +
+                  `**Key Levels to Watch:**\n` +
+                  (strongestSupport ?
+                    `• Strongest Support: $${strongestSupport.price.toFixed(2)} ` +
+                    `(${(strongestSupport.adjustedConfidence || strongestSupport.confidence || 0).toFixed(0)}% confidence, ` +
+                    `${strongestSupport.tests || 1} test${(strongestSupport.tests || 1) > 1 ? 's' : ''})\n` : '') +
+                  (strongestResistance ?
+                    `• Strongest Resistance: $${strongestResistance.price.toFixed(2)} ` +
+                    `(${(strongestResistance.adjustedConfidence || strongestResistance.confidence || 0).toFixed(0)}% confidence, ` +
+                    `${strongestResistance.tests || 1} test${(strongestResistance.tests || 1) > 1 ? 's' : ''})\n` : '') +
+                  `\n**Visual Guide:**\n` +
+                  `• 🟢 Green lines = Support levels (price floor)\n` +
+                  `• 🔴 Red lines = Resistance levels (price ceiling)\n` +
+                  `• Thicker lines = Swing levels (strong reversal points)\n` +
+                  `• Thinner lines = Horizontal levels (consolidation areas)\n` +
+                  `• Line style indicates confidence: Solid (>70%), Dashed (40-70%), Dotted (<40%)\n\n` +
+                  `💡 **Trading Tip:** Pay special attention to levels with high confidence and multiple tests, ` +
+                  `as these tend to be more reliable for planning entry/exit points.\n\n` +
+                  `✅ Successfully drew ${totalLines} support and resistance level${totalLines > 1 ? 's' : ''} on the chart.\n`
                 );
               }
             } catch (error: any) {

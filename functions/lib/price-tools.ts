@@ -592,16 +592,20 @@ export const priceTools = {
       params.append("symbol", symbol);
       params.append("granularity", granularity);
       
-      // Add optional parameters if provided
+      // Add optional parameters if provided - timestamps are already in UTC milliseconds
       if (startTime) {
-        params.append("start_time", Math.floor(startTime).toString());
+        const startTimeInt = Math.floor(startTime);
+        params.append("start_time", startTimeInt.toString());
+        console.log(`Start time: ${startTimeInt} (${new Date(startTimeInt).toISOString()})`);
       }
       if (endTime) {
-        params.append("end_time", Math.floor(endTime).toString());
+        const endTimeInt = Math.floor(endTime);
+        params.append("end_time", endTimeInt.toString());
+        console.log(`End time: ${endTimeInt} (${new Date(endTimeInt).toISOString()})`);
       }
       params.append("max_supports", maxSupports.toString());
       params.append("max_resistances", maxResistances.toString());
-      
+
       console.log(
         `Fetching support/resistance levels from API: ${API_BASE_URL}/levels?${params}`
       );
