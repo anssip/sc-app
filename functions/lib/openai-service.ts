@@ -527,10 +527,10 @@ async function processWithLLM({
                   // Existing properties
                   extendLeft: true,
                   extendRight: true,
-                  name: `${levelType === 'swing' ? '◆' : '—'} ${granularityLabel}: Support $${support.price.toFixed(
+                  name: `${levelType === 'swing' ? '◆ Swing' : '— Horizontal'} ${granularityLabel}: Support $${support.price.toFixed(
                     2
                   )}`,
-                  description: support.description || `Confidence: ${adjustedConfidence.toFixed(
+                  description: support.description || `${levelType === 'swing' ? 'Swing Level' : 'Horizontal Level'} | Confidence: ${adjustedConfidence.toFixed(
                     0
                   )}%${
                     adjustedConfidence !== support.confidence
@@ -621,10 +621,10 @@ async function processWithLLM({
                   // Existing properties
                   extendLeft: true,
                   extendRight: true,
-                  name: `${levelType === 'swing' ? '◆' : '—'} ${granularityLabel}: Resistance $${resistance.price.toFixed(
+                  name: `${levelType === 'swing' ? '◆ Swing' : '— Horizontal'} ${granularityLabel}: Resistance $${resistance.price.toFixed(
                     2
                   )}`,
-                  description: resistance.description || `Confidence: ${adjustedConfidence.toFixed(
+                  description: resistance.description || `${levelType === 'swing' ? 'Swing Level' : 'Horizontal Level'} | Confidence: ${adjustedConfidence.toFixed(
                     0
                   )}%${
                     adjustedConfidence !== resistance.confidence
