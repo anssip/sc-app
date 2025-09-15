@@ -224,8 +224,8 @@ export const chartTools = {
               description: "Z-index for layering (higher = on top)",
             },
             lastTest: {
-              type: "string",
-              description: "ISO timestamp of when this level was last tested (for browser timezone conversion)",
+              type: "number",
+              description: "Unix timestamp in milliseconds of when this level was last tested (for browser timezone conversion)",
             },
           },
           required: ["start", "end"],

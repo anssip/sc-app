@@ -430,7 +430,7 @@ async function processWithLLM({
                 return 'LOW';
               };
 
-              const getRelativeTime = (timestamp: string): string => {
+              const getRelativeTime = (timestamp: number | string): string => {
                 const now = new Date();
                 const date = new Date(timestamp);
                 const diffMs = now.getTime() - date.getTime();
@@ -441,23 +441,6 @@ async function processWithLLM({
                 if (diffDays < 7) return `${diffDays} days ago`;
                 if (diffDays < 30) return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? 's' : ''} ago`;
                 return `${Math.floor(diffDays / 30)} month${Math.floor(diffDays / 30) > 1 ? 's' : ''} ago`;
-              };
-
-              const formatUTCDate = (timestamp: string): string => {
-                const date = new Date(timestamp);
-                const month = date.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
-                const day = date.getUTCDate();
-                const hours = date.getUTCHours().toString().padStart(2, '0');
-                const minutes = date.getUTCMinutes().toString().padStart(2, '0');
-                return `${month} ${day} ${hours}:${minutes} UTC`;
-              };
-
-              // Format date for display in browser's local timezone
-              const formatLocalDate = (timestamp: string): string => {
-                const date = new Date(timestamp);
-                // This will be converted to browser's local timezone when displayed
-                // Using ISO string format that the browser will interpret
-                return date.toISOString();
               };
 
               const generateLevelNote = (level: any, type: 'support' | 'resistance'): string => {
@@ -555,7 +538,7 @@ async function processWithLLM({
                       : ''
                   } | Tests: ${support.tests}`,
                   // Add lastTest field for browser to convert to local timezone
-                  lastTest: support.lastTest ? formatLocalDate(support.lastTest) : undefined,
+                  lastTest: support.lastTest || undefined,
                 };
 
                 // Create the add_trend_line command
@@ -580,7 +563,7 @@ async function processWithLLM({
                       : ''
                   }\n` +
                   `   • Strength: ${getStrengthLabel(adjustedConfidence)} - Tested ${support.tests} time${support.tests !== 1 ? 's' : ''}\n` +
-                  `   • Last Test: ${getRelativeTime(support.lastTest)} (${formatUTCDate(support.lastTest)})\n` +
+                  `   • Last Test: ${getRelativeTime(support.lastTest)} <span class="timestamp-utc" data-timestamp="${support.lastTest}">(loading time...)</span>\n` +
                   `   • Visual: ${lineStyle === 'solid' ? 'Solid' : lineStyle === 'dashed' ? 'Dashed' : 'Dotted'} line${
                     levelType === 'swing' ? ' with diamond markers' : ', no markers'
                   }\n` +
@@ -649,7 +632,7 @@ async function processWithLLM({
                       : ''
                   } | Tests: ${resistance.tests}`,
                   // Add lastTest field for browser to convert to local timezone
-                  lastTest: resistance.lastTest ? formatLocalDate(resistance.lastTest) : undefined,
+                  lastTest: resistance.lastTest || undefined,
                 };
 
                 // Create the add_trend_line command
@@ -674,7 +657,7 @@ async function processWithLLM({
                       : ''
                   }\n` +
                   `   • Strength: ${getStrengthLabel(adjustedConfidence)} - Tested ${resistance.tests} time${resistance.tests !== 1 ? 's' : ''}\n` +
-                  `   • Last Test: ${getRelativeTime(resistance.lastTest)} (${formatUTCDate(resistance.lastTest)})\n` +
+                  `   • Last Test: ${getRelativeTime(resistance.lastTest)} <span class="timestamp-utc" data-timestamp="${resistance.lastTest}">(loading time...)</span>\n` +
                   `   • Visual: ${lineStyle === 'solid' ? 'Solid' : lineStyle === 'dashed' ? 'Dashed' : 'Dotted'} line${
                     levelType === 'swing' ? ' with diamond markers' : ', no markers'
                   }\n` +

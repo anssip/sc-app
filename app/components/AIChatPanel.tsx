@@ -13,10 +13,31 @@ interface Message {
   commands?: Array<{ id: string; command: string; status?: string }>;
 }
 
-// Helper function to render text with bold formatting
+// Helper function to render text with bold formatting and timestamp conversion
 function renderFormattedText(text: string) {
-  // Split text by ** markers
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  // First handle timestamp spans
+  const timestampRegex = /<span class="timestamp-utc" data-timestamp="(\d+)">\([^)]+\)<\/span>/g;
+  let processedText = text;
+  let match;
+
+  while ((match = timestampRegex.exec(text)) !== null) {
+    const timestamp = parseInt(match[1]);
+    const date = new Date(timestamp);
+
+    // Format date in user's local timezone
+    const formattedDate = date.toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZoneName: 'short'
+    });
+
+    processedText = processedText.replace(match[0], `(${formattedDate})`);
+  }
+
+  // Split text by ** markers for bold formatting
+  const parts = processedText.split(/(\*\*[^*]+\*\*)/g);
 
   return parts.map((part, index) => {
     // Check if this part is bold (surrounded by **)
