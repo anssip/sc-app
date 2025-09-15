@@ -5,8 +5,14 @@ import { getFirestore, FieldValue, Firestore } from "firebase-admin/firestore";
 import { initializeApp, getApps } from "firebase-admin/app";
 import dotenv from "dotenv";
 
-// Load environment variables from .env file - force override any existing vars
-dotenv.config({ override: true });
+// Load environment variables only in local development
+// In production, OPENAI_API_KEY comes from Google Secret Manager
+if (process.env.FUNCTIONS_EMULATOR_HOST) {
+  // Load .env.local for local secrets
+  dotenv.config({ path: '.env.local', override: true });
+  // Also load .env for other config
+  dotenv.config({ override: false });
+}
 
 // Initialize Firebase Admin
 if (getApps().length === 0) {
@@ -313,7 +319,8 @@ export const mcpServer = onRequest(
     timeoutSeconds: 300, // 5 minutes for streaming
     maxInstances: 100,
     region: "us-central1",
-    // Removed secrets config to use .env file for local dev
+    // Always declare secrets, they're only used in production
+    secrets: ["OPENAI_API_KEY"]
   },
   app
 );
