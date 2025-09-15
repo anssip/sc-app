@@ -410,8 +410,8 @@ async function processWithLLM({
                 levelsData.resistances.length > 0
               ) {
                 onStream(
-                  `\n📊 Support/Resistance Analysis Summary:\n` +
-                  `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`
+                  `\n📊 Support/Resistance Analysis Summary:\n\n` +
+                  `---\n\n`
                 );
               } else {
                 onStream(
@@ -555,19 +555,19 @@ async function processWithLLM({
 
                 // Output detailed information for this support level
                 onStream(
-                  `${index + 1}. ${levelType === 'swing' ? '◆ Strong Swing' : '— Horizontal'} Support at $${support.price.toFixed(2)}\n` +
-                  `   • Type: ${levelType === 'swing' ? 'Swing Level (Precise Reversal Point)' : 'Horizontal Level (Consolidation Zone)'}\n` +
-                  `   • Confidence: ${adjustedConfidence.toFixed(0)}%${
+                  `\n**${index + 1}. ${levelType === 'swing' ? '◆ Strong Swing' : '— Horizontal'} Support at $${support.price.toFixed(2)}**\n` +
+                  `- **Type:** ${levelType === 'swing' ? 'Swing Level (Precise Reversal Point)' : 'Horizontal Level (Consolidation Zone)'}\n` +
+                  `- **Confidence:** ${adjustedConfidence.toFixed(0)}%${
                     adjustedConfidence !== support.confidence
                       ? ` (adjusted from ${support.confidence.toFixed(0)}% by indicators)`
                       : ''
                   }\n` +
-                  `   • Strength: ${getStrengthLabel(adjustedConfidence)} - Tested ${support.tests} time${support.tests !== 1 ? 's' : ''}\n` +
-                  `   • Last Test: ${getRelativeTime(support.lastTest)} <span class="timestamp-utc" data-timestamp="${support.lastTest}">(loading time...)</span>\n` +
-                  `   • Visual: ${lineStyle === 'solid' ? 'Solid' : lineStyle === 'dashed' ? 'Dashed' : 'Dotted'} line${
+                  `- **Strength:** ${getStrengthLabel(adjustedConfidence)} - Tested ${support.tests} time${support.tests !== 1 ? 's' : ''}\n` +
+                  `- **Last Test:** ${getRelativeTime(support.lastTest)} <span class="timestamp-utc" data-timestamp="${support.lastTest}">(loading time...)</span>\n` +
+                  `- **Visual:** ${lineStyle === 'solid' ? 'Solid' : lineStyle === 'dashed' ? 'Dashed' : 'Dotted'} line${
                     levelType === 'swing' ? ' with diamond markers' : ', no markers'
                   }\n` +
-                  `   • Note: ${generateLevelNote(support, 'support')}\n\n`
+                  `- **Note:** ${generateLevelNote(support, 'support')}\n\n`
                 );
               }
 
@@ -649,19 +649,19 @@ async function processWithLLM({
 
                 // Output detailed information for this resistance level
                 onStream(
-                  `${index + 1}. ${levelType === 'swing' ? '◆ Strong Swing' : '— Horizontal'} Resistance at $${resistance.price.toFixed(2)}\n` +
-                  `   • Type: ${levelType === 'swing' ? 'Swing Level (Precise Reversal Point)' : 'Horizontal Level (Consolidation Zone)'}\n` +
-                  `   • Confidence: ${adjustedConfidence.toFixed(0)}%${
+                  `\n**${index + 1}. ${levelType === 'swing' ? '◆ Strong Swing' : '— Horizontal'} Resistance at $${resistance.price.toFixed(2)}**\n` +
+                  `- **Type:** ${levelType === 'swing' ? 'Swing Level (Precise Reversal Point)' : 'Horizontal Level (Consolidation Zone)'}\n` +
+                  `- **Confidence:** ${adjustedConfidence.toFixed(0)}%${
                     adjustedConfidence !== resistance.confidence
                       ? ` (adjusted from ${resistance.confidence.toFixed(0)}% by indicators)`
                       : ''
                   }\n` +
-                  `   • Strength: ${getStrengthLabel(adjustedConfidence)} - Tested ${resistance.tests} time${resistance.tests !== 1 ? 's' : ''}\n` +
-                  `   • Last Test: ${getRelativeTime(resistance.lastTest)} <span class="timestamp-utc" data-timestamp="${resistance.lastTest}">(loading time...)</span>\n` +
-                  `   • Visual: ${lineStyle === 'solid' ? 'Solid' : lineStyle === 'dashed' ? 'Dashed' : 'Dotted'} line${
+                  `- **Strength:** ${getStrengthLabel(adjustedConfidence)} - Tested ${resistance.tests} time${resistance.tests !== 1 ? 's' : ''}\n` +
+                  `- **Last Test:** ${getRelativeTime(resistance.lastTest)} <span class="timestamp-utc" data-timestamp="${resistance.lastTest}">(loading time...)</span>\n` +
+                  `- **Visual:** ${lineStyle === 'solid' ? 'Solid' : lineStyle === 'dashed' ? 'Dashed' : 'Dotted'} line${
                     levelType === 'swing' ? ' with diamond markers' : ', no markers'
                   }\n` +
-                  `   • Note: ${generateLevelNote(resistance, 'resistance')}\n\n`
+                  `- **Note:** ${generateLevelNote(resistance, 'resistance')}\n\n`
                 );
               }
 
@@ -686,8 +686,8 @@ async function processWithLLM({
                 const horizontalLevelsCount = [...levelsData.supports, ...levelsData.resistances].filter((l: any) => l.type === 'horizontal').length;
 
                 onStream(
-                  `\n## 📈 **Analysis Summary**\n` +
-                  `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+                  `\n## 📈 **Analysis Summary**\n\n` +
+                  `---\n\n` +
                   `**Total Levels Identified:** ${totalLines}\n` +
                   `• Support Levels: ${levelsData.supports.length}\n` +
                   `• Resistance Levels: ${levelsData.resistances.length}\n\n` +

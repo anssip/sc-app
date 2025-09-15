@@ -4,6 +4,8 @@ import { useAuth } from '../lib/auth-context';
 import { useMCPClient } from '../hooks/useMCPClient';
 import { useChartCommands } from '../hooks/useChartCommands';
 import { ChatExamplePrompts } from './ChatExamplePrompts';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface Message {
   id: string;
@@ -13,8 +15,89 @@ interface Message {
   commands?: Array<{ id: string; command: string; status?: string }>;
 }
 
-// Helper function to render text with bold formatting and timestamp conversion
-function renderFormattedText(text: string) {
+// Custom components for Markdown rendering
+const MarkdownComponents = {
+  // Custom styling for different Markdown elements
+  h1: ({ children, ...props }: any) => (
+    <h1 className="text-xl font-bold mb-3 mt-5 first:mt-0" {...props}>{children}</h1>
+  ),
+  h2: ({ children, ...props }: any) => (
+    <h2 className="text-lg font-semibold mb-3 mt-5 first:mt-0" {...props}>{children}</h2>
+  ),
+  h3: ({ children, ...props }: any) => (
+    <h3 className="text-base font-semibold mb-2 mt-4 first:mt-0" {...props}>{children}</h3>
+  ),
+  p: ({ children, ...props }: any) => (
+    <p className="mb-2 leading-relaxed break-all overflow-hidden" {...props}>{children}</p>
+  ),
+  ul: ({ children, ...props }: any) => (
+    <ul className="list-disc list-inside mb-2 mt-2 space-y-1.5 ml-2" {...props}>{children}</ul>
+  ),
+  ol: ({ children, ...props }: any) => (
+    <ol className="list-decimal list-inside mb-3 mt-3 space-y-2 ml-2" {...props}>{children}</ol>
+  ),
+  li: ({ children, ...props }: any) => (
+    <li className="ml-2 leading-relaxed" {...props}>{children}</li>
+  ),
+  code: ({ inline, className, children, ...props }: any) => {
+    const match = /language-(\w+)/.exec(className || '');
+    return !inline ? (
+      <pre className="bg-gray-950 rounded p-3 overflow-x-auto mb-2 mt-2">
+        <code className={className} {...props}>
+          {children}
+        </code>
+      </pre>
+    ) : (
+      <code className="bg-gray-950 px-1.5 py-0.5 rounded text-sm" {...props}>
+        {children}
+      </code>
+    );
+  },
+  blockquote: ({ children, ...props }: any) => (
+    <blockquote className="border-l-4 border-gray-600 pl-4 italic my-2" {...props}>
+      {children}
+    </blockquote>
+  ),
+  table: ({ children, ...props }: any) => (
+    <div className="overflow-x-auto mb-2">
+      <table className="min-w-full border-collapse" {...props}>
+        {children}
+      </table>
+    </div>
+  ),
+  thead: ({ children, ...props }: any) => (
+    <thead className="border-b border-gray-600" {...props}>{children}</thead>
+  ),
+  tbody: ({ children, ...props }: any) => (
+    <tbody {...props}>{children}</tbody>
+  ),
+  tr: ({ children, ...props }: any) => (
+    <tr className="border-b border-gray-700" {...props}>{children}</tr>
+  ),
+  th: ({ children, ...props }: any) => (
+    <th className="px-3 py-2 text-left font-semibold" {...props}>{children}</th>
+  ),
+  td: ({ children, ...props }: any) => (
+    <td className="px-3 py-2" {...props}>{children}</td>
+  ),
+  a: ({ children, href, ...props }: any) => (
+    <a className="text-blue-400 hover:text-blue-300 underline" href={href} target="_blank" rel="noopener noreferrer" {...props}>
+      {children}
+    </a>
+  ),
+  strong: ({ children, ...props }: any) => (
+    <strong className="font-semibold" {...props}>{children}</strong>
+  ),
+  em: ({ children, ...props }: any) => (
+    <em className="italic" {...props}>{children}</em>
+  ),
+  hr: ({ ...props }: any) => (
+    <hr className="my-4 border-t border-gray-600 w-full" {...props} />
+  ),
+};
+
+// Helper function to process text before Markdown rendering
+function preprocessContent(text: string): string {
   // First handle timestamp spans
   const timestampRegex = /<span class="timestamp-utc" data-timestamp="(\d+)">\([^)]+\)<\/span>/g;
   let processedText = text;
@@ -36,19 +119,25 @@ function renderFormattedText(text: string) {
     processedText = processedText.replace(match[0], `(${formattedDate})`);
   }
 
-  // Split text by ** markers for bold formatting
-  const parts = processedText.split(/(\*\*[^*]+\*\*)/g);
+  // Convert lines of dashes/equals/underscores to horizontal rules
+  processedText = processedText.replace(/^[━─═_\-]{3,}$/gm, '---');
 
-  return parts.map((part, index) => {
-    // Check if this part is bold (surrounded by **)
-    if (part.startsWith('**') && part.endsWith('**')) {
-      // Remove the ** markers and render as bold
-      const boldText = part.slice(2, -2);
-      return <strong key={index} className="font-semibold">{boldText}</strong>;
-    }
-    // Regular text
-    return <span key={index}>{part}</span>;
+  // Convert bullet points that use • into proper Markdown lists
+  // This handles lines like: "— Horizontal Support at $115893.52 • Type: Horizontal Level"
+  processedText = processedText.replace(/^(—\s+[^\n]+)((?:\s*•\s*[^\n•]+)+)/gm, (match, title, bullets) => {
+    // Split the bullets and format as a list
+    const bulletPoints = bullets.split('•').filter((b: string) => b.trim());
+    const formattedBullets = bulletPoints.map((point: string) => `  - ${point.trim()}`).join('\n');
+    return `**${title.trim()}**\n${formattedBullets}`;
   });
+
+  // Also handle standalone bullet points at the beginning of lines
+  processedText = processedText.replace(/^•\s+/gm, '- ');
+
+  // Handle inline bullet points (not at line start) by converting them to line breaks with bullets
+  processedText = processedText.replace(/(\S)\s*•\s*/g, '$1\n- ');
+
+  return processedText;
 }
 
 export function AIChatPanel({ 
@@ -263,8 +352,13 @@ export function AIChatPanel({
                       : 'bg-gray-800 text-gray-200'
                   }`}
                 >
-                  <div className="whitespace-pre-wrap font-light">
-                    {renderFormattedText(message.content)}
+                  <div className="font-light markdown-content overflow-hidden">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={MarkdownComponents}
+                    >
+                      {preprocessContent(message.content)}
+                    </ReactMarkdown>
                   </div>
                   {message.commands && message.commands.length > 0 && (
                     <div className="mt-2 space-y-1">
