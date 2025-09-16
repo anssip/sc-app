@@ -43,6 +43,38 @@
       ]
     },
     {
+      "collectionGroup": "chat_history",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "chartId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "sessionId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "chat_sessions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "chartId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "chart_commands",
       "queryScope": "COLLECTION",
       "fields": [
