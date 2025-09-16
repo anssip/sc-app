@@ -146,7 +146,10 @@ async function executeChartCommand(
       return { symbol: params.symbol };
 
     case "set_granularity":
-      await api.setGranularity(params.granularity);
+      // Use the SCChart's setGranularity method if available, which updates both the chart and context
+      if (api.setGranularity) {
+        await api.setGranularity(params.granularity);
+      }
       return { granularity: params.granularity };
 
     case "show_indicator":

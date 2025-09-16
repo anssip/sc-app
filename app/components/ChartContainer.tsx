@@ -267,6 +267,18 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
   const { user } = useAuth();
   const isActive = activeChartId === config.id;
 
+  // Update ActiveChartContext registration when settings change
+  useEffect(() => {
+    if (chartRef.current) {
+      registerChartApi(
+        config.id,
+        chartRef.current,
+        settings.symbol,
+        settings.granularity
+      );
+    }
+  }, [config.id, settings.symbol, settings.granularity, registerChartApi]);
+
   // Load trend lines when layout and chart are available
   useEffect(() => {
     const loadTrendLines = async () => {
@@ -710,13 +722,18 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
             style={{ width: "100%", height: "100%" }}
             className="trading-chart"
             onApiReady={(api) => {
-              // Register the API with the ActiveChartContext
-              registerChartApi(
-                config.id,
-                api,
-                settings.symbol,
-                settings.granularity
-              );
+              // Register the SCChart ref (which has wrapper methods) with the ActiveChartContext
+              // We need to wait a tick for the ref to be fully set up
+              setTimeout(() => {
+                if (chartRef.current) {
+                  registerChartApi(
+                    config.id,
+                    chartRef.current,  // Pass the ref instead of raw API
+                    settings.symbol,
+                    settings.granularity
+                  );
+                }
+              }, 0);
 
               // Also call the original onApiReady if provided
               if (onApiReady) {
