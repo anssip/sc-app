@@ -25,13 +25,15 @@ export function useChartCommands(userId: string | undefined, chartApi: any, acti
       orderBy("timestamp", "asc")
     );
 
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
-      console.log(
-        "[ChartCommands] Snapshot received, changes:",
-        snapshot.docChanges().length
-      );
+    const unsubscribe = onSnapshot(
+      q,
+      async (snapshot) => {
+        console.log(
+          "[ChartCommands] Snapshot received, changes:",
+          snapshot.docChanges().length
+        );
 
-      for (const change of snapshot.docChanges()) {
+        for (const change of snapshot.docChanges()) {
         if (change.type === "added") {
           const commandDoc = change.doc;
           const commandId = commandDoc.id;
@@ -110,7 +112,12 @@ export function useChartCommands(userId: string | undefined, chartApi: any, acti
           }
         }
       }
-    });
+    },
+    (error) => {
+      console.error("[ChartCommands] Error in snapshot listener:", error);
+      // Don't throw - just log the error to prevent uncaught promise rejections
+    }
+  );
 
     return () => {
       unsubscribe();

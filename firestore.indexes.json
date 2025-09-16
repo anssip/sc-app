@@ -2,6 +2,7 @@
   "indexes": [
     {
       "collectionGroup": "subscriptions",
+      "queryScope": "COLLECTION",
       "fields": [
         {
           "fieldPath": "firebase_uid",
@@ -15,6 +16,7 @@
     },
     {
       "collectionGroup": "chat_history",
+      "queryScope": "COLLECTION",
       "fields": [
         {
           "fieldPath": "sessionId",
@@ -28,6 +30,7 @@
     },
     {
       "collectionGroup": "chat_history",
+      "queryScope": "COLLECTION",
       "fields": [
         {
           "fieldPath": "sessionId",
@@ -35,29 +38,13 @@
         },
         {
           "fieldPath": "timestamp",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "chat_history",
-      "fields": [
-        {
-          "fieldPath": "sessionId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "timestamp",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "__name__",
           "order": "ASCENDING"
         }
       ]
     },
     {
       "collectionGroup": "chart_commands",
+      "queryScope": "COLLECTION",
       "fields": [
         {
           "fieldPath": "sessionId",
@@ -80,53 +67,6 @@
         {
           "fieldPath": "timestamp",
           "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "chat_history",
-      "fields": [
-        {
-          "fieldPath": "sessionId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "chartId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "timestamp",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "chat_history",
-      "fields": [
-        {
-          "fieldPath": "sessionId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "chartId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "timestamp",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "chat_sessions",
-      "fields": [
-        {
-          "fieldPath": "chartId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "timestamp",
-          "order": "DESCENDING"
         }
       ]
     }

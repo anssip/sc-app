@@ -4,6 +4,7 @@ service cloud.firestore {
     // Allow reading and subscribing to the trading_pairs collection and all nested paths
     match /trading_pairs/{document=**} {
       allow read: if true;
+      allow write: if false;
     }
 
     // Allow reading and listing the exchanges collection
@@ -13,6 +14,12 @@ service cloud.firestore {
       // Allow reading and listing all nested products
       match /products/{productId=**} {
         allow read, list: if true;
+      }
+
+      // Allow read access to exchange data with intervals (public data)
+      match /products/{product}/intervals/{interval} {
+        allow read: if true;  // Public read access for live candles
+        allow write: if false; // Only backend can write
       }
     }
 
@@ -40,22 +47,22 @@ service cloud.firestore {
     // User settings - allow authenticated users to manage their own settings
     match /settings/{userId} {
       // Allow access if userId matches either UID or email (for backward compatibility)
-      allow read, write: if request.auth != null && 
+      allow read, write: if request.auth != null &&
         (request.auth.uid == userId || request.auth.token.email == userId);
 
       // Allow users to manage their own layouts
       match /layouts/{layoutId} {
-        allow read, write: if request.auth != null && 
+        allow read, write: if request.auth != null &&
           (request.auth.uid == userId || request.auth.token.email == userId);
-        
+
         // Allow users to manage charts within their layouts
         match /charts/{chartId} {
-          allow read, write: if request.auth != null && 
+          allow read, write: if request.auth != null &&
             (request.auth.uid == userId || request.auth.token.email == userId);
-          
+
           // Allow users to manage trend lines within their charts
           match /trendLines/{trendLineId} {
-            allow read, write: if request.auth != null && 
+            allow read, write: if request.auth != null &&
               (request.auth.uid == userId || request.auth.token.email == userId);
           }
         }
@@ -86,11 +93,14 @@ service cloud.firestore {
 
     // Subscriptions - allow querying by firebase_uid field
     match /subscriptions/{document} {
-      allow read: if request.auth != null && 
-        (request.auth.uid == resource.data.firebase_uid || 
+      // Allow read if authenticated and the document belongs to the user
+      allow read: if request.auth != null &&
+        (request.auth.uid == resource.data.firebase_uid ||
          request.auth.uid == resource.data.user_id);
-      allow write: if false; // Only backend should write subscription data
-      allow list: if request.auth != null; // Allow listing/querying for authenticated users
+      // Allow listing/querying for authenticated users (needed for queries with where clause)
+      allow list: if request.auth != null;
+      // Only backend should write subscription data
+      allow write: if false;
     }
 
     // Default deny for everything else

@@ -441,26 +441,33 @@ export class Repository implements IRepository {
       granularity
     );
 
-    const unsubscribe = onSnapshot(candleRef, (doc) => {
-      if (doc.exists()) {
-        const data = doc.data();
-        const candle: Candle = {
-          open: data.open,
-          high: data.high,
-          low: data.low,
-          close: data.close,
-          volume: data.volume,
-          timestamp: data.timestamp,
-          lastUpdate: data.lastUpdate.toDate(),
-        };
+    const unsubscribe = onSnapshot(
+      candleRef,
+      (doc) => {
+        if (doc.exists()) {
+          const data = doc.data();
+          const candle: Candle = {
+            open: data.open,
+            high: data.high,
+            low: data.low,
+            close: data.close,
+            volume: data.volume,
+            timestamp: data.timestamp,
+            lastUpdate: data.lastUpdate.toDate(),
+          };
 
-        // Update cache
-        const key = `${exchangeId}:${symbol}:${granularity}`;
-        this.candlesCache.set(key, candle);
+          // Update cache
+          const key = `${exchangeId}:${symbol}:${granularity}`;
+          this.candlesCache.set(key, candle);
 
-        callback(candle);
+          callback(candle);
+        }
+      },
+      (error) => {
+        console.error(`Error in candle subscription for ${exchangeId}/${symbol}/${granularity}:`, error);
+        // Don't throw - just log the error to prevent uncaught promise rejections
       }
-    });
+    );
 
     this.unsubscribes.push(unsubscribe);
     return unsubscribe;
@@ -717,42 +724,56 @@ export class Repository implements IRepository {
   private setupRealtimeListeners(): void {
     // Listen to layout changes
     const layoutsRef = collection(db, "settings", this.userId, "layouts");
-    const layoutsUnsubscribe = onSnapshot(layoutsRef, (snapshot) => {
-      snapshot.docChanges().forEach((change) => {
-        const data = change.doc.data();
-        const layout: SavedLayout = {
-          id: change.doc.id,
-          name: data.name,
-          userId: data.userId,
-          layout: data.layout,
-          createdAt: data.createdAt.toDate(),
-          updatedAt: data.updatedAt.toDate(),
-          starredSymbols: data.starredSymbols || [],
-        };
+    const layoutsUnsubscribe = onSnapshot(
+      layoutsRef,
+      (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          const data = change.doc.data();
+          const layout: SavedLayout = {
+            id: change.doc.id,
+            name: data.name,
+            userId: data.userId,
+            layout: data.layout,
+            createdAt: data.createdAt.toDate(),
+            updatedAt: data.updatedAt.toDate(),
+            starredSymbols: data.starredSymbols || [],
+          };
 
-        if (change.type === "added" || change.type === "modified") {
-          this.layoutsCache.set(change.doc.id, layout);
-        } else if (change.type === "removed") {
-          this.layoutsCache.delete(change.doc.id);
-        }
-      });
-    });
+          if (change.type === "added" || change.type === "modified") {
+            this.layoutsCache.set(change.doc.id, layout);
+          } else if (change.type === "removed") {
+            this.layoutsCache.delete(change.doc.id);
+          }
+        });
+      },
+      (error) => {
+        console.error("Error in layouts snapshot listener:", error);
+        // Don't throw - just log the error to prevent uncaught promise rejections
+      }
+    );
 
     this.unsubscribes.push(layoutsUnsubscribe);
 
     // Listen to chart changes
     const chartsRef = collection(db, "settings", this.userId, "charts");
-    const chartsUnsubscribe = onSnapshot(chartsRef, (snapshot) => {
-      snapshot.docChanges().forEach((change) => {
-        const chart = change.doc.data() as ChartConfig;
+    const chartsUnsubscribe = onSnapshot(
+      chartsRef,
+      (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          const chart = change.doc.data() as ChartConfig;
 
-        if (change.type === "added" || change.type === "modified") {
-          this.chartsCache.set(change.doc.id, chart);
-        } else if (change.type === "removed") {
-          this.chartsCache.delete(change.doc.id);
-        }
-      });
-    });
+          if (change.type === "added" || change.type === "modified") {
+            this.chartsCache.set(change.doc.id, chart);
+          } else if (change.type === "removed") {
+            this.chartsCache.delete(change.doc.id);
+          }
+        });
+      },
+      (error) => {
+        console.error("Error in charts snapshot listener:", error);
+        // Don't throw - just log the error to prevent uncaught promise rejections
+      }
+    );
 
     this.unsubscribes.push(chartsUnsubscribe);
   }
