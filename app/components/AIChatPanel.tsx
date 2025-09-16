@@ -368,12 +368,32 @@ export function AIChatPanel({
           {/* New Chat Button */}
           <button
             onClick={() => {
+              // If we have messages in the current session, add it to the recent sessions
+              if (messages.length > 0 && currentSessionId) {
+                const currentSession: ChatSession = {
+                  id: currentSessionId,
+                  chartId: activeChartId || 'default',
+                  timestamp: new Date(),
+                  firstMessage: messages.find(m => m.role === 'user')?.content || 'New conversation',
+                  messageCount: messages.length
+                };
+
+                // Add current session to the beginning of recent sessions if it's not already there
+                setRecentSessions(prev => {
+                  const filtered = prev.filter(s => s.id !== currentSessionId);
+                  return [currentSession, ...filtered].slice(0, 5);
+                });
+              }
+
               const newId = startNewSession();
               setMessages([]);
-              // Reload sessions list
-              loadSessions(5).then(sessions => {
-                setRecentSessions(sessions);
-              });
+
+              // Reload sessions list with a small delay to ensure Firestore is updated
+              setTimeout(() => {
+                loadSessions(5).then(sessions => {
+                  setRecentSessions(sessions);
+                });
+              }, 500);
             }}
             className="p-1.5 bg-blue-600 hover:bg-blue-700 rounded transition-colors"
             title="Start new chat"
