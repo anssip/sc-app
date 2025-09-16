@@ -106,6 +106,245 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
 
   return (
     <div className="flex items-center gap-1">
+      {/* Trend Line Button */}
+      <ToolbarButton
+        onClick={onToggleTrendLineTool}
+        title={
+          isTrendLineToolActive ? "Stop Drawing Trend Lines" : "Draw Trend Line"
+        }
+        active={isTrendLineToolActive}
+      >
+        <svg
+          className="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          {/* Line with circles at both ends */}
+          <line x1="5" y1="19" x2="19" y2="5" strokeWidth={2} />
+          <circle cx="5" cy="19" r="2" fill="currentColor" />
+          <circle cx="19" cy="5" r="2" fill="currentColor" />
+        </svg>
+      </ToolbarButton>
+
+      {/* Indicator Dropdown */}
+      <Menu as="div" className="relative">
+        <Menu.Button
+          as={ToolbarDropdownButton}
+          disabled={indicatorsLoading}
+          title="Add Indicators"
+        >
+          <svg
+            className="w-3 h-3"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+            />
+          </svg>
+          <ChevronDownIcon className="w-3 h-3" />
+        </Menu.Button>
+
+        <Transition
+          as={Fragment}
+          enter="transition ease-out duration-100"
+          enterFrom="transform opacity-0 scale-95"
+          enterTo="transform opacity-100 scale-100"
+          leave="transition ease-in duration-75"
+          leaveFrom="transform opacity-100 scale-100"
+          leaveTo="transform opacity-0 scale-95"
+        >
+          <Menu.Items className="absolute right-0 mt-2 min-w-[280px] bg-black border border-gray-700 rounded-md shadow-lg z-[200] max-h-96 overflow-y-auto">
+            {indicatorsError ? (
+              <div className="p-3 text-red-400 text-xs">
+                Error loading indicators: {indicatorsError}
+              </div>
+            ) : indicatorsLoading ? (
+              <div className="p-3 text-gray-400 text-xs">
+                Loading indicators...
+              </div>
+            ) : availableIndicators.length === 0 ? (
+              <div className="p-3 text-gray-400 text-xs">
+                No indicators available
+              </div>
+            ) : (
+              <div className="py-1">
+                {/* Show indicator limit info for Starter plan */}
+                {status === "active" && plan === "starter" && (
+                  <div className="px-4 py-2 text-xs text-gray-400 border-b border-gray-700">
+                    <div>
+                      Starter Plan:{" "}
+                      {settings.indicators.filter((ind) => ind.visible).length}{" "}
+                      / 2 indicators
+                    </div>
+                    {settings.indicators.filter((ind) => ind.visible).length >=
+                      2 && (
+                      <div className="text-orange-400 mt-1">
+                        Limit reached -{" "}
+                        <Link
+                          to="/billing"
+                          className="text-blue-400 hover:underline"
+                        >
+                          Upgrade to Pro
+                        </Link>{" "}
+                        for unlimited
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {availableIndicators.map((indicator) => {
+                  const isVisible = settings.indicators.some(
+                    (ind) => ind.id === indicator.id && ind.visible
+                  );
+                  const visibleCount = settings.indicators.filter(
+                    (ind) => ind.visible
+                  ).length;
+                  const canAdd = canAddMoreIndicators(visibleCount);
+                  const needsUpgrade =
+                    !isVisible &&
+                    !canAdd &&
+                    (status === "active" ||
+                      status === "none" ||
+                      status === "canceled");
+
+                  return (
+                    <Menu.Item key={indicator.id}>
+                      {({ active }) => (
+                        <button
+                          onClick={() => {
+                            if (chartApiRef?.current?.api) {
+                              if (isVisible) {
+                                // Hide indicator
+                                chartApiRef.current.api.hideIndicator?.(
+                                  indicator.id
+                                );
+                              } else if (canAdd) {
+                                // Show indicator
+                                const apiIndicatorConfig = {
+                                  id: indicator.id,
+                                  name: indicator.name,
+                                  visible: true,
+                                  display:
+                                    indicator.display === "Overlay"
+                                      ? "main"
+                                      : "bottom",
+                                  scale:
+                                    indicator.scale === "Price"
+                                      ? "value"
+                                      : "value",
+                                  params: indicator.params || {},
+                                };
+                                chartApiRef.current.api.showIndicator?.(
+                                  apiIndicatorConfig
+                                );
+                              } else if (needsUpgrade) {
+                                // Show upgrade prompt
+                                setShowUpgradePrompt(true);
+                              }
+                            }
+                            // Don't close the menu to allow multiple indicator selection
+                          }}
+                          disabled={!isVisible && needsUpgrade}
+                          className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center justify-between ${
+                            active ? "bg-gray-900" : ""
+                          } ${
+                            isVisible
+                              ? "text-blue-400"
+                              : needsUpgrade
+                              ? "text-gray-500 cursor-not-allowed"
+                              : "text-gray-100"
+                          }`}
+                        >
+                          <div>
+                            <div className="font-medium">{indicator.name}</div>
+                            <div className="text-gray-500 text-xs">
+                              {indicator.display}
+                            </div>
+                          </div>
+                          {isVisible && (
+                            <svg
+                              className="w-3 h-3 flex-shrink-0 ml-2"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          )}
+                        </button>
+                      )}
+                    </Menu.Item>
+                  );
+                })}
+              </div>
+            )}
+          </Menu.Items>
+        </Transition>
+      </Menu>
+
+      {/* Fullscreen Button */}
+      {onToggleFullscreen && (
+        <ToolbarButton
+          onClick={onToggleFullscreen}
+          title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+        >
+          {isFullscreen ? (
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25"
+              />
+            </svg>
+          ) : (
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+              />
+            </svg>
+          )}
+        </ToolbarButton>
+      )}
+
+      {/* Status indicators */}
+      {symbolsError && (
+        <div
+          className="text-red-500 text-xs"
+          title={`Symbol loading error: ${symbolsError}`}
+        >
+          ⚠️
+        </div>
+      )}
+      {(isChangingSymbol || isChangingGranularity || symbolsLoading) && (
+        <>
+          <div className="h-4 w-px bg-gray-600"></div>
+          <div className="animate-spin rounded-full h-3 w-3 border-b border-blue-600"></div>
+        </>
+      )}
+
       {/* Symbol Dropdown */}
       <Menu as="div" className="relative">
         <Menu.Button
@@ -306,245 +545,6 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
           </Menu.Items>
         </Transition>
       </Menu>
-
-      {/* Status indicators */}
-      {symbolsError && (
-        <div
-          className="text-red-500 text-xs"
-          title={`Symbol loading error: ${symbolsError}`}
-        >
-          ⚠️
-        </div>
-      )}
-      {(isChangingSymbol || isChangingGranularity || symbolsLoading) && (
-        <>
-          <div className="h-4 w-px bg-gray-600"></div>
-          <div className="animate-spin rounded-full h-3 w-3 border-b border-blue-600"></div>
-        </>
-      )}
-
-      {/* Trend Line Button */}
-      <ToolbarButton
-        onClick={onToggleTrendLineTool}
-        title={
-          isTrendLineToolActive ? "Stop Drawing Trend Lines" : "Draw Trend Line"
-        }
-        active={isTrendLineToolActive}
-      >
-        <svg
-          className="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          {/* Line with circles at both ends */}
-          <line x1="5" y1="19" x2="19" y2="5" strokeWidth={2} />
-          <circle cx="5" cy="19" r="2" fill="currentColor" />
-          <circle cx="19" cy="5" r="2" fill="currentColor" />
-        </svg>
-      </ToolbarButton>
-
-      {/* Indicator Dropdown */}
-      <Menu as="div" className="relative">
-        <Menu.Button
-          as={ToolbarDropdownButton}
-          disabled={indicatorsLoading}
-          title="Add Indicators"
-        >
-          <svg
-            className="w-3 h-3"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-            />
-          </svg>
-          <ChevronDownIcon className="w-3 h-3" />
-        </Menu.Button>
-
-        <Transition
-          as={Fragment}
-          enter="transition ease-out duration-100"
-          enterFrom="transform opacity-0 scale-95"
-          enterTo="transform opacity-100 scale-100"
-          leave="transition ease-in duration-75"
-          leaveFrom="transform opacity-100 scale-100"
-          leaveTo="transform opacity-0 scale-95"
-        >
-          <Menu.Items className="absolute right-0 mt-2 min-w-[280px] bg-black border border-gray-700 rounded-md shadow-lg z-[200] max-h-96 overflow-y-auto">
-            {indicatorsError ? (
-              <div className="p-3 text-red-400 text-xs">
-                Error loading indicators: {indicatorsError}
-              </div>
-            ) : indicatorsLoading ? (
-              <div className="p-3 text-gray-400 text-xs">
-                Loading indicators...
-              </div>
-            ) : availableIndicators.length === 0 ? (
-              <div className="p-3 text-gray-400 text-xs">
-                No indicators available
-              </div>
-            ) : (
-              <div className="py-1">
-                {/* Show indicator limit info for Starter plan */}
-                {status === "active" && plan === "starter" && (
-                  <div className="px-4 py-2 text-xs text-gray-400 border-b border-gray-700">
-                    <div>
-                      Starter Plan:{" "}
-                      {settings.indicators.filter((ind) => ind.visible).length}{" "}
-                      / 2 indicators
-                    </div>
-                    {settings.indicators.filter((ind) => ind.visible).length >=
-                      2 && (
-                      <div className="text-orange-400 mt-1">
-                        Limit reached -{" "}
-                        <Link
-                          to="/billing"
-                          className="text-blue-400 hover:underline"
-                        >
-                          Upgrade to Pro
-                        </Link>{" "}
-                        for unlimited
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {availableIndicators.map((indicator) => {
-                  const isVisible = settings.indicators.some(
-                    (ind) => ind.id === indicator.id && ind.visible
-                  );
-                  const visibleCount = settings.indicators.filter(
-                    (ind) => ind.visible
-                  ).length;
-                  const canAdd = canAddMoreIndicators(visibleCount);
-                  const needsUpgrade =
-                    !isVisible &&
-                    !canAdd &&
-                    (status === "active" ||
-                      status === "none" ||
-                      status === "canceled");
-
-                  return (
-                    <Menu.Item key={indicator.id}>
-                      {({ active }) => (
-                        <button
-                          onClick={() => {
-                            if (chartApiRef?.current?.api) {
-                              if (isVisible) {
-                                // Hide indicator
-                                chartApiRef.current.api.hideIndicator?.(
-                                  indicator.id
-                                );
-                              } else if (canAdd) {
-                                // Show indicator
-                                const apiIndicatorConfig = {
-                                  id: indicator.id,
-                                  name: indicator.name,
-                                  visible: true,
-                                  display:
-                                    indicator.display === "Overlay"
-                                      ? "main"
-                                      : "bottom",
-                                  scale:
-                                    indicator.scale === "Price"
-                                      ? "value"
-                                      : "value",
-                                  params: indicator.params || {},
-                                };
-                                chartApiRef.current.api.showIndicator?.(
-                                  apiIndicatorConfig
-                                );
-                              } else if (needsUpgrade) {
-                                // Show upgrade prompt
-                                setShowUpgradePrompt(true);
-                              }
-                            }
-                            // Don't close the menu to allow multiple indicator selection
-                          }}
-                          disabled={!isVisible && needsUpgrade}
-                          className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center justify-between ${
-                            active ? "bg-gray-900" : ""
-                          } ${
-                            isVisible
-                              ? "text-blue-400"
-                              : needsUpgrade
-                              ? "text-gray-500 cursor-not-allowed"
-                              : "text-gray-100"
-                          }`}
-                        >
-                          <div>
-                            <div className="font-medium">{indicator.name}</div>
-                            <div className="text-gray-500 text-xs">
-                              {indicator.display}
-                            </div>
-                          </div>
-                          {isVisible && (
-                            <svg
-                              className="w-3 h-3 flex-shrink-0 ml-2"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          )}
-                        </button>
-                      )}
-                    </Menu.Item>
-                  );
-                })}
-              </div>
-            )}
-          </Menu.Items>
-        </Transition>
-      </Menu>
-
-      {/* Fullscreen Button - rightmost */}
-      {onToggleFullscreen && (
-        <ToolbarButton
-          onClick={onToggleFullscreen}
-          title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-        >
-          {isFullscreen ? (
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25"
-              />
-            </svg>
-          ) : (
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
-              />
-            </svg>
-          )}
-        </ToolbarButton>
-      )}
 
       {/* Upgrade Prompt Modal */}
       {showUpgradePrompt && (
