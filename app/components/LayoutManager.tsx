@@ -58,14 +58,11 @@ export const LayoutManager: React.FC<LayoutManagerProps> = ({ className = '' }) 
       // Save individual charts
       for (const [, chart] of charts) {
         // Note: In a real implementation, you'd also save charts to the repository
-        console.log('Chart to save:', chart);
-      }
+        }
 
       setSaveModalOpen(false);
       setLayoutName('');
-      console.log('Layout saved successfully');
-    } catch (err) {
-      console.error('Failed to save layout:', err);
+      } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Failed to save layout');
     }
   };
@@ -75,7 +72,6 @@ export const LayoutManager: React.FC<LayoutManagerProps> = ({ className = '' }) 
     try {
       const savedLayout = getLayout(layoutId);
       if (!savedLayout) {
-        console.error('Layout not found');
         return;
       }
 
@@ -85,10 +81,8 @@ export const LayoutManager: React.FC<LayoutManagerProps> = ({ className = '' }) 
       const panelLayout = convertToChartPanelLayout(savedLayout.layout, charts);
 
       setCurrentLayout(panelLayout);
-      console.log('Layout loaded successfully');
-    } catch (err) {
-      console.error('Failed to load layout:', err);
-    }
+      } catch (err) {
+      }
   };
 
   // Delete a saved layout
@@ -96,10 +90,8 @@ export const LayoutManager: React.FC<LayoutManagerProps> = ({ className = '' }) 
     if (window.confirm('Are you sure you want to delete this layout?')) {
       try {
         await deleteLayout(layoutId);
-        console.log('Layout deleted successfully');
-      } catch (err) {
-        console.error('Failed to delete layout:', err);
-      }
+        } catch (err) {
+        }
     }
   };
 

@@ -37,8 +37,7 @@ export default function AccountMenu() {
       await logOut();
       setIsOpen(false);
     } catch (error) {
-      console.error("Error signing out:", error);
-    }
+      }
   };
 
   return (

@@ -37,7 +37,6 @@ export function useStarredSymbols(layoutId?: string): UseStarredSymbolsReturn {
         const symbols = await repository.getLayoutStarredSymbols(layoutId);
         setStarredSymbols(symbols);
       } catch (err) {
-        console.error("Failed to load starred symbols:", err);
         setError(err instanceof Error ? err.message : "Failed to load starred symbols");
       } finally {
         setIsLoading(false);

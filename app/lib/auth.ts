@@ -23,64 +23,47 @@ export interface SignInData {
 
 export const signUp = async ({ email, password }: SignUpData): Promise<User> => {
   try {
-    console.log("Attempting to sign up with email:", email);
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    console.log("Sign-up successful:", userCredential.user.email);
-    
     // Send verification email immediately after signup
     await sendVerificationEmail(userCredential.user);
     
     return userCredential.user;
   } catch (error) {
-    console.error("Sign-up failed:", error);
     throw error;
   }
 };
 
 export const signIn = async ({ email, password }: SignInData): Promise<User> => {
   try {
-    console.log("Attempting to sign in with email:", email);
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    console.log("Sign-in successful:", userCredential.user.email);
     return userCredential.user;
   } catch (error) {
-    console.error("Sign-in failed:", error);
     throw error;
   }
 };
 
 export const signInWithGoogle = async (): Promise<User> => {
   try {
-    console.log("Attempting to sign in with Google");
     const provider = new GoogleAuthProvider();
     const userCredential = await signInWithPopup(auth, provider);
-    console.log("Google sign-in successful:", userCredential.user.email);
     return userCredential.user;
   } catch (error) {
-    console.error("Google sign-in failed:", error);
     throw error;
   }
 };
 
 export const logOut = async (): Promise<void> => {
   try {
-    console.log("Attempting to sign out");
     await signOut(auth);
-    console.log("Sign-out successful");
-  } catch (error) {
-    console.error("Sign-out failed:", error);
+    } catch (error) {
     throw error;
   }
 };
 
 export const sendVerificationEmail = async (user: User): Promise<void> => {
   try {
-    console.log("Sending verification email to:", user.email);
-    console.log("User emailVerified status:", user.emailVerified);
-    
     // Check if email is already verified
     if (user.emailVerified) {
-      console.log("Email already verified, skipping verification email");
       return;
     }
     
@@ -88,12 +71,7 @@ export const sendVerificationEmail = async (user: User): Promise<void> => {
       url: `${window.location.origin}/welcome`, // Redirect after verification
       handleCodeInApp: false, // Don't handle the action code in the app
     });
-    console.log("Verification email sent successfully");
-  } catch (error: any) {
-    console.error("Failed to send verification email:", error);
-    console.error("Error code:", error.code);
-    console.error("Error message:", error.message);
-    
+    } catch (error: any) {
     // Specific error handling
     if (error.code === 'auth/too-many-requests') {
       throw new Error('Too many verification emails sent. Please wait a few minutes and try again.');
@@ -108,9 +86,7 @@ export const sendVerificationEmail = async (user: User): Promise<void> => {
 export const refreshUser = async (user: User): Promise<void> => {
   try {
     await reload(user);
-    console.log("User data refreshed, emailVerified:", user.emailVerified);
-  } catch (error) {
-    console.error("Failed to refresh user data:", error);
+    } catch (error) {
     throw error;
   }
 };
@@ -129,9 +105,7 @@ export const saveUserPreferences = async (
       emailVerified: false,
       createdAt: serverTimestamp(),
     }, { merge: true });
-    console.log("User preferences saved");
-  } catch (error) {
-    console.error("Failed to save user preferences:", error);
+    } catch (error) {
     throw error;
   }
 };
@@ -146,9 +120,7 @@ export const updateEmailVerificationStatus = async (
       emailVerified: verified,
       verifiedAt: verified ? serverTimestamp() : null,
     }, { merge: true });
-    console.log("Email verification status updated");
-  } catch (error) {
-    console.error("Failed to update verification status:", error);
+    } catch (error) {
     throw error;
   }
 };

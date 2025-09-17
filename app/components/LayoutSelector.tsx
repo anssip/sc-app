@@ -98,30 +98,21 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
   const [modalOpen, setModalOpen] = useState(false);
 
   const handleSaveLayout = async (name: string, presetLayout: PanelLayout) => {
-    console.log("Creating new layout:", name);
-    
     // Check if user can add more layouts
     if (!canAddMoreLayouts(layouts.length)) {
-      console.error("Cannot add more layouts - limit reached");
       // Return false to indicate failure
       return false;
     }
 
     // 1. Find the first chart in the current layout to use as defaults
     const defaultChart = findFirstChart(currentLayout);
-    console.log("Using default chart config:", defaultChart);
-
     // 2. Clone the preset layout with completely new IDs
     const layoutWithNewIds = cloneLayoutWithNewIds(presetLayout);
-    console.log("Layout with new IDs:", layoutWithNewIds);
-
     // 3. Update all charts with the default configuration
     const finalLayout = updateAllChartsWithDefaults(
       layoutWithNewIds,
       defaultChart
     );
-    console.log("Final layout with defaults:", finalLayout);
-
     // 4. Convert to repository format
     const charts = new Map<string, ChartConfig>();
     const repositoryLayout: LayoutNode = convertFromChartPanelLayout(
@@ -137,10 +128,7 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
 
     // 5. Save and activate the new layout
     try {
-      console.log("Saving layout to repository...");
       const savedLayout = await saveLayout(layoutData);
-      console.log("Layout saved successfully:", savedLayout.id);
-
       // Set as active layout in user settings
       await setActiveLayout(savedLayout.id);
 
@@ -152,7 +140,6 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
       
       return true; // Success
     } catch (error) {
-      console.error("Failed to save new layout:", error);
       // Don't close modal on error so user can retry
       return false; // Failure
     }
@@ -161,11 +148,8 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
   const handleLoadSavedLayout = async (layoutId: string) => {
     const savedLayout = layouts.find((l) => l.id === layoutId);
     if (!savedLayout) {
-      console.warn(`Layout with id ${layoutId} not found.`);
       return;
     }
-
-    console.log("Loading saved layout:", savedLayout.name);
 
     const charts = new Map<string, ChartConfig>();
     const panelLayout = convertToChartPanelLayout(savedLayout.layout, charts);
@@ -174,8 +158,7 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
     try {
       await setActiveLayout(savedLayout.id);
     } catch (error) {
-      console.error("Failed to set active layout:", error);
-    }
+      }
 
     // Small delay to ensure React has time to unmount old components
     setTimeout(() => {

@@ -78,7 +78,6 @@ export async function getAllBlogPosts(): Promise<BlogPostMeta[]> {
         new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime()
       )
   } catch (error) {
-    console.error('Error reading blog posts:', error)
     return []
   }
 }
@@ -131,7 +130,6 @@ export async function getBlogPost(slug: string): Promise<BlogPost | null> {
       featured: data.featured || false
     }
   } catch (error) {
-    console.error(`Error reading blog post ${slug}:`, error)
     return null
   }
 }

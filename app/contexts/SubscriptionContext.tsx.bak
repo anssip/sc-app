@@ -51,6 +51,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       const user = auth.currentUser
       
       if (!user) {
+        console.log('No authenticated user found')
         
         // Check for preview status using AccountRepository
         const previewStatus = await accountRepository.getPreviewStatus(null)
@@ -86,12 +87,18 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         return
       }
       
+      console.log('Fetching subscription for user:', user.uid)
 
       // Use AccountRepository for fetching subscription data
       // This will return cached data immediately if available
       const subscription = await accountRepository.getSubscription(user)
       
       if (subscription) {
+        console.log('Setting subscription data:', {
+          status: subscription.status,
+          plan: subscription.plan,
+          subscriptionId: subscription.subscriptionId
+        })
         
         setSubscriptionData({
           status: subscription.status,
@@ -136,6 +143,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
             }
           }
         } catch (firestoreError) {
+          console.error('Error querying Firestore:', firestoreError)
         }
         
         // If still no subscription found, check preview status
@@ -182,6 +190,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         }
       }
     } catch (error) {
+      console.error('Failed to fetch subscription data:', error)
       setSubscriptionData((prev) => ({ ...prev, isLoading: false }))
     }
   }
@@ -199,15 +208,22 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         // Clear anonymous preview timer when user logs in
         const anonymousPreviewKey = 'anonymous_preview_start'
         if (localStorage.getItem(anonymousPreviewKey)) {
+          console.log('Clearing anonymous preview timer on user login')
           localStorage.removeItem(anonymousPreviewKey)
         }
         
         // Clear any stale cache and force refresh when user logs in
+        console.log('User logged in, forcing subscription refresh for:', user.email)
         // Force refresh to get fresh data from server on login
         setSubscriptionData(prev => ({ ...prev, isLoading: true }))
         const subscription = await accountRepository.getSubscription(user, true) // Force refresh on login
         
         if (subscription) {
+          console.log('Fresh subscription data fetched:', {
+            status: subscription.status,
+            plan: subscription.plan,
+            subscriptionId: subscription.subscriptionId
+          })
           
           setSubscriptionData({
             status: subscription.status,
@@ -227,6 +243,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         }
       } else {
         // User logged out - clear subscription data
+        console.log('User logged out, clearing subscription data')
         setSubscriptionData({
           status: 'none',
           plan: 'none',
@@ -238,6 +255,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     // Subscribe to subscription updates from the repository
     const unsubscribeFromRepo = accountRepository.subscribeToSubscription((subscriptionData) => {
       if (subscriptionData) {
+        console.log('Subscription updated from repository:', subscriptionData)
         setSubscriptionData({
           status: subscriptionData.status,
           plan: subscriptionData.plan,
@@ -307,12 +325,19 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   }
 
   const getLayoutLimit = (): number | null => {
+    console.log('getLayoutLimit called with:', {
+      status: subscriptionData.status,
+      plan: subscriptionData.plan,
+      isLoading: subscriptionData.isLoading
+    })
+    
     if (subscriptionData.status === 'trialing') {
       return null // unlimited during trial
     }
     
     const hasStarterAccess = ['active', 'past_due', 'incomplete'].includes(subscriptionData.status) && subscriptionData.plan === 'starter'
     if (hasStarterAccess) {
+      console.log('Returning limit 2 for Starter plan')
       return 2
     }
     
@@ -321,6 +346,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       return null // unlimited for pro
     }
     
+    console.log('No subscription detected, returning 0')
     return 0 // no subscription
   }
 

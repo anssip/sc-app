@@ -120,14 +120,12 @@ export function useMCPClient(userId?: string, chartId?: string) {
                     break;
                 }
               } catch (e) {
-                console.error('Error parsing SSE data:', e);
-              }
+                }
             }
           }
         }
       }
     } catch (error) {
-      console.error('Error sending message:', error);
       options.onError?.(error as Error);
     }
   }, [userId, currentSessionId, chartId]);
@@ -159,7 +157,6 @@ export function useMCPClient(userId?: string, chartId?: string) {
         commands: msg.commands
       }));
     } catch (error) {
-      console.error('Error loading history:', error);
       return [];
     }
   }, [userId, currentSessionId, chartId]);
@@ -202,7 +199,6 @@ export function useMCPClient(userId?: string, chartId?: string) {
 
       return sessions;
     } catch (error) {
-      console.error('Error loading sessions:', error);
       return [];
     }
   }, [userId, chartId]);
@@ -235,8 +231,7 @@ export function useMCPClient(userId?: string, chartId?: string) {
         sessionsCache.current.delete(cacheKey);
       }
     } catch (error) {
-      console.error('Error clearing history:', error);
-    }
+      }
   }, [userId, currentSessionId, chartId]);
 
   const startNewSession = useCallback(() => {

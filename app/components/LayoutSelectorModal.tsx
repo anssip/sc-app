@@ -90,7 +90,6 @@ export const LayoutSelectorModal: React.FC<LayoutSelectorModalProps> = ({
         setDeletingLayoutId(layoutId);
         await onDeleteLayout(layoutId);
       } catch (error) {
-        console.error("Failed to delete layout:", error);
         alert("Failed to delete layout. Please try again.");
       } finally {
         setDeletingLayoutId(null);

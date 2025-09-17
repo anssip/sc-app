@@ -52,10 +52,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         await updateEmailVerificationStatus(user.uid, true);
       }
       
-      console.log("User refreshed, emailVerified:", user.emailVerified);
-    } catch (error) {
-      console.error("Failed to refresh user:", error);
-    }
+      } catch (error) {
+      }
   };
 
   useEffect(() => {
@@ -67,9 +65,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Component has mounted, we're on the client
     setMounted(true);
     
-    console.log("Setting up auth state listener...");
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      console.log("Auth state changed:", user ? `User: ${user.email}` : "No user");
       setUser(user);
       
       if (user) {
@@ -78,10 +74,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Warm the cache with user data when they sign in
         accountRepository.setCurrentUser(user);
         accountRepository.warmCache(user).then(() => {
-          console.log("Account cache warmed for user:", user.email);
-        }).catch((error) => {
-          console.error("Failed to warm cache:", error);
-        });
+          }).catch((error) => {
+          });
         
         // Set up a periodic check for email verification
         if (!user.emailVerified) {
@@ -91,8 +85,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               setEmailVerified(true);
               await updateEmailVerificationStatus(user.uid, true);
               clearInterval(intervalId);
-              console.log("Email verified!");
-            }
+              }
           }, 30000); // Check every 30 seconds
           
           // Clean up interval on unmount
@@ -104,10 +97,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         accountRepository.setCurrentUser(null);
         // Clear all cached data for clean state
         accountRepository.clearCache().then(() => {
-          console.log("Cleared account cache on logout");
-        }).catch((error) => {
-          console.error("Failed to clear cache on logout:", error);
-        });
+          }).catch((error) => {
+          });
       }
       
       setLoading(false);
@@ -124,12 +115,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const unsubscribe = onSnapshot(userDocRef, (docSnapshot) => {
       if (docSnapshot.exists()) {
         const userData = docSnapshot.data();
-        console.log("User document updated:", userData);
         // You can use this data for additional user preferences
       }
     }, (error) => {
-      console.error("Error listening to user document:", error);
-    });
+      });
 
     return () => unsubscribe();
   }, [user]);
@@ -142,13 +131,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   // Debug logging
-  console.log("AuthProvider render:", { 
-    user: user ? user.email : null, 
-    loading,
-    emailVerified,
-    mounted 
-  });
-
   return (
     <AuthContext.Provider value={value}>
       {children}

@@ -44,8 +44,7 @@ async function loadChartsForLayout(
           charts.set(chartId, chartConfig);
         }
       } catch (error) {
-        console.error(`Failed to load chart ${chartId}:`, error);
-      }
+        }
     }
   } else if (layoutNode.children && Array.isArray(layoutNode.children)) {
     // Recursively load charts from children
@@ -123,7 +122,6 @@ export const ChartApp: React.FC<ChartAppProps> = ({
     
     // For anonymous preview, immediately use default layout without waiting for repository
     if (isAnonymousPreview && !isInitialized) {
-      console.log("Anonymous preview mode - using default layout");
       const defaultLayout = createDefaultLayout();
       setCurrentLayout(defaultLayout);
       setCurrentLayoutId(null);
@@ -172,13 +170,6 @@ export const ChartApp: React.FC<ChartAppProps> = ({
             setCurrentLayoutId(activeLayout.id);
 
             // Set AI assistant visibility from saved state or use defaults
-            console.log("[AI Assistant] Loading layout:", {
-              layoutId: activeLayout.id,
-              savedState: activeLayout.showAIAssistant,
-              layoutType: activeLayout.layout.type,
-              willShow: activeLayout.showAIAssistant !== undefined ? activeLayout.showAIAssistant : activeLayout.layout.type === 'chart'
-            });
-
             if (activeLayout.showAIAssistant !== undefined) {
               setShowAIChat(activeLayout.showAIAssistant);
             } else {
@@ -188,9 +179,8 @@ export const ChartApp: React.FC<ChartAppProps> = ({
 
             setIsInitialized(true);
           } catch (error) {
-            console.error("Error loading active layout:", error);
             // Clear the invalid active layout ID
-            setActiveLayout(null).catch(console.error);
+            setActiveLayout(null).catch(() => {});
           }
         };
 
@@ -200,7 +190,7 @@ export const ChartApp: React.FC<ChartAppProps> = ({
         // We have layouts loaded but the active one isn't found
 
         // Clear the invalid active layout ID
-        setActiveLayout(null).catch(console.error);
+        setActiveLayout(null).catch(() => {});
       } else {
         // No layouts loaded yet, but we have an activeLayoutId - wait for layouts
 
@@ -247,48 +237,27 @@ export const ChartApp: React.FC<ChartAppProps> = ({
         layout: repositoryLayout,
       });
     } catch (error) {
-      console.error("Auto-save failed:", error);
-    }
+      }
   }, [currentLayout, currentLayoutId, repository, updateLayout, user]);
 
   // Handle layout changes from ChartPanel with auto-save
   const handleLayoutChange = useCallback(
     (layout: PanelLayout, changeType: LayoutChangeType = "unknown") => {
-      console.log("ChartApp: handleLayoutChange called", {
-        changeType,
-        currentLayoutId,
-        hasLayout: !!layout,
-      });
-
       setCurrentLayout(layout);
 
       // Clear existing timeout
       if (autoSaveTimeoutRef.current) {
         clearTimeout(autoSaveTimeoutRef.current);
-        console.log("ChartApp: Cleared existing auto-save timeout");
-      }
+        }
 
       // Only auto-save for structural changes (panel resizes, splits) and only for authenticated users
       // Chart data changes are handled by ChartContainer
       if (currentLayoutId && changeType === "structure" && user) {
-        console.log(
-          "ChartApp: Setting auto-save timeout for structural change"
-        );
         autoSaveTimeoutRef.current = setTimeout(() => {
-          console.log("ChartApp: Auto-save timeout triggered");
           autoSaveLayout();
         }, 1000); // Auto-save 1 second after resize stops
       } else {
-        console.log("ChartApp: Auto-save not triggered", {
-          reason: !currentLayoutId
-            ? "No currentLayoutId"
-            : !user
-            ? "No authenticated user"
-            : changeType !== "structure"
-            ? "Not structure change"
-            : "Other",
-        });
-      }
+        }
     },
     [currentLayoutId, autoSaveLayout, user]
   );
@@ -298,27 +267,16 @@ export const ChartApp: React.FC<ChartAppProps> = ({
     const newState = !showAIChat;
     setShowAIChat(newState);
 
-    console.log("[AI Assistant Toggle]", {
-      newState,
-      currentLayoutId,
-      hasUser: !!user,
-      currentLayout: currentLayout?.type
-    });
-
     // Save the new state to Firestore if we have a saved layout
     if (currentLayoutId && user) {
       try {
-        console.log("[AI Assistant] Saving state to Firestore:", { layoutId: currentLayoutId, showAIAssistant: newState });
         await updateLayout(currentLayoutId, {
           showAIAssistant: newState
         });
-        console.log("[AI Assistant] State saved successfully");
-      } catch (error) {
-        console.error("Failed to save AI assistant state:", error);
-      }
+        } catch (error) {
+        }
     } else {
-      console.log("[AI Assistant] Not saving:", { reason: !currentLayoutId ? "No layout ID" : "No user" });
-    }
+      }
   }, [showAIChat, currentLayoutId, user, updateLayout]);
 
   // Handle layout selection from LayoutSelector
@@ -331,13 +289,6 @@ export const ChartApp: React.FC<ChartAppProps> = ({
       if (layoutId && layouts) {
         const savedLayout = layouts.find(l => l.id === layoutId);
         if (savedLayout) {
-          console.log("[AI Assistant] Switching to layout:", {
-            layoutId: savedLayout.id,
-            savedState: savedLayout.showAIAssistant,
-            layoutType: savedLayout.layout.type,
-            willShow: savedLayout.showAIAssistant !== undefined ? savedLayout.showAIAssistant : savedLayout.layout.type === 'chart'
-          });
-
           // Set AI assistant visibility from saved state or use defaults
           if (savedLayout.showAIAssistant !== undefined) {
             setShowAIChat(savedLayout.showAIAssistant);

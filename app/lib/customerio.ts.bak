@@ -56,6 +56,7 @@ class CustomerIO {
     if (this.config.siteId) {
       this.isInitialized = true
     } else {
+      console.warn('Customer.io not initialized: missing VITE_CUSTOMER_IO_SITE_ID')
     }
   }
 
@@ -64,19 +65,20 @@ class CustomerIO {
    */
   async identify(userData: UserData): Promise<void> {
     if (!this.isInitialized) {
+      console.log('Customer.io not initialized, skipping identify')
       return
     }
 
     try {
       // In a real implementation, this would make an API call to Customer.io
-      // For now, we'll just create the user object
-      const userPayload = {
+      // For now, we'll just log the action
+      console.log('Customer.io identify:', {
         id: userData.userId,
         email: userData.email,
         created_at: userData.createdAt || Math.floor(Date.now() / 1000),
         email_verified: userData.emailVerified,
         marketing_consent: userData.marketingConsent,
-      }
+      })
 
       // If using Customer.io JavaScript SDK in the browser:
       if (typeof window !== 'undefined' && (window as any)._cio) {
@@ -89,6 +91,7 @@ class CustomerIO {
         })
       }
     } catch (error) {
+      console.error('Failed to identify user in Customer.io:', error)
     }
   }
 
@@ -97,16 +100,19 @@ class CustomerIO {
    */
   async track(eventName: string, eventData?: EventData): Promise<void> {
     if (!this.isInitialized) {
+      console.log('Customer.io not initialized, skipping track')
       return
     }
 
     try {
+      console.log('Customer.io track event:', eventName, eventData)
 
       // If using Customer.io JavaScript SDK in the browser:
       if (typeof window !== 'undefined' && (window as any)._cio) {
         (window as any)._cio.track(eventName, eventData || {})
       }
     } catch (error) {
+      console.error('Failed to track event in Customer.io:', error)
     }
   }
 
@@ -115,10 +121,12 @@ class CustomerIO {
    */
   async updateMarketingConsent(userId: string, consent: boolean): Promise<void> {
     if (!this.isInitialized) {
+      console.log('Customer.io not initialized, skipping consent update')
       return
     }
 
     try {
+      console.log('Customer.io update marketing consent:', { userId, consent })
       
       // Track the consent change event
       await this.track('marketing_consent_updated', {
@@ -136,6 +144,7 @@ class CustomerIO {
         })
       }
     } catch (error) {
+      console.error('Failed to update marketing consent in Customer.io:', error)
     }
   }
 
@@ -187,10 +196,12 @@ class CustomerIO {
    */
   async deleteUser(userId: string): Promise<void> {
     if (!this.isInitialized) {
+      console.log('Customer.io not initialized, skipping delete')
       return
     }
 
     try {
+      console.log('Customer.io delete user:', userId)
       
       // In a real implementation, this would make an API call to Customer.io
       // to delete the user's data
@@ -201,6 +212,7 @@ class CustomerIO {
         deleted_at: Date.now(),
       })
     } catch (error) {
+      console.error('Failed to delete user from Customer.io:', error)
     }
   }
 }

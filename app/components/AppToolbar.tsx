@@ -79,7 +79,7 @@ export const AppToolbar: React.FC<AppToolbarProps> = ({
         <div className="flex items-center gap-2">
           {/* AI Chat Toggle - Show even if no callback for better visibility */}
           <ToolbarButton
-            onClick={onToggleAIChat || (() => console.log('AI Chat toggle not connected'))}
+            onClick={onToggleAIChat || (() => {})}
             active={showAIChat}
             title={showAIChat ? 'Close AI Assistant' : 'Open AI Assistant (Cmd/Ctrl + Shift + A)'}
           >

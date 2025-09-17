@@ -86,7 +86,6 @@ export async function getAllManualEntries(): Promise<ManualEntryMeta[]> {
         return new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime()
       })
   } catch (error) {
-    console.error('Error reading manual entries:', error)
     return []
   }
 }
@@ -140,7 +139,6 @@ export async function getManualEntry(slug: string): Promise<ManualEntry | null> 
       order: data.order || 999
     }
   } catch (error) {
-    console.error(`Error reading manual entry ${slug}:`, error)
     return null
   }
 }

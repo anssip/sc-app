@@ -52,12 +52,10 @@ if (typeof window !== "undefined" && import.meta.env.DEV) {
       connectAuthEmulator(auth, "http://localhost:9099", {
         disableWarnings: true,
       });
-      console.log("Connected to Auth emulator on localhost:9099");
-    } catch (error) {
+      } catch (error) {
       // Silently ignore if already connected
       if (!error?.message?.includes("already")) {
-        console.warn("Failed to connect to Auth emulator:", error);
-      }
+        }
     }
   }
 
@@ -66,12 +64,10 @@ if (typeof window !== "undefined" && import.meta.env.DEV) {
     try {
       // Connect to Firestore emulator
       connectFirestoreEmulator(db, "localhost", 8090);
-      console.log("Connected to Firestore emulator on localhost:8090");
-    } catch (error) {
+      } catch (error) {
       // Silently ignore if already connected
       if (!error?.message?.includes("already")) {
-        console.warn("Failed to connect to Firestore emulator:", error);
-      }
+        }
     }
   }
 }
@@ -80,11 +76,9 @@ if (typeof window !== "undefined" && import.meta.env.DEV) {
 if (typeof window !== "undefined") {
   setPersistence(auth, browserLocalPersistence)
     .then(() => {
-      console.log("Auth persistence set to LOCAL");
-    })
+      })
     .catch((error) => {
-      console.warn("Failed to set auth persistence:", error);
-    });
+      });
 }
 
 export { auth, db, firebaseConfig };

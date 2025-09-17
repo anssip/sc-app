@@ -25,13 +25,10 @@ export function ActiveChartProvider({ children }: { children: ReactNode }) {
   const chartApisRef = useRef<Map<string, ChartApiInfo>>(new Map());
 
   const setActiveChart = useCallback((chartId: string) => {
-    console.log('[ActiveChartContext] Setting active chart:', chartId);
     setActiveChartId(chartId);
   }, []);
 
   const registerChartApi = useCallback((chartId: string, api: any, symbol?: string, granularity?: string) => {
-    console.log('[ActiveChartContext] Registering chart API:', { chartId, symbol, granularity });
-
     // Update the ref immediately
     chartApisRef.current.set(chartId, { id: chartId, api, symbol, granularity });
 
@@ -44,7 +41,6 @@ export function ActiveChartProvider({ children }: { children: ReactNode }) {
     // Always set the first registered chart as active
     setActiveChartId(currentActiveId => {
       if (!currentActiveId) {
-        console.log('[ActiveChartContext] Setting first chart as active:', chartId);
         return chartId;
       }
       return currentActiveId;
@@ -52,8 +48,6 @@ export function ActiveChartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const unregisterChartApi = useCallback((chartId: string) => {
-    console.log('[ActiveChartContext] Unregistering chart API:', chartId);
-
     // Update the ref immediately
     chartApisRef.current.delete(chartId);
 
@@ -69,10 +63,8 @@ export function ActiveChartProvider({ children }: { children: ReactNode }) {
         const remainingIds = Array.from(chartApisRef.current.keys());
         if (remainingIds.length > 0) {
           const newActiveId = remainingIds[0];
-          console.log('[ActiveChartContext] Active chart removed, selecting:', newActiveId);
           return newActiveId;
         }
-        console.log('[ActiveChartContext] No charts remaining, clearing active chart');
         return null;
       }
       return currentActiveId;
@@ -109,7 +101,6 @@ export function useActiveChart() {
   const context = useContext(ActiveChartContext);
   if (!context) {
     // Return a default implementation instead of throwing
-    console.warn('useActiveChart called outside of ActiveChartProvider, using default implementation');
     return {
       activeChartId: null,
       chartApis: new Map(),

@@ -78,7 +78,6 @@ class AccountRepository {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
 
       request.onerror = () => {
-        console.error("Failed to open IndexedDB:", request.error);
         reject(request.error);
       };
 
@@ -125,7 +124,6 @@ class AccountRepository {
       };
 
       request.onerror = () => {
-        console.error(`Failed to read from ${storeName}:`, request.error);
         resolve(null);
       };
     });
@@ -145,7 +143,6 @@ class AccountRepository {
 
       request.onsuccess = () => resolve();
       request.onerror = () => {
-        console.error(`Failed to save to ${storeName}:`, request.error);
         reject(request.error);
       };
     });
@@ -189,7 +186,6 @@ class AccountRepository {
       try {
         // If in emulator mode, fetch from Firestore instead of billing API
         if (isEmulatorMode()) {
-          console.log("Fetching subscription from Firestore emulator");
           const subscriptionDoc = await getDoc(
             doc(db, "subscriptions", user.uid)
           );
@@ -240,9 +236,6 @@ class AccountRepository {
           }
 
           // Return default active subscription for emulator testing
-          console.log(
-            "No subscription found in Firestore, returning default active subscription"
-          );
           return {
             status: "active",
             plan: "starter",
@@ -317,13 +310,8 @@ class AccountRepository {
 
         return null;
       } catch (error) {
-        console.error("Failed to fetch subscription data:", error);
-
         // In emulator mode, return a default subscription instead of null
         if (isEmulatorMode()) {
-          console.log(
-            "Error fetching subscription, returning default for emulator"
-          );
           return {
             status: "active",
             plan: "starter",

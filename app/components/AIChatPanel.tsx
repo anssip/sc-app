@@ -227,7 +227,6 @@ export function AIChatPanel({
     let chartContext;
     if (activeChartApi) {
       try {
-        console.log('[AIChatPanel] Getting chart context from active chart:', activeChartId);
 
         // Get values from active chart API
         const symbol = activeChartApi.getSymbol?.();
@@ -235,12 +234,6 @@ export function AIChatPanel({
         const timeRange = activeChartApi.getTimeRange?.();
         const priceRange = activeChartApi.getPriceRange?.();
         
-        console.log('[AIChatPanel] Chart values from state:', {
-          symbol,
-          granularity,
-          timeRange,
-          priceRange
-        });
         
         if (symbol && granularity && timeRange && priceRange) {
           // Extract raw values from potential proxy objects
@@ -259,24 +252,12 @@ export function AIChatPanel({
             }
           }));
           
-          console.log('[AIChatPanel] Chart context prepared:', chartContext);
         } else {
-          console.warn('[AIChatPanel] Missing chart context values:', {
-            hasSymbol: !!symbol,
-            hasGranularity: !!granularity,
-            hasTimeRange: !!timeRange,
-            hasPriceRange: !!priceRange
-          });
           
-          // Log the actual values for debugging
-          if (!timeRange) console.warn('[AIChatPanel] timeRange is null/undefined');
-          if (!priceRange) console.warn('[AIChatPanel] priceRange is null/undefined');
         }
       } catch (error) {
-        console.warn('[AIChatPanel] Error getting chart context:', error);
       }
     } else {
-      console.warn('[AIChatPanel] No active chart available');
     }
 
     try {

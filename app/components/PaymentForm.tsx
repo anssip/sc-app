@@ -131,7 +131,6 @@ export default function PaymentForm({ priceId, selectedPlan, onSuccess }: Paymen
         navigate('/thank-you')
       }
     } catch (error) {
-      console.error('Payment error:', error)
       setErrorMessage(error instanceof Error ? error.message : 'An unexpected error occurred')
     } finally {
       setIsProcessing(false)

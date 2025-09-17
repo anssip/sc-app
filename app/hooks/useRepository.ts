@@ -39,14 +39,7 @@ export function useRepository(): UseRepositoryReturn {
 
   useEffect(() => {
     async function initializeRepository() {
-      console.log("useRepository: initializeRepository called", {
-        userEmail: user?.email,
-        isInitializing: initializingRef.current,
-        mounted: mountedRef.current,
-      });
-
       if (!user?.email) {
-        console.log("useRepository: No user email, setting isLoading to false");
         if (mountedRef.current) {
           setIsLoading(false);
         }
@@ -54,11 +47,9 @@ export function useRepository(): UseRepositoryReturn {
       }
 
       if (initializingRef.current) {
-        console.log("useRepository: Already initializing, skipping");
         return;
       }
 
-      console.log("useRepository: Starting repository initialization");
       initializingRef.current = true;
 
       if (mountedRef.current) {
@@ -70,27 +61,14 @@ export function useRepository(): UseRepositoryReturn {
         const userId = user.email;
         const repo = getRepository(userId);
 
-        console.log("useRepository: Calling repo.initialize()");
         await repo.initialize();
-        console.log("useRepository: Repository initialized successfully");
-
-        console.log(
-          "useRepository: Checking mounted state:",
-          mountedRef.current
-        );
         if (mountedRef.current) {
-          console.log("useRepository: Setting repository and isOnline");
           setRepository(repo);
           setIsOnline(repo.isOnline());
           setIsLoading(false);
-          console.log("useRepository: Repository state updated successfully");
-        } else {
-          console.log(
-            "useRepository: Component unmounted, skipping state update"
-          );
-        }
+          } else {
+          }
       } catch (err) {
-        console.error("Failed to initialize repository:", err);
         if (mountedRef.current) {
           setError(
             err instanceof Error
@@ -101,8 +79,7 @@ export function useRepository(): UseRepositoryReturn {
         }
       } finally {
         initializingRef.current = false;
-        console.log("useRepository: Initialization completed");
-      }
+        }
     }
 
     if (user?.email) {
@@ -117,7 +94,7 @@ export function useRepository(): UseRepositoryReturn {
     function handleOnline() {
       setIsOnline(true);
       if (repository) {
-        repository.sync().catch(console.error);
+        repository.sync().catch(() => {});
       }
     }
 
@@ -188,7 +165,6 @@ export function useLayouts(): UseLayoutsReturn {
         const layouts = await repository.getLayouts();
         setLayouts(layouts);
       } catch (err) {
-        console.error("Failed to load layouts:", err);
         setError(err instanceof Error ? err.message : "Failed to load layouts");
       } finally {
         setIsLoading(false);
@@ -479,16 +455,8 @@ export function useSymbols(): UseSymbolsReturn {
   ];
 
   useEffect(() => {
-    console.log("useSymbols: Effect triggered", {
-      hasUser: !!user,
-      hasRepository: !!repository,
-      repoLoading,
-      repoError,
-    });
-
     // If no user (preview mode), use default symbols
     if (!user) {
-      console.log("useSymbols: No user, using default preview symbols");
       setSymbols(DEFAULT_PREVIEW_SYMBOLS);
       setIsLoading(false);
       setError(null);
@@ -496,28 +464,22 @@ export function useSymbols(): UseSymbolsReturn {
     }
 
     if (!repository || repoLoading) {
-      console.log("useSymbols: Repository not ready, skipping symbol loading");
       return;
     }
 
     async function loadSymbols() {
       if (!repository) return;
 
-      console.log("useSymbols: Starting to load symbols...");
       try {
         setIsLoading(true);
         setError(null);
-        console.log("useSymbols: Calling repository.getSymbols()");
         const symbols = await repository.getSymbols();
-        console.log("useSymbols: Got symbols from repository:", symbols.length);
         setSymbols(symbols);
       } catch (err) {
-        console.error("useSymbols: Failed to load symbols:", err);
         setError(err instanceof Error ? err.message : "Failed to load symbols");
       } finally {
         setIsLoading(false);
-        console.log("useSymbols: Loading complete");
-      }
+        }
     }
 
     loadSymbols();
@@ -571,7 +533,6 @@ export function useUserSettings(): UseUserSettingsReturn {
         const settings = await repository.getSettings();
         setSettings(settings);
       } catch (err) {
-        console.error("Failed to load user settings:", err);
         setError(
           err instanceof Error ? err.message : "Failed to load user settings"
         );

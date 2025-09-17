@@ -40,7 +40,6 @@ export const SaveLayoutDialog: React.FC<SaveLayoutDialogProps> = ({
       setLayoutName('');
       onClose();
     } catch (err) {
-      console.error('Failed to save layout:', err);
       setError(err instanceof Error ? err.message : 'Failed to save layout');
     } finally {
       setIsSaving(false);

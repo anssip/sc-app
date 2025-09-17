@@ -28,27 +28,13 @@ export function useChartCommands(userId: string | undefined, chartApi: any, acti
     const unsubscribe = onSnapshot(
       q,
       async (snapshot) => {
-        console.log(
-          "[ChartCommands] Snapshot received, changes:",
-          snapshot.docChanges().length
-        );
-
         for (const change of snapshot.docChanges()) {
         if (change.type === "added") {
           const commandDoc = change.doc;
           const commandId = commandDoc.id;
 
-          console.log("[ChartCommands] New command detected:", {
-            id: commandId,
-            type: change.type,
-          });
-
           // Skip if already processed
           if (processedCommands.current.has(commandId)) {
-            console.log(
-              "[ChartCommands] Skipping already processed command:",
-              commandId
-            );
             continue;
           }
 
@@ -57,34 +43,16 @@ export function useChartCommands(userId: string | undefined, chartApi: any, acti
 
           // Check if command has a target chart ID and if it matches the active chart
           if (command.targetChartId && command.targetChartId !== activeChartId) {
-            console.log(
-              `[ChartCommands] Skipping command for different chart. Target: ${command.targetChartId}, Active: ${activeChartId}`
-            );
             continue;
           }
 
-          console.log("[ChartCommands] Processing command:", {
-            commandId,
-            command: command.command,
-            parameters: command.parameters,
-            targetChartId: command.targetChartId,
-            activeChartId
-          });
-
           try {
             // Execute the command using the Chart API
-            console.log("[ChartCommands] Executing command via Chart API...");
             const result = await executeChartCommand(
               chartApi,
               command.command,
               command.parameters
             );
-            console.log("[ChartCommands] Command executed successfully:", {
-              commandId,
-              command: command.command,
-              result,
-            });
-
             // Update command status to executed
             await updateDoc(
               doc(db, "users", userId, "chart_commands", commandId),
@@ -95,11 +63,6 @@ export function useChartCommands(userId: string | undefined, chartApi: any, acti
               }
             );
           } catch (error) {
-            console.error(
-              `[ChartCommands] Failed to execute command ${command.command}:`,
-              error
-            );
-
             // Update command status to failed
             await updateDoc(
               doc(db, "users", userId, "chart_commands", commandId),
@@ -114,7 +77,6 @@ export function useChartCommands(userId: string | undefined, chartApi: any, acti
       }
     },
     (error) => {
-      console.error("[ChartCommands] Error in snapshot listener:", error);
       // Don't throw - just log the error to prevent uncaught promise rejections
     }
   );
@@ -131,14 +93,6 @@ async function executeChartCommand(
   command: string,
   params: any
 ): Promise<any> {
-  console.log("[ExecuteChartCommand] Called with:", {
-    command,
-    params,
-    apiAvailable: !!api,
-    apiMethods: api
-      ? Object.keys(api).filter((key) => typeof api[key] === "function")
-      : [],
-  });
 
   switch (command) {
     case "set_symbol":
@@ -153,10 +107,6 @@ async function executeChartCommand(
       return { granularity: params.granularity };
 
     case "show_indicator":
-      console.log(
-        "[ExecuteChartCommand] show_indicator called with params:",
-        params
-      );
       if (!params.id || !params.name) {
         throw new Error(
           "Indicator ID and name are required for show_indicator command"
@@ -179,28 +129,15 @@ async function executeChartCommand(
           }. Valid IDs are: ${validIndicatorIds.join(", ")}`
         );
       }
-      console.log("[ExecuteChartCommand] Calling api.showIndicator with:", {
-        id: params.id,
-        name: params.name,
-        visible: true,
-        params: params.params || {},
-      });
       api.showIndicator({
         id: params.id,
         name: params.name,
         visible: true,
         params: params.params || {},
       });
-      console.log(
-        "[ExecuteChartCommand] api.showIndicator called successfully"
-      );
       return { indicator: params.id, visible: true };
 
     case "hide_indicator":
-      console.log(
-        "[ExecuteChartCommand] hide_indicator called with params:",
-        params
-      );
       if (!params.id) {
         throw new Error("Indicator ID is required for hide_indicator command");
       }
@@ -221,23 +158,9 @@ async function executeChartCommand(
           }. Valid IDs are: ${validIndicators.join(", ")}`
         );
       }
-      console.log(
-        "[ExecuteChartCommand] Calling api.hideIndicator with ID:",
-        params.id
-      );
-      console.log(
-        "[ExecuteChartCommand] api.hideIndicator exists?",
-        typeof api.hideIndicator
-      );
       if (api.hideIndicator) {
         api.hideIndicator(params.id);
-        console.log(
-          "[ExecuteChartCommand] api.hideIndicator called successfully"
-        );
-      } else {
-        console.error(
-          "[ExecuteChartCommand] api.hideIndicator is not available!"
-        );
+        } else {
         throw new Error("Chart API hideIndicator method not available");
       }
       return { indicator: params.id, visible: false };

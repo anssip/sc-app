@@ -73,7 +73,7 @@ export class Repository implements IRepository {
       this.setupRealtimeListeners();
 
       this.isInitialized = true;
-    } catch (error) {
+      } catch (error) {
       throw new RepositoryError(
         "Failed to initialize repository",
         "INIT_ERROR",
@@ -500,7 +500,8 @@ export class Repository implements IRepository {
     await this.updateSettings({
       activeLayoutId: layoutId,
     });
-  }
+
+    }
 
   // General repository methods
   async sync(): Promise<void> {
@@ -516,7 +517,8 @@ export class Repository implements IRepository {
           await syncOperation();
         }
       }
-    } catch (error) {
+
+      } catch (error) {
       throw new NetworkError("Sync failed", error);
     } finally {
       this.isSyncing = false;
@@ -561,7 +563,9 @@ export class Repository implements IRepository {
         // Extract and cache charts from the layout
         this.extractAndCacheCharts(layout.layout);
       });
-    } catch (error) {}
+
+      } catch (error) {
+      }
   }
 
   private async loadSymbols(): Promise<void> {
@@ -621,10 +625,6 @@ export class Repository implements IRepository {
 
                 return symbol;
               } catch (productError) {
-                console.error(
-                  `Error processing symbol ${productDoc.id}:`,
-                  productError
-                );
                 return null;
               }
             }
@@ -632,18 +632,32 @@ export class Repository implements IRepository {
 
           // Wait for all symbol processing to complete
           await Promise.all(symbolPromises);
-        } catch (exchangeError) {
-          console.error(
-            `Error processing exchange ${exchangeId}:`,
-            exchangeError
-          );
-        }
+
+          } catch (exchangeError) {
+          }
       }
+
+      const totalSymbols = this.symbolsCache.size;
+      const activeSymbols = Array.from(this.symbolsCache.values()).filter(
+        (s) => s.active
+      ).length;
+      const usdSymbols = Array.from(this.symbolsCache.values()).filter(
+        (s) => s.quoteAsset === "USD"
+      ).length;
+      const activeUsdSymbols = Array.from(this.symbolsCache.values()).filter(
+        (s) => s.active && s.quoteAsset === "USD"
+      ).length;
+
+      // Show some sample symbols for debugging
+      const sampleSymbols = Array.from(this.symbolsCache.values()).slice(0, 5);
+      console.log(
+        "Repository.loadSymbols: Sample symbols:",
+        sampleSymbols.map((s) => `${s.symbol} (active: ${s.active})`)
+      );
     } catch (error) {
       // Log the specific error details
       if (error instanceof Error) {
-        console.error(`Error loading symbols:`, error);
-      }
+        }
     }
   }
 
@@ -663,9 +677,9 @@ export class Repository implements IRepository {
           defaultSymbol: "BTC-USD",
         };
       }
-    } catch (error) {
-      console.error(`Error loading user settings:`, error);
-    }
+
+      } catch (error) {
+      }
   }
 
   private setupRealtimeListeners(): void {
@@ -696,7 +710,6 @@ export class Repository implements IRepository {
       },
       (error) => {
         // Don't throw - just log the error to prevent uncaught promise rejections
-        console.error(`Error loading layouts:`, error);
       }
     );
 
@@ -719,7 +732,6 @@ export class Repository implements IRepository {
       },
       (error) => {
         // Don't throw - just log the error to prevent uncaught promise rejections
-        console.error(`Error loading charts:`, error);
       }
     );
 
@@ -746,8 +758,7 @@ export class Repository implements IRepository {
       try {
         callback(event);
       } catch (error) {
-        console.error(`Error emitting event:`, error);
-      }
+        }
     });
   }
 
@@ -1008,36 +1019,33 @@ export class Repository implements IRepository {
   // Layout-specific starred symbols
   async getLayoutStarredSymbols(layoutId: string): Promise<string[]> {
     this.ensureInitialized();
-
+    
     const layout = await this.getLayout(layoutId);
     if (!layout) {
       return [];
     }
-
+    
     return layout.starredSymbols || [];
   }
 
-  async updateLayoutStarredSymbols(
-    layoutId: string,
-    symbols: string[]
-  ): Promise<void> {
+  async updateLayoutStarredSymbols(layoutId: string, symbols: string[]): Promise<void> {
     this.ensureInitialized();
-
+    
     const layout = await this.getLayout(layoutId);
     if (!layout) {
       throw new RepositoryError("Layout not found", "NOT_FOUND", { layoutId });
     }
-
+    
     // Update the layout with the new starred symbols
     await this.updateLayout(layoutId, {
-      starredSymbols: symbols,
+      starredSymbols: symbols
     });
   }
 
   // Trend Line Management - stored under charts
   async getTrendLines(layoutId: string, chartId: string): Promise<TrendLine[]> {
     this.ensureInitialized();
-
+    
     try {
       const trendLinesRef = collection(
         db,
@@ -1049,18 +1057,18 @@ export class Repository implements IRepository {
         chartId,
         "trendLines"
       );
-
+      
       const snapshot = await getDocs(trendLinesRef);
       const trendLines: TrendLine[] = [];
-
+      
       snapshot.forEach((doc) => {
         const data = doc.data();
         trendLines.push({
           id: doc.id,
-          ...data,
+          ...data
         } as TrendLine);
       });
-
+      
       return trendLines;
     } catch (error) {
       throw new RepositoryError(
@@ -1070,14 +1078,10 @@ export class Repository implements IRepository {
       );
     }
   }
-
-  async saveTrendLine(
-    layoutId: string,
-    chartId: string,
-    trendLine: TrendLine
-  ): Promise<void> {
+  
+  async saveTrendLine(layoutId: string, chartId: string, trendLine: TrendLine): Promise<void> {
     this.ensureInitialized();
-
+    
     try {
       const trendLineRef = doc(
         db,
@@ -1090,7 +1094,7 @@ export class Repository implements IRepository {
         "trendLines",
         trendLine.id
       );
-
+      
       await setDoc(trendLineRef, trendLine);
     } catch (error) {
       throw new RepositoryError(
@@ -1100,15 +1104,10 @@ export class Repository implements IRepository {
       );
     }
   }
-
-  async updateTrendLine(
-    layoutId: string,
-    chartId: string,
-    trendLineId: string,
-    updates: Partial<TrendLine>
-  ): Promise<void> {
+  
+  async updateTrendLine(layoutId: string, chartId: string, trendLineId: string, updates: Partial<TrendLine>): Promise<void> {
     this.ensureInitialized();
-
+    
     try {
       const trendLineRef = doc(
         db,
@@ -1121,7 +1120,7 @@ export class Repository implements IRepository {
         "trendLines",
         trendLineId
       );
-
+      
       await updateDoc(trendLineRef, updates);
     } catch (error) {
       throw new RepositoryError(
@@ -1131,14 +1130,10 @@ export class Repository implements IRepository {
       );
     }
   }
-
-  async deleteTrendLine(
-    layoutId: string,
-    chartId: string,
-    trendLineId: string
-  ): Promise<void> {
+  
+  async deleteTrendLine(layoutId: string, chartId: string, trendLineId: string): Promise<void> {
     this.ensureInitialized();
-
+    
     try {
       const trendLineRef = doc(
         db,
@@ -1151,7 +1146,7 @@ export class Repository implements IRepository {
         "trendLines",
         trendLineId
       );
-
+      
       await deleteDoc(trendLineRef);
     } catch (error) {
       throw new RepositoryError(

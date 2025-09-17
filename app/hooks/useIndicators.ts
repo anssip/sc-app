@@ -49,8 +49,6 @@ export const useIndicators = (firestore?: Firestore): UseIndicatorsReturn => {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to load indicators";
       setError(errorMessage);
-      console.error("Error loading indicators:", err);
-
       // Use fallback indicators when Firestore fails
       const fallbackIndicators: IndicatorConfig[] = [
         {
