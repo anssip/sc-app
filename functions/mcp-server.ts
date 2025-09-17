@@ -224,6 +224,7 @@ app.post(
             timestamp: FieldValue.serverTimestamp(),
             status: "pending",
             sessionId: sessionId || "default",
+            targetChartId: chartId || "default",
           });
 
           commandsExecuted.push({

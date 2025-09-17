@@ -21,7 +21,7 @@ echo "Copying manual content files..."
 cp -r app/content/manual functions/app/content/ 2>/dev/null || true
 
 # Copy the local sc-charts package to functions
-echo "Copying sc-charts package..."
+echo "Copying rc-charts package..."
 mkdir -p functions/rs-charts
 cp -r ../rs-charts/* functions/rs-charts/ 2>/dev/null || true
 

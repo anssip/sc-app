@@ -89,10 +89,12 @@ export function useChartCommands(userId: string | undefined, chartApi: any, acti
 }
 
 async function executeChartCommand(
-  api: any,
+  apiWrapper: any,
   command: string,
   params: any
 ): Promise<any> {
+  // The actual ChartApi is nested in the api property
+  const api = apiWrapper.api || apiWrapper;
 
   switch (command) {
     case "set_symbol":
@@ -100,8 +102,10 @@ async function executeChartCommand(
       return { symbol: params.symbol };
 
     case "set_granularity":
-      // Use the SCChart's setGranularity method if available, which updates both the chart and context
-      if (api.setGranularity) {
+      // Use the wrapper's setGranularity method if available (for SCChart), otherwise use the api's method
+      if (apiWrapper.setGranularity) {
+        await apiWrapper.setGranularity(params.granularity);
+      } else if (api.setGranularity) {
         await api.setGranularity(params.granularity);
       }
       return { granularity: params.granularity };
@@ -129,6 +133,11 @@ async function executeChartCommand(
           }. Valid IDs are: ${validIndicatorIds.join(", ")}`
         );
       }
+
+      if (!api.showIndicator) {
+        throw new Error(`api.showIndicator is not a function`);
+      }
+
       api.showIndicator({
         id: params.id,
         name: params.name,

@@ -40,7 +40,7 @@ const MarkdownComponents = {
     <h3 className="text-base font-semibold mb-2 mt-4 first:mt-0" {...props}>{children}</h3>
   ),
   p: ({ children, ...props }: any) => (
-    <p className="mb-2 leading-relaxed break-all overflow-hidden" {...props}>{children}</p>
+    <p className="mb-2 leading-relaxed break-words overflow-hidden" {...props}>{children}</p>
   ),
   ul: ({ children, ...props }: any) => (
     <ul className="list-disc list-inside mb-2 mt-2 space-y-1.5 ml-2" {...props}>{children}</ul>
