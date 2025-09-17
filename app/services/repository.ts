@@ -570,6 +570,7 @@ export class Repository implements IRepository {
           createdAt: data.createdAt.toDate(),
           updatedAt: data.updatedAt.toDate(),
           starredSymbols: data.starredSymbols || [],
+          showAIAssistant: data.showAIAssistant, // Include the AI assistant visibility state
         };
         this.layoutsCache.set(doc.id, layout);
 
@@ -742,6 +743,7 @@ export class Repository implements IRepository {
             createdAt: data.createdAt.toDate(),
             updatedAt: data.updatedAt.toDate(),
             starredSymbols: data.starredSymbols || [],
+            showAIAssistant: data.showAIAssistant, // Include the AI assistant visibility state
           };
 
           if (change.type === "added" || change.type === "modified") {

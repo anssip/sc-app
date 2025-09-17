@@ -521,7 +521,7 @@ export const ChartApp: React.FC<ChartAppProps> = ({
                 <Panel defaultSize={25} minSize={15} maxSize={40}>
                   <div className="h-full overflow-hidden">
                     <AIChatPanel
-                      onClose={() => setShowAIChat(false)}
+                      onClose={handleToggleAIChat}
                       chartApi={chartApi}
                     />
                   </div>
