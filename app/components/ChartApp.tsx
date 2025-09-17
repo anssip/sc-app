@@ -108,7 +108,7 @@ export const ChartApp: React.FC<ChartAppProps> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'A') {
         e.preventDefault();
-        setShowAIChat(prev => !prev);
+        handleToggleAIChat();
       }
     };
 
@@ -124,8 +124,11 @@ export const ChartApp: React.FC<ChartAppProps> = ({
     // For anonymous preview, immediately use default layout without waiting for repository
     if (isAnonymousPreview && !isInitialized) {
       console.log("Anonymous preview mode - using default layout");
-      setCurrentLayout(createDefaultLayout());
+      const defaultLayout = createDefaultLayout();
+      setCurrentLayout(defaultLayout);
       setCurrentLayoutId(null);
+      // Default: show AI assistant for single-chart layouts
+      setShowAIChat(defaultLayout.type === 'chart');
       setIsInitialized(true);
       return;
     }
@@ -167,6 +170,15 @@ export const ChartApp: React.FC<ChartAppProps> = ({
             );
             setCurrentLayout(panelLayout);
             setCurrentLayoutId(activeLayout.id);
+
+            // Set AI assistant visibility from saved state or use defaults
+            if (activeLayout.showAIAssistant !== undefined) {
+              setShowAIChat(activeLayout.showAIAssistant);
+            } else {
+              // Default: show for single-chart layouts, hide for multi-chart
+              setShowAIChat(activeLayout.layout.type === 'chart');
+            }
+
             setIsInitialized(true);
           } catch (error) {
             console.error("Error loading active layout:", error);
@@ -190,9 +202,11 @@ export const ChartApp: React.FC<ChartAppProps> = ({
     }
 
     // Fallback to default single chart layout
-
-    setCurrentLayout(createDefaultLayout());
+    const defaultLayout = createDefaultLayout();
+    setCurrentLayout(defaultLayout);
     setCurrentLayoutId(null);
+    // Default: show AI assistant for single-chart layouts
+    setShowAIChat(defaultLayout.type === 'chart');
     setIsInitialized(true);
   }, [
     repoLoading,
@@ -272,21 +286,53 @@ export const ChartApp: React.FC<ChartAppProps> = ({
     [currentLayoutId, autoSaveLayout, user]
   );
 
+  // Handle AI assistant toggle and save state
+  const handleToggleAIChat = useCallback(async () => {
+    const newState = !showAIChat;
+    setShowAIChat(newState);
+
+    // Save the new state to Firestore if we have a saved layout
+    if (currentLayoutId && user) {
+      try {
+        await updateLayout(currentLayoutId, {
+          showAIAssistant: newState
+        });
+      } catch (error) {
+        console.error("Failed to save AI assistant state:", error);
+      }
+    }
+  }, [showAIChat, currentLayoutId, user, updateLayout]);
+
   // Handle layout selection from LayoutSelector
   const handleLayoutSelection = useCallback(
     async (layout: PanelLayout, layoutId?: string) => {
       setCurrentLayout(layout);
       setCurrentLayoutId(layoutId || null);
 
-      // If switching to an unsaved layout (no layoutId), clear active layout
-      if (!layoutId) {
+      // If switching to a saved layout, load AI assistant state
+      if (layoutId && layouts) {
+        const savedLayout = layouts.find(l => l.id === layoutId);
+        if (savedLayout) {
+          // Set AI assistant visibility from saved state or use defaults
+          if (savedLayout.showAIAssistant !== undefined) {
+            setShowAIChat(savedLayout.showAIAssistant);
+          } else {
+            // Default: show for single-chart layouts, hide for multi-chart
+            setShowAIChat(savedLayout.layout.type === 'chart');
+          }
+        }
+      } else if (!layoutId) {
+        // For unsaved layouts, use default based on layout type
+        setShowAIChat(layout.type === 'chart');
+
+        // Clear active layout
         try {
           await setActiveLayout(null);
         } catch (error) {}
       }
       // Note: Setting active layout when selecting a saved layout is handled in LayoutSelector
     },
-    [setActiveLayout]
+    [setActiveLayout, layouts]
   );
 
   // Cleanup timeout on unmount
@@ -426,7 +472,7 @@ export const ChartApp: React.FC<ChartAppProps> = ({
           previewStartTime={previewStartTime}
           onPreviewExpire={() => window.location.reload()}
           showAIChat={showAIChat}
-          onToggleAIChat={() => setShowAIChat(prev => !prev)}
+          onToggleAIChat={handleToggleAIChat}
         />
 
         {/* Chart Panel with AI Chat */}

@@ -76,6 +76,7 @@ export interface SavedLayout {
   updatedAt: Date;
   layout: LayoutNode;
   starredSymbols?: string[]; // Array of symbol strings for this layout
+  showAIAssistant?: boolean; // Whether the AI assistant panel is shown for this layout
 }
 
 // Symbol/Product information
