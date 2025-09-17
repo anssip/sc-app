@@ -9,6 +9,7 @@ import { ChatHistoryModal } from './ChatHistoryModal';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Menu, Transition } from '@headlessui/react';
+import { ToolbarButton, ToolbarDropdownButton } from './ToolbarButton';
 
 interface Message {
   id: string;
@@ -366,7 +367,7 @@ export function AIChatPanel({
         </div>
         <div className="flex items-center gap-2">
           {/* New Chat Button */}
-          <button
+          <ToolbarButton
             onClick={() => {
               // If we have messages in the current session, add it to the recent sessions
               if (messages.length > 0 && currentSessionId) {
@@ -395,17 +396,17 @@ export function AIChatPanel({
                 });
               }, 500);
             }}
-            className="p-1.5 bg-blue-600 hover:bg-blue-700 rounded transition-colors"
             title="Start new chat"
-            aria-label="Start new chat"
+            variant="default"
+            active={true}
           >
-            <Plus className="w-4 h-4" />
-          </button>
+            <Plus className="w-3 h-3" />
+          </ToolbarButton>
 
           {/* Chat History Dropdown */}
           <Menu as="div" className="relative">
-            <Menu.Button className="p-1.5 hover:bg-gray-800 rounded transition-colors flex items-center gap-1">
-              <MessageCircle className="w-4 h-4" />
+            <Menu.Button as={ToolbarDropdownButton}>
+              <MessageCircle className="w-3 h-3" />
               <ChevronDown className="w-3 h-3" />
             </Menu.Button>
 
@@ -502,13 +503,12 @@ export function AIChatPanel({
             </Transition>
           </Menu>
 
-          <button
+          <ToolbarButton
             onClick={onClose}
-            className="p-1 hover:bg-gray-800 rounded transition-colors"
-            aria-label="Close AI panel"
+            title="Close AI panel"
           >
-            <X className="w-5 h-5" />
-          </button>
+            <X className="w-4 h-4" />
+          </ToolbarButton>
         </div>
       </div>
 
@@ -580,14 +580,15 @@ export function AIChatPanel({
             rows={1}
             disabled={isLoading || !user}
           />
-          <button
-            onClick={handleSend}
+          <ToolbarButton
+            onClick={() => handleSend()}
             disabled={!inputValue.trim() || isLoading || !user}
-            className="p-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg transition-colors"
-            aria-label="Send message"
+            title="Send message"
+            active={true}
+            className="!w-[40px] !h-[40px] !p-0"
           >
-            <Send className="w-5 h-5" />
-          </button>
+            <Send className="w-4 h-4" />
+          </ToolbarButton>
         </div>
         {!user && (
           <p className="text-xs text-gray-400 mt-2">

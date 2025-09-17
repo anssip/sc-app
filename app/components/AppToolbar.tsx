@@ -3,6 +3,7 @@ import { LayoutSelector } from './LayoutSelector'
 import AccountMenu from './AccountMenu'
 import PreviewTimer from './PreviewTimer'
 import { Bot } from 'lucide-react'
+import { ToolbarButton } from './ToolbarButton'
 import type { PanelLayout } from './ChartPanel'
 import type { Repository } from '~/services/repository'
 
@@ -77,18 +78,13 @@ export const AppToolbar: React.FC<AppToolbarProps> = ({
         {/* Right side - AI Chat Toggle and Layout Selector */}
         <div className="flex items-center gap-2">
           {/* AI Chat Toggle - Show even if no callback for better visibility */}
-          <button
+          <ToolbarButton
             onClick={onToggleAIChat || (() => console.log('AI Chat toggle not connected'))}
-            className={`p-2 rounded-lg transition-colors ${
-              showAIChat 
-                ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white'
-            }`}
+            active={showAIChat}
             title={showAIChat ? 'Close AI Assistant' : 'Open AI Assistant (Cmd/Ctrl + Shift + A)'}
-            aria-label={showAIChat ? 'Close AI Assistant' : 'Open AI Assistant'}
           >
-            <Bot className="w-5 h-5" />
-          </button>
+            <Bot className="w-4 h-4" />
+          </ToolbarButton>
 
           {/* Layout Selector */}
           {currentLayout && (
