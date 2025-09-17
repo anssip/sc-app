@@ -188,6 +188,11 @@ export class Repository implements IRepository {
         updateData.starredSymbols = updates.starredSymbols;
       }
 
+      // Include showAIAssistant if it's provided
+      if (updates.showAIAssistant !== undefined) {
+        updateData.showAIAssistant = updates.showAIAssistant;
+      }
+
       await updateDoc(layoutRef, updateData);
     });
 

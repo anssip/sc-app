@@ -172,6 +172,13 @@ export const ChartApp: React.FC<ChartAppProps> = ({
             setCurrentLayoutId(activeLayout.id);
 
             // Set AI assistant visibility from saved state or use defaults
+            console.log("[AI Assistant] Loading layout:", {
+              layoutId: activeLayout.id,
+              savedState: activeLayout.showAIAssistant,
+              layoutType: activeLayout.layout.type,
+              willShow: activeLayout.showAIAssistant !== undefined ? activeLayout.showAIAssistant : activeLayout.layout.type === 'chart'
+            });
+
             if (activeLayout.showAIAssistant !== undefined) {
               setShowAIChat(activeLayout.showAIAssistant);
             } else {
@@ -291,15 +298,26 @@ export const ChartApp: React.FC<ChartAppProps> = ({
     const newState = !showAIChat;
     setShowAIChat(newState);
 
+    console.log("[AI Assistant Toggle]", {
+      newState,
+      currentLayoutId,
+      hasUser: !!user,
+      currentLayout: currentLayout?.type
+    });
+
     // Save the new state to Firestore if we have a saved layout
     if (currentLayoutId && user) {
       try {
+        console.log("[AI Assistant] Saving state to Firestore:", { layoutId: currentLayoutId, showAIAssistant: newState });
         await updateLayout(currentLayoutId, {
           showAIAssistant: newState
         });
+        console.log("[AI Assistant] State saved successfully");
       } catch (error) {
         console.error("Failed to save AI assistant state:", error);
       }
+    } else {
+      console.log("[AI Assistant] Not saving:", { reason: !currentLayoutId ? "No layout ID" : "No user" });
     }
   }, [showAIChat, currentLayoutId, user, updateLayout]);
 
@@ -313,6 +331,13 @@ export const ChartApp: React.FC<ChartAppProps> = ({
       if (layoutId && layouts) {
         const savedLayout = layouts.find(l => l.id === layoutId);
         if (savedLayout) {
+          console.log("[AI Assistant] Switching to layout:", {
+            layoutId: savedLayout.id,
+            savedState: savedLayout.showAIAssistant,
+            layoutType: savedLayout.layout.type,
+            willShow: savedLayout.showAIAssistant !== undefined ? savedLayout.showAIAssistant : savedLayout.layout.type === 'chart'
+          });
+
           // Set AI assistant visibility from saved state or use defaults
           if (savedLayout.showAIAssistant !== undefined) {
             setShowAIChat(savedLayout.showAIAssistant);
