@@ -39,3 +39,6 @@ export const remix = onRequest(
 
 // Export MCP server from TypeScript build
 export { mcpServer } from "./dist/mcp-server.js";
+
+// Export scheduled functions for usage billing
+export { processUsageBilling, triggerUsageBilling } from "./dist/scheduled-usage-billing.js";

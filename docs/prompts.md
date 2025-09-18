@@ -402,3 +402,9 @@ The "get_support_resistance_levels" should also make the chart show the indicato
 Enhance the support/resistance levels line drawing according to docs/FRONTEND_VISUAL_GUIDE.md which describes how
   the levels returned by market API /levels endpoing should be visualized. This app has a AI Assistance that has a
   tool that uses the /levels endpoint and then draws lines to the chart based on the returned data.
+
+# AI Usage tokens
+
+Store the OpenAI API tokens consumed using the AI Assistant in Firestore. Save usage records in Firestore as a subcollection in path `subscriptions/<subscription_id>/usage/<chat-session-id>`. Initially the usage records should be in status "pending". There can be one record that accumulates the usage of one chat session. We can initiate the usage saving from backend module openai-service.ts but let's encaplusate the logic to a new usage-service.ts backend module.
+
+Once there are enough pending usage records whose total quantity exceeds one million (1 000 000) we should record the usage to the billing API using it's endpoint - see docs/API_DOCS.md and section "Record Usage" for details. The quantity to be sent to this endpoint should be the accumulated pending quantity in total divided by 1000. Once successfully recorded with the billing API, update the pending records in Firestore to status "recorded".

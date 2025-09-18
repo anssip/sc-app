@@ -3,6 +3,7 @@ import express, { Request, Response } from "express";
 import cors from "cors";
 import { getFirestore, FieldValue, Firestore } from "firebase-admin/firestore";
 import { initializeApp, getApps } from "firebase-admin/app";
+import { createUsageService } from "./lib/usage-service.js";
 
 // Initialize Firebase Admin
 if (getApps().length === 0) {
@@ -58,6 +59,8 @@ interface ProcessChatOptions {
   message: string;
   userId: string;
   sessionId: string;
+  subscriptionId?: string | null;
+  isPreview?: boolean;
   chartContext?: any;
   db: Firestore;
   onStream: (chunk: string) => void;
@@ -152,6 +155,35 @@ app.post(
         return;
       }
 
+      // Get user's subscription and preview status
+      const usageService = createUsageService(db);
+      const subscriptionId = await usageService.getUserSubscriptionId(userId);
+      let isPreview = false;
+
+      // If no subscription, check if user is in preview period
+      if (!subscriptionId) {
+        isPreview = await usageService.isUserInPreview(userId);
+
+        if (!isPreview) {
+          // Check if this is their first request - start preview
+          const userDoc = await db.collection("users").doc(userId).get();
+          if (!userDoc.exists || !userDoc.data()?.previewStartTime) {
+            await usageService.startPreview(userId);
+            isPreview = true;
+            console.log(`Started preview period for user ${userId}`);
+          } else {
+            // Preview has expired
+            res.status(403).json({
+              error: "Preview period has expired. Please subscribe to continue using the AI assistant.",
+              requiresSubscription: true,
+            });
+            return;
+          }
+        }
+      }
+
+      console.log(`Processing chat for user ${userId}: subscription=${subscriptionId}, preview=${isPreview}`);
+
       // Set up SSE for streaming responses
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
@@ -203,6 +235,8 @@ app.post(
         message,
         userId,
         sessionId: sessionId || "default",
+        subscriptionId,
+        isPreview,
         chartContext,
         db,
         onStream: (chunk: string) => {
