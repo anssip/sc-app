@@ -54,7 +54,7 @@ export default function AccountMenu() {
 
       {/* Dropdown menu */}
       {isOpen && (
-        <div className="absolute left-0 right-0 sm:left-auto sm:right-0 mt-2 mx-4 sm:mx-0 sm:w-80 bg-black/95 backdrop-blur-sm border border-gray-800 rounded-lg shadow-xl z-[350]">
+        <div className="absolute left-0 right-0 sm:left-auto sm:right-0 mt-2 mx-4 sm:mx-0 sm:w-80 bg-black/95 backdrop-blur-sm border border-gray-800 rounded-lg shadow-xl z-[9999]">
           {user ? (
             // Signed-in menu
             <div className="p-4">
