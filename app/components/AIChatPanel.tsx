@@ -385,7 +385,7 @@ export function AIChatPanel({
           </ToolbarButton>
 
           {/* Chat History Dropdown */}
-          <Menu as="div" className="relative">
+          <Menu as="div" className="static">
             <Menu.Button as={ToolbarDropdownButton}>
               <MessageCircle className="w-3 h-3" />
               <ChevronDown className="w-3 h-3" />
@@ -400,7 +400,7 @@ export function AIChatPanel({
               leaveFrom="transform opacity-100 scale-100"
               leaveTo="transform opacity-0 scale-95"
             >
-              <Menu.Items className="absolute right-0 mt-2 w-64 bg-black border border-gray-700 rounded-md shadow-lg z-[350]">
+              <Menu.Items className="absolute right-4 mt-2 w-64 bg-black border border-gray-700 rounded-md shadow-lg z-[9999]">
                 <div className="py-1">
                   {loadingSessions ? (
                     <div className="px-4 py-3 text-center text-gray-400">
