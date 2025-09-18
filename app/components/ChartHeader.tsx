@@ -56,7 +56,7 @@ export const ChartHeader: React.FC<ChartHeaderProps> = ({
 
   return (
     <div
-      className={`flex items-center justify-between px-4 relative z-[100] overflow-visible transition-all duration-200 ${
+      className={`flex items-center justify-between px-4 relative overflow-visible transition-all duration-200 ${
         isActive ? "bg-gray-800 py-2 border-b border-green-500/50" : "py-1"
       }`}
       onClick={isActive ? (e) => e.stopPropagation() : undefined}
