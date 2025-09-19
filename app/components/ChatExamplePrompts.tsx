@@ -56,7 +56,7 @@ export function ChatExamplePrompts({
       <div className="flex-1 flex flex-col items-center justify-center p-6">
         <Bot className="w-12 h-12 text-gray-400 mb-4" />
         <h3 className="text-lg font-semibold text-white mb-2">
-          Ask me about the chart, or ask me to analyze it.
+          Ask me about the chart, or ask me to change the chart!
         </h3>
         <p className="text-sm text-gray-400 mb-6">
           Click on a suggestion to get started

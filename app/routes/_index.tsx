@@ -10,7 +10,7 @@ import FeatureCard from "~/components/FeatureCard";
 import Footer from "~/components/Footer";
 import { getCacheHeaders, CacheProfiles } from "~/lib/cache.server";
 import { getFeaturedBlogPost } from "~/lib/blog.server";
-import { BarChart3, Code2, Smartphone } from "lucide-react";
+import { BarChart3, Code2, Smartphone, Bot, GraduationCap } from "lucide-react";
 
 export const loader: LoaderFunction = async () => {
   const featuredPost = await getFeaturedBlogPost();
@@ -305,7 +305,19 @@ export default function Index() {
               and traders.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <FeatureCard
+              title="AI-Powered Chart Assistant"
+              description="Control your charts with natural language. Ask for support/resistance levels, enable indicators, switch timeframes - all through conversation with our AI powered assistant."
+              timeline="Available"
+              icon={<Bot className="w-6 h-6" />}
+            />
+            <FeatureCard
+              title="Learn Trading with AI Tutor"
+              description="Your personal trading mentor available 24/7. Ask 'What does this pattern mean?' or 'Explain RSI divergence' and get instant, contextual explanations right on your chart."
+              timeline="Available"
+              icon={<GraduationCap className="w-6 h-6" />}
+            />
             <FeatureCard
               title="Technical Analysis & Indicators"
               description="Analyze markets with essential drawing tools and prebuilt indicators."
@@ -317,13 +329,6 @@ export default function Index() {
               description="Arrange several charts in a single layout to compare and analyze market trends. Save your favorite layouts for quick access at any time."
               timeline="Available"
               icon={<Code2 className="w-6 h-6" />}
-            />
-            <FeatureCard
-              title="Clear UX on both desktops and mobile"
-              description="Our user experience is optimized for both desktop and mobile - mobile UX is a priority for us."
-              timeline="Available"
-              icon={<Smartphone className="w-6 h-6" />}
-              backgroundImage="/phone2.png"
             />
           </div>
           <div className="flex justify-center mt-12">
@@ -364,9 +369,25 @@ export default function Index() {
 const faqItems = [
   {
     question: "What's unique about Spot Canvas?",
-    answer: `We have just gotten started with our journey to revolutionize the financial tooling. Our focus in cryptocurrencies trading and we are offering intuitive, easy-to-se use tools for this purpose. In the next phases we plan
-      to provide insights derived from the blockhains directly to the charts. AI-powered insights and predictions are obviously in the focus too.
-      `,
+    answer: (
+      <>
+        We have just gotten started with our journey to revolutionize the
+        financial tooling. Our focus in cryptocurrencies trading and we are
+        offering intuitive, easy-to-use tools for this purpose. In the next
+        phases we plan to provide insights derived from the blockchains directly
+        to the charts.{" "}
+        <span className="text-pricing-green font-semibold">
+          We have an industry-first AI Assistant that is tightly integrated with
+          the chart and uses real live market data.
+        </span>{" "}
+        You can control the chart using the AI Assistant. You can ask questions
+        about the market, get insights, and make informed decisions.
+      </>
+    ),
+  },
+  {
+    question: "How can I learn more about Spot Canvas?",
+    answer: `You can ask our AI Assistant questions about Spot Canvas and about technical analysis. The Assistant is a great trading and technical analysis teacher.`,
   },
   {
     question: "How does customer support work?",
@@ -380,8 +401,21 @@ const faqItems = [
   },
   {
     question: "What's the development roadmap?",
-    answer:
-      "Our roadmap includes: Q3-Q4/2025 - Blockchain Insights in the charts, Q1/2026 - Scriptable indicators, Q2/2026 - AI-powered market analysis and predictions",
+    answer: (
+      <>
+        Our AI-powered roadmap for 2025-2026 includes: Pattern Recognition
+        (head-and-shoulders, triangles, flags), Multi-Timeframe Analysis,
+        Risk/Reward Analysis with stop-loss suggestions, Strategy Backtesting,
+        Interactive Tutor Mode for learning TA, and Script Generator for custom
+        indicators.{" "}
+        <Link
+          to="/features#road-ahead"
+          className="text-pricing-green hover:underline inline-flex items-center"
+        >
+          View the complete roadmap on our features page →
+        </Link>
+      </>
+    ),
   },
   {
     question: "How do I change my plan?",

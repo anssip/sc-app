@@ -144,7 +144,15 @@ const FeatureCard = ({
       <ul className="list-disc pl-6 space-y-2 text-gray-400">
         {items.map((it) => (
           <li key={it.label}>
-            <span className="text-pricing-green font-semibold">{it.label}</span>{" "}
+            <span
+              className={`font-semibold ${
+                it.label === "Availability"
+                  ? "text-[var(--color-primary)]"
+                  : "text-pricing-green"
+              }`}
+            >
+              {it.label}
+            </span>{" "}
             - {it.desc}
           </li>
         ))}
@@ -184,6 +192,7 @@ const Features = () => {
 
   // Using local screenshots from public folder
   const IMAGES = {
+    aiAssistant: "/screenshots/ai-assistant-analysis.png",
     multi: "/screenshots/multi-chart-layouts.png",
     symbols: "/screenshots/symbol-manager.png",
     trend: "/screenshots/trend-lines.png",
@@ -223,6 +232,54 @@ const Features = () => {
 
       <main className="container mx-auto px-4 pb-16">
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+          <FeatureCard
+            title="AI-Powered Chart Assistant"
+            src={IMAGES.aiAssistant}
+            alt="SpotCanvas AI Assistant analyzing BTC-USD with automated support and resistance levels"
+            items={[
+              {
+                label: "Natural Language Control",
+                desc: "Simply ask to change symbols, timeframes, or add indicators - no clicking required",
+              },
+              {
+                label: "Automated Technical Analysis",
+                desc: "Instant detection of support/resistance levels with confidence scores and visual markers",
+              },
+              {
+                label: "Smart Pattern Recognition",
+                desc: "AI identifies spike levels, swing points, and consolidation zones automatically",
+              },
+              {
+                label: "Real-Time Trading Insights",
+                desc: "Get professional analysis and trading suggestions based on current chart data",
+              },
+              {
+                label: "Dual Analysis Methods",
+                desc: "Fast API-based levels or deep AI-powered trend line analysis on demand",
+              },
+              {
+                label: "Interactive Chart Commands",
+                desc: "Draw trend lines, enable indicators, switch granularities - all through conversation",
+              },
+              {
+                label: "GPT-5 Powered Intelligence",
+                desc: "Latest AI model provides accurate, context-aware responses to complex queries",
+              },
+              {
+                label: "Historical Data Analysis",
+                desc: "Analyze price movements across any timeframe with intelligent suggestions",
+              },
+              {
+                label: "Visual Confidence Indicators",
+                desc: "Line thickness, style, and markers show strength of identified levels at a glance",
+              },
+              {
+                label: "One-Click Examples",
+                desc: "Pre-built prompts help you discover the assistant's full capabilities instantly",
+              },
+            ]}
+          />
+
           <FeatureCard
             title="Multi-Chart Layout Management"
             src={IMAGES.layouts}
@@ -406,73 +463,59 @@ const Features = () => {
             ]}
           />
 
-          <FeatureCard
-            title="Platform Integration"
-            src={IMAGES.homeHero}
-            alt="SpotCanvas platform integration background hero"
-            items={[
-              {
-                label: "Chart API",
-                desc: "Programmatic control for external applications (coming soon)",
-              },
-              {
-                label: "TypeScript Support",
-                desc: "Full type definitions for developers (coming soon)",
-              },
-              {
-                label: "Event System",
-                desc: "Real-time notifications for state changes (coming soon)",
-              },
-              {
-                label: "React Components",
-                desc: "Ready-to-use components for integration (coming soon)",
-              },
-            ]}
-          />
-
-          <FeatureCard
-            title="🚀 The Road Ahead: Blockchain Data Overlays and more"
-            src={IMAGES.blockchain}
-            alt="Abstract blockchain network illustration for SpotCanvas roadmap"
-            items={[
-              {
-                label: "Multi-Asset Comparison",
-                desc: "Compare multiple cryptocurrencies side-by-side",
-              },
-              {
-                label: "Price Alerts",
-                desc: "Set notifications for price movements",
-              },
-              {
-                label: "Pattern Recognition",
-                desc: "Identify chart patterns automatically",
-              },
-              {
-                label: "Strategy Backtesting",
-                desc: "Test trading strategies on historical data",
-              },
-              {
-                label: "Export Capabilities",
-                desc: "Export chart images and data",
-              },
-              {
-                label: "Custom Indicators",
-                desc: "Create and save custom technical indicators",
-              },
-              {
-                label: "Watchlists",
-                desc: "Organize symbols into custom watchlists",
-              },
-              {
-                label: "Notes & Annotations",
-                desc: "Add text annotations to charts",
-              },
-              {
-                label: "Availability",
-                desc: "Planned availability during 2026",
-              },
-            ]}
-          />
+          <div id="road-ahead">
+            <FeatureCard
+              title="🚀 The Road Ahead: More AI-Assisted Features"
+              src={IMAGES.blockchain}
+              alt="Abstract blockchain network illustration for SpotCanvas roadmap"
+              items={[
+                {
+                  label: "Pattern Recognition",
+                  desc: "Detect head-and-shoulders, triangles, flags, wedges, double tops/bottoms and highlight them on the chart with drawn trendlines/boxes",
+                },
+                {
+                  label: "Indicator Explanations",
+                  desc: "Ask 'What's RSI telling me here?' and AI fetches RSI data, explains whether it's overbought/oversold, and adds context",
+                },
+                {
+                  label: "Multi-Timeframe Analysis",
+                  desc: "AI compares signals from daily vs hourly charts and can summarize across timeframes (e.g., short-term bullish, long-term bearish)",
+                },
+                {
+                  label: "Event Annotations",
+                  desc: "Automatically marks large price gaps, volatility spikes, or indicator crossovers and explains their trading significance",
+                },
+                {
+                  label: "Risk/Reward Analysis",
+                  desc: "Suggests stop-loss and take-profit levels based on chart context - 'If I enter at $2100 ETH, where should I set stops?'",
+                },
+                {
+                  label: "Scenario Simulation",
+                  desc: "AI overlays hypothetical moves like 'What if ETH retraces 15%?' and shows visual projection with marked zones",
+                },
+                {
+                  label: "Strategy Testing Lite",
+                  desc: "AI runs quick backtests of simple strategies (e.g., moving average crossover) on your historical candles and summarizes win rate/profit factor",
+                },
+                {
+                  label: "Interactive Tutor Mode",
+                  desc: "'Explain Like I'm 5' feature where AI walks users through TA concepts in context, not from random YouTube videos",
+                },
+                {
+                  label: "Script Generator",
+                  desc: "'Make me an indicator that highlights RSI divergences' - AI writes the code and runs it via the chart engine",
+                },
+                {
+                  label: (
+                    <span style={{ color: "var(--color-primary)" }}>
+                      Availability
+                    </span>
+                  ),
+                  desc: "Planned rollout throughout 2025-2026",
+                },
+              ]}
+            />
+          </div>
         </div>
 
         <div
