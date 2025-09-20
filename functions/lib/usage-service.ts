@@ -76,7 +76,8 @@ export class UsageService {
         const existingData = existingDoc.data() as UsageData;
         await usageRef.update({
           promptTokens: (existingData.promptTokens || 0) + promptTokens,
-          completionTokens: (existingData.completionTokens || 0) + completionTokens,
+          completionTokens:
+            (existingData.completionTokens || 0) + completionTokens,
           totalTokens: (existingData.totalTokens || 0) + totalTokens,
           lastUpdated: FieldValue.serverTimestamp(),
         });
@@ -141,7 +142,10 @@ export class UsageService {
 
       return totalTokens;
     } catch (error) {
-      console.error(`Error getting pending usage for subscription ${subscriptionId}:`, error);
+      console.error(
+        `Error getting pending usage for subscription ${subscriptionId}:`,
+        error
+      );
       return 0;
     }
   }
@@ -150,7 +154,9 @@ export class UsageService {
    * Gets all pending usage records for a subscription.
    * Used by the scheduled function to batch process usage.
    */
-  async getPendingUsageRecords(subscriptionId: string): Promise<Array<{ id: string; data: UsageData }>> {
+  async getPendingUsageRecords(
+    subscriptionId: string
+  ): Promise<Array<{ id: string; data: UsageData }>> {
     try {
       const pendingUsage = await this.db
         .collection("subscriptions")
@@ -164,7 +170,10 @@ export class UsageService {
         data: doc.data() as UsageData,
       }));
     } catch (error) {
-      console.error(`Error getting pending usage records for subscription ${subscriptionId}:`, error);
+      console.error(
+        `Error getting pending usage records for subscription ${subscriptionId}:`,
+        error
+      );
       return [];
     }
   }
@@ -199,7 +208,10 @@ export class UsageService {
         `Marked ${sessionIds.length} usage records as recorded for subscription ${subscriptionId}`
       );
     } catch (error) {
-      console.error(`Error marking usage as recorded for subscription ${subscriptionId}:`, error);
+      console.error(
+        `Error marking usage as recorded for subscription ${subscriptionId}:`,
+        error
+      );
       throw error; // Re-throw as this is critical for billing accuracy
     }
   }
@@ -211,17 +223,24 @@ export class UsageService {
   async getUserSubscriptionId(userId: string): Promise<string | null> {
     try {
       // Check if user has a subscription document
+      // Note: The frontend stores with 'firebase_uid' field
       const subscriptionQuery = await this.db
         .collection("subscriptions")
-        .where("user_id", "==", userId)
+        .where("firebase_uid", "==", userId)
         .where("status", "in", ["active", "trialing"])
         .limit(1)
         .get();
 
       if (!subscriptionQuery.empty) {
-        return subscriptionQuery.docs[0].id;
+        const subscriptionId = subscriptionQuery.docs[0].id;
+        const subscriptionData = subscriptionQuery.docs[0].data();
+        console.log(
+          `Found subscription for user ${userId}: ${subscriptionId}, status: ${subscriptionData.status}`
+        );
+        return subscriptionId;
       }
 
+      console.log(`No active subscription found for user ${userId}`);
       return null;
     } catch (error) {
       console.error(`Error getting subscription for user ${userId}:`, error);
@@ -251,7 +270,9 @@ export class UsageService {
 
       // Check if within 5-minute preview window
       const now = Date.now();
-      const previewStartMs = previewStart.toMillis ? previewStart.toMillis() : previewStart;
+      const previewStartMs = previewStart.toMillis
+        ? previewStart.toMillis()
+        : previewStart;
       const elapsedMinutes = (now - previewStartMs) / (1000 * 60);
 
       return elapsedMinutes < 5;

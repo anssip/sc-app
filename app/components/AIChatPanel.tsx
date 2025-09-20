@@ -1,19 +1,28 @@
-import { useState, useEffect, useRef, KeyboardEvent, Fragment } from 'react';
-import { Bot, Send, X, Loader2, Plus, ChevronDown, MessageCircle, Clock } from 'lucide-react';
-import { useAuth } from '../lib/auth-context';
-import { useMCPClient } from '../hooks/useMCPClient';
-import { useChartCommands } from '../hooks/useChartCommands';
-import { useActiveChart } from '../contexts/ActiveChartContext';
-import { ChatExamplePrompts } from './ChatExamplePrompts';
-import { ChatHistoryModal } from './ChatHistoryModal';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { Menu, Transition } from '@headlessui/react';
-import { ToolbarButton, ToolbarDropdownButton } from './ToolbarButton';
+import { useState, useEffect, useRef, KeyboardEvent, Fragment } from "react";
+import {
+  Bot,
+  Send,
+  X,
+  Loader2,
+  Plus,
+  ChevronDown,
+  MessageCircle,
+  Clock,
+} from "lucide-react";
+import { useAuth } from "../lib/auth-context";
+import { useMCPClient } from "../hooks/useMCPClient";
+import { useChartCommands } from "../hooks/useChartCommands";
+import { useActiveChart } from "../contexts/ActiveChartContext";
+import { ChatExamplePrompts } from "./ChatExamplePrompts";
+import { ChatHistoryModal } from "./ChatHistoryModal";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Menu, Transition } from "@headlessui/react";
+import { ToolbarButton, ToolbarDropdownButton } from "./ToolbarButton";
 
 interface Message {
   id: string;
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
   timestamp: Date;
   commands?: Array<{ id: string; command: string; status?: string }>;
@@ -31,28 +40,45 @@ interface ChatSession {
 const MarkdownComponents = {
   // Custom styling for different Markdown elements
   h1: ({ children, ...props }: any) => (
-    <h1 className="text-xl font-bold mb-3 mt-5 first:mt-0" {...props}>{children}</h1>
+    <h1 className="text-xl font-bold mb-3 mt-5 first:mt-0" {...props}>
+      {children}
+    </h1>
   ),
   h2: ({ children, ...props }: any) => (
-    <h2 className="text-lg font-semibold mb-3 mt-5 first:mt-0" {...props}>{children}</h2>
+    <h2 className="text-lg font-semibold mb-3 mt-5 first:mt-0" {...props}>
+      {children}
+    </h2>
   ),
   h3: ({ children, ...props }: any) => (
-    <h3 className="text-base font-semibold mb-2 mt-4 first:mt-0" {...props}>{children}</h3>
+    <h3 className="text-base font-semibold mb-2 mt-4 first:mt-0" {...props}>
+      {children}
+    </h3>
   ),
   p: ({ children, ...props }: any) => (
-    <p className="mb-2 leading-relaxed break-words overflow-hidden" {...props}>{children}</p>
+    <p className="mb-2 leading-relaxed break-words overflow-hidden" {...props}>
+      {children}
+    </p>
   ),
   ul: ({ children, ...props }: any) => (
-    <ul className="list-disc list-inside mb-2 mt-2 space-y-1.5 ml-2" {...props}>{children}</ul>
+    <ul className="list-disc list-inside mb-2 mt-2 space-y-1.5 ml-2" {...props}>
+      {children}
+    </ul>
   ),
   ol: ({ children, ...props }: any) => (
-    <ol className="list-decimal list-inside mb-3 mt-3 space-y-2 ml-2" {...props}>{children}</ol>
+    <ol
+      className="list-decimal list-inside mb-3 mt-3 space-y-2 ml-2"
+      {...props}
+    >
+      {children}
+    </ol>
   ),
   li: ({ children, ...props }: any) => (
-    <li className="ml-2 leading-relaxed" {...props}>{children}</li>
+    <li className="ml-2 leading-relaxed" {...props}>
+      {children}
+    </li>
   ),
   code: ({ inline, className, children, ...props }: any) => {
-    const match = /language-(\w+)/.exec(className || '');
+    const match = /language-(\w+)/.exec(className || "");
     return !inline ? (
       <pre className="bg-gray-950 rounded p-3 overflow-x-auto mb-2 mt-2">
         <code className={className} {...props}>
@@ -66,7 +92,10 @@ const MarkdownComponents = {
     );
   },
   blockquote: ({ children, ...props }: any) => (
-    <blockquote className="border-l-4 border-gray-600 pl-4 italic my-2" {...props}>
+    <blockquote
+      className="border-l-4 border-gray-600 pl-4 italic my-2"
+      {...props}
+    >
       {children}
     </blockquote>
   ),
@@ -78,30 +107,46 @@ const MarkdownComponents = {
     </div>
   ),
   thead: ({ children, ...props }: any) => (
-    <thead className="border-b border-gray-600" {...props}>{children}</thead>
+    <thead className="border-b border-gray-600" {...props}>
+      {children}
+    </thead>
   ),
-  tbody: ({ children, ...props }: any) => (
-    <tbody {...props}>{children}</tbody>
-  ),
+  tbody: ({ children, ...props }: any) => <tbody {...props}>{children}</tbody>,
   tr: ({ children, ...props }: any) => (
-    <tr className="border-b border-gray-700" {...props}>{children}</tr>
+    <tr className="border-b border-gray-700" {...props}>
+      {children}
+    </tr>
   ),
   th: ({ children, ...props }: any) => (
-    <th className="px-3 py-2 text-left font-semibold" {...props}>{children}</th>
+    <th className="px-3 py-2 text-left font-semibold" {...props}>
+      {children}
+    </th>
   ),
   td: ({ children, ...props }: any) => (
-    <td className="px-3 py-2" {...props}>{children}</td>
+    <td className="px-3 py-2" {...props}>
+      {children}
+    </td>
   ),
   a: ({ children, href, ...props }: any) => (
-    <a className="text-blue-400 hover:text-blue-300 underline" href={href} target="_blank" rel="noopener noreferrer" {...props}>
+    <a
+      className="text-blue-400 hover:text-blue-300 underline"
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      {...props}
+    >
       {children}
     </a>
   ),
   strong: ({ children, ...props }: any) => (
-    <strong className="font-semibold" {...props}>{children}</strong>
+    <strong className="font-semibold" {...props}>
+      {children}
+    </strong>
   ),
   em: ({ children, ...props }: any) => (
-    <em className="italic" {...props}>{children}</em>
+    <em className="italic" {...props}>
+      {children}
+    </em>
   ),
   hr: ({ ...props }: any) => (
     <hr className="my-4 border-t border-gray-600 w-full" {...props} />
@@ -111,7 +156,8 @@ const MarkdownComponents = {
 // Helper function to process text before Markdown rendering
 function preprocessContent(text: string): string {
   // First handle timestamp spans
-  const timestampRegex = /<span class="timestamp-utc" data-timestamp="(\d+)">\([^)]+\)<\/span>/g;
+  const timestampRegex =
+    /<span class="timestamp-utc" data-timestamp="(\d+)">\([^)]+\)<\/span>/g;
   let processedText = text;
   let match;
 
@@ -121,47 +167,52 @@ function preprocessContent(text: string): string {
 
     // Format date in user's local timezone
     const formattedDate = date.toLocaleString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZoneName: 'short'
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZoneName: "short",
     });
 
     processedText = processedText.replace(match[0], `(${formattedDate})`);
   }
 
   // Convert lines of dashes/equals/underscores to horizontal rules
-  processedText = processedText.replace(/^[━─═_\-]{3,}$/gm, '---');
+  processedText = processedText.replace(/^[━─═_\-]{3,}$/gm, "---");
 
   // Convert bullet points that use • into proper Markdown lists
   // This handles lines like: "— Horizontal Support at $115893.52 • Type: Horizontal Level"
-  processedText = processedText.replace(/^(—\s+[^\n]+)((?:\s*•\s*[^\n•]+)+)/gm, (match, title, bullets) => {
-    // Split the bullets and format as a list
-    const bulletPoints = bullets.split('•').filter((b: string) => b.trim());
-    const formattedBullets = bulletPoints.map((point: string) => `  - ${point.trim()}`).join('\n');
-    return `**${title.trim()}**\n${formattedBullets}`;
-  });
+  processedText = processedText.replace(
+    /^(—\s+[^\n]+)((?:\s*•\s*[^\n•]+)+)/gm,
+    (match, title, bullets) => {
+      // Split the bullets and format as a list
+      const bulletPoints = bullets.split("•").filter((b: string) => b.trim());
+      const formattedBullets = bulletPoints
+        .map((point: string) => `  - ${point.trim()}`)
+        .join("\n");
+      return `**${title.trim()}**\n${formattedBullets}`;
+    }
+  );
 
   // Also handle standalone bullet points at the beginning of lines
-  processedText = processedText.replace(/^•\s+/gm, '- ');
+  processedText = processedText.replace(/^•\s+/gm, "- ");
 
   // Handle inline bullet points (not at line start) by converting them to line breaks with bullets
-  processedText = processedText.replace(/(\S)\s*•\s*/g, '$1\n- ');
+  processedText = processedText.replace(/(\S)\s*•\s*/g, "$1\n- ");
 
   return processedText;
 }
 
 export function AIChatPanel({
   onClose,
-  chartApi
+  chartApi,
 }: {
   onClose: () => void;
   chartApi: any; // ChartApi instance
 }) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [recentSessions, setRecentSessions] = useState<ChatSession[]>([]);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -176,7 +227,7 @@ export function AIChatPanel({
     loadSessions,
     startNewSession,
     loadSession,
-    sessionId: currentSessionId
+    sessionId: currentSessionId,
   } = useMCPClient(user?.uid, activeChartId);
 
   // Get the active chart's API
@@ -190,13 +241,13 @@ export function AIChatPanel({
   useEffect(() => {
     if (user?.uid && activeChartId) {
       // Load current session's messages
-      loadHistory().then(history => {
+      loadHistory().then((history) => {
         setMessages(history);
       });
 
       // Load recent sessions for dropdown
       setLoadingSessions(true);
-      loadSessions(5).then(sessions => {
+      loadSessions(5).then((sessions) => {
         setRecentSessions(sessions);
         setLoadingSessions(false);
       });
@@ -205,7 +256,7 @@ export function AIChatPanel({
 
   // Auto-scroll to bottom
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const handleSend = async (messageText?: string) => {
@@ -214,110 +265,120 @@ export function AIChatPanel({
 
     const userMessage: Message = {
       id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      role: 'user',
+      role: "user",
       content: textToSend,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
-    setInputValue('');
+    setMessages((prev) => [...prev, userMessage]);
+    setInputValue("");
     setIsLoading(true);
 
     // Get chart context from active chart if available
     let chartContext;
     if (activeChartApi) {
       try {
-
         // Get values from active chart API
         const symbol = activeChartApi.getSymbol?.();
         const granularity = activeChartApi.getGranularity?.();
         const timeRange = activeChartApi.getTimeRange?.();
         const priceRange = activeChartApi.getPriceRange?.();
-        
-        
+
         if (symbol && granularity && timeRange && priceRange) {
           // Extract raw values from potential proxy objects
           // Use JSON parse/stringify to break proxy references
-          chartContext = JSON.parse(JSON.stringify({
-            symbol: String(symbol),
-            granularity: String(granularity),
-            timeRange: {
-              start: Number(timeRange.start),
-              end: Number(timeRange.end)
-            },
-            priceRange: {
-              min: Number(priceRange.min),
-              max: Number(priceRange.max),
-              range: Number(priceRange.range || (priceRange.max - priceRange.min))
-            }
-          }));
-          
+          chartContext = JSON.parse(
+            JSON.stringify({
+              symbol: String(symbol),
+              granularity: String(granularity),
+              timeRange: {
+                start: Number(timeRange.start),
+                end: Number(timeRange.end),
+              },
+              priceRange: {
+                min: Number(priceRange.min),
+                max: Number(priceRange.max),
+                range: Number(
+                  priceRange.range || priceRange.max - priceRange.min
+                ),
+              },
+            })
+          );
         } else {
-          
         }
-      } catch (error) {
-      }
+      } catch (error) {}
     } else {
     }
 
     try {
       const assistantMessage: Message = {
-        id: `assistant-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        role: 'assistant',
-        content: '',
+        id: `assistant-${Date.now()}-${Math.random()
+          .toString(36)
+          .substr(2, 9)}`,
+        role: "assistant",
+        content: "",
         timestamp: new Date(),
-        commands: []
+        commands: [],
       };
 
-      setMessages(prev => [...prev, assistantMessage]);
+      setMessages((prev) => [...prev, assistantMessage]);
 
       await sendMessage(textToSend, {
         chartContext,
         onStream: (chunk) => {
-          setMessages(prev => {
+          setMessages((prev) => {
             const updated = [...prev];
             const lastIndex = updated.length - 1;
-            if (lastIndex >= 0 && updated[lastIndex].role === 'assistant') {
+            if (lastIndex >= 0 && updated[lastIndex].role === "assistant") {
               // Create a new message object instead of mutating
               updated[lastIndex] = {
                 ...updated[lastIndex],
-                content: updated[lastIndex].content + chunk
+                content: updated[lastIndex].content + chunk,
               };
             }
             return updated;
           });
         },
         onToolCall: (tool, commandId) => {
-          setMessages(prev => {
+          setMessages((prev) => {
             const updated = [...prev];
             const lastIndex = updated.length - 1;
-            if (lastIndex >= 0 && updated[lastIndex].role === 'assistant') {
+            if (lastIndex >= 0 && updated[lastIndex].role === "assistant") {
               // Create a new message object with updated commands
               updated[lastIndex] = {
                 ...updated[lastIndex],
                 commands: [
                   ...(updated[lastIndex].commands || []),
-                  { id: commandId, command: tool, status: 'pending' }
-                ]
+                  { id: commandId, command: tool, status: "pending" },
+                ],
               };
             }
             return updated;
           });
         },
         onError: (error) => {
-          setMessages(prev => {
+          setMessages((prev) => {
             const updated = [...prev];
             const lastIndex = updated.length - 1;
-            if (lastIndex >= 0 && updated[lastIndex].role === 'assistant') {
+            if (lastIndex >= 0 && updated[lastIndex].role === "assistant") {
+              // Check if this is a subscription required error
+              let errorContent = `Error: ${error.message}`;
+
+              if ((error as any).requiresSubscription) {
+                errorContent =
+                  "⚠️ Your preview period has expired. Please subscribe to continue using the AI assistant.\
+                  ";
+              }
+
               // Create a new message object with error content
               updated[lastIndex] = {
                 ...updated[lastIndex],
-                content: `Error: ${error.message}`
+                content: errorContent,
               };
             }
             return updated;
           });
-        }
+        },
       });
     } finally {
       setIsLoading(false);
@@ -325,7 +386,7 @@ export function AIChatPanel({
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
@@ -341,7 +402,8 @@ export function AIChatPanel({
             <h2 className="font-semibold">AI Assistant</h2>
             {activeChart && (
               <p className="text-xs text-gray-400">
-                Active: {activeChart.symbol || 'Chart'} • {activeChart.granularity || ''}
+                Active: {activeChart.symbol || "Chart"} •{" "}
+                {activeChart.granularity || ""}
               </p>
             )}
           </div>
@@ -354,15 +416,19 @@ export function AIChatPanel({
               if (messages.length > 0 && currentSessionId) {
                 const currentSession: ChatSession = {
                   id: currentSessionId,
-                  chartId: activeChartId || 'default',
+                  chartId: activeChartId || "default",
                   timestamp: new Date(),
-                  firstMessage: messages.find(m => m.role === 'user')?.content || 'New conversation',
-                  messageCount: messages.length
+                  firstMessage:
+                    messages.find((m) => m.role === "user")?.content ||
+                    "New conversation",
+                  messageCount: messages.length,
                 };
 
                 // Add current session to the beginning of recent sessions if it's not already there
-                setRecentSessions(prev => {
-                  const filtered = prev.filter(s => s.id !== currentSessionId);
+                setRecentSessions((prev) => {
+                  const filtered = prev.filter(
+                    (s) => s.id !== currentSessionId
+                  );
                   return [currentSession, ...filtered].slice(0, 5);
                 });
               }
@@ -372,7 +438,7 @@ export function AIChatPanel({
 
               // Reload sessions list with a small delay to ensure Firestore is updated
               setTimeout(() => {
-                loadSessions(5).then(sessions => {
+                loadSessions(5).then((sessions) => {
                   setRecentSessions(sessions);
                 });
               }, 500);
@@ -417,7 +483,7 @@ export function AIChatPanel({
                           {({ active }) => (
                             <button
                               onClick={() => {
-                                loadSession(session.id).then(history => {
+                                loadSession(session.id).then((history) => {
                                   setMessages(history);
                                 });
                               }}
@@ -436,7 +502,9 @@ export function AIChatPanel({
                                   </p>
                                   <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                                     <Clock className="w-3 h-3" />
-                                    {new Date(session.timestamp).toLocaleDateString()}
+                                    {new Date(
+                                      session.timestamp
+                                    ).toLocaleDateString()}
                                   </p>
                                 </div>
                                 {session.id === currentSessionId && (
@@ -484,10 +552,7 @@ export function AIChatPanel({
             </Transition>
           </Menu>
 
-          <ToolbarButton
-            onClick={onClose}
-            title="Close AI panel"
-          >
+          <ToolbarButton onClick={onClose} title="Close AI panel">
             <X className="w-4 h-4" />
           </ToolbarButton>
         </div>
@@ -503,14 +568,14 @@ export function AIChatPanel({
               <div
                 key={`${message.id}-${index}`}
                 className={`flex ${
-                  message.role === 'user' ? 'justify-end' : 'justify-start'
+                  message.role === "user" ? "justify-end" : "justify-start"
                 }`}
               >
                 <div
                   className={`max-w-[80%] rounded-lg p-3 ${
-                    message.role === 'user'
-                      ? 'bg-blue-600 text-gray-100'
-                      : 'bg-gray-800 text-gray-200'
+                    message.role === "user"
+                      ? "bg-blue-600 text-gray-100"
+                      : "bg-gray-800 text-gray-200"
                   }`}
                 >
                   <div className="font-light markdown-content overflow-hidden">
@@ -528,7 +593,7 @@ export function AIChatPanel({
                           key={`${cmd.id}-${cmdIndex}`}
                           className="text-xs bg-gray-700 rounded px-2 py-1 inline-block mr-1"
                         >
-                          ✓ {cmd.command.replace(/_/g, ' ')}
+                          ✓ {cmd.command.replace(/_/g, " ")}
                         </div>
                       ))}
                     </div>
@@ -583,10 +648,10 @@ export function AIChatPanel({
         isOpen={isHistoryModalOpen}
         onClose={() => setIsHistoryModalOpen(false)}
         onSelectSession={(sessionId) => {
-          loadSession(sessionId).then(history => {
+          loadSession(sessionId).then((history) => {
             setMessages(history);
             // Reload recent sessions
-            loadSessions(5).then(sessions => {
+            loadSessions(5).then((sessions) => {
               setRecentSessions(sessions);
             });
           });

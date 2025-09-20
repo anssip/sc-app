@@ -41,11 +41,13 @@ export async function loader() {
       price: "$9",
       period: "Per month",
       features: [
+        "AI Assistant",
         "Asset library incl. saved symbols",
         "2 Indicators per chart",
         "2 Saved chart layouts",
         "Technical analysis",
         "All basic charting features",
+        "1000 AI credits *",
       ],
       buttonText: "Start Trial",
     },
@@ -57,6 +59,7 @@ export async function loader() {
         "All features of the Starter plan",
         "Unlimited indicators per chart",
         "Unlimited chart layouts",
+        "5000 AI credits *",
       ],
       buttonText: "Start Trial",
       popular: true,
@@ -73,14 +76,14 @@ export async function loader() {
 
 const faqItems = [
   {
-    question: "How does the free trial work?",
-    answer:
-      "You get a 7-day free trial with full access to the Pro plan features. Credit card is required to start your trial. You can cancel anytime during the trial period without any charges.",
+    question: "What are AI credits?",
+    answer: `You need AI credits to use the AI Assistant. 1000 credits is enough for a few hours of usage. The Starter plan includes 1000 credits, while the Pro plan includes 5000 credits, and if these are not enough
+      additional credits will cost you $5 per 1000. The accumulated additional credits will be invoiced when your subscrition renews.`,
   },
   {
     question: "What's the difference between Starter and Pro plans?",
-    answer:
-      "The Starter plan includes basic charting features with up to 2 indicators per chart and 2 saved layouts. The Pro plan offers unlimited indicators per chart and unlimited saved layouts.",
+    answer: `The Starter plan includes basic charting features with up to 2 indicators per chart and 2 saved layouts. The Pro plan offers unlimited indicators per chart and unlimited saved layouts.
+      The Starter plan includes 1000 AI credits, while the Pro plan includes 5000 AI credits.`,
   },
   {
     question: "Can I change my plan later?",
