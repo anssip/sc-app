@@ -15,7 +15,7 @@ published: true
 
 We are happy to announce the immediate availability of the Spot Canvas service! After a year of intense development we are finally here and we are inviting all traders and crypto enthusiasts to sign up and experience the future of crypto charting.
 
-**But here's what makes us truly different:** While other platforms give you charts and indicators, Spot Canvas gives you an AI-powered trading assistant that understands both your charts and the markets. This isn't just another charting tool – it's your intelligent trading companion powered by GPT-5.
+**But here's what makes us truly different:** While other platforms give you charts and indicators, Spot Canvas gives you an AI-powered trading assistant that understands both your charts and the markets. This isn't just another charting tool – it's your intelligent trading companion powered by AI.
 
 It all builds up on our data services and market evaluation engine which are responsible for driving the presentation layer, the charting tool. The data services provide the real-time market data for all major cryptocurrencies. Combined with our industry-first AI Assistant, you get not just data, but intelligent insights and natural language control over your entire trading workspace.
 

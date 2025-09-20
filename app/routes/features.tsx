@@ -262,7 +262,7 @@ const Features = () => {
                 desc: "Draw trend lines, enable indicators, switch granularities - all through conversation",
               },
               {
-                label: "GPT-5 Powered Intelligence",
+                label: "AI Powered Intelligence",
                 desc: "Latest AI model provides accurate, context-aware responses to complex queries",
               },
               {

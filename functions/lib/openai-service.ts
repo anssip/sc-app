@@ -281,7 +281,7 @@ async function processWithLLM({
   // Create streaming chat completion with usage tracking
   const client = getOpenAI();
   const stream = await client.chat.completions.create({
-    model: "gpt-5",
+    model: "gpt-4.1",
     messages,
     tools,
     tool_choice: "auto",
@@ -1071,7 +1071,7 @@ Return your analysis in this JSON format:
               const openaiClient = getOpenAI();
               const analysisResponse =
                 await openaiClient.chat.completions.create({
-                  model: "gpt-5",
+                  model: "gpt-4.1",
                   messages: [
                     {
                       role: "system",
@@ -1255,7 +1255,7 @@ Return your analysis in this JSON format:
         promptTokens: usageData.prompt_tokens || 0,
         completionTokens: usageData.completion_tokens || 0,
         totalTokens: usageData.total_tokens || 0,
-        model: "gpt-5",
+        model: "gpt-4.1",
         isPreview: isPreview || false,
       });
       console.log(
