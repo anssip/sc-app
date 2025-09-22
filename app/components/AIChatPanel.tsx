@@ -8,6 +8,7 @@ import {
   ChevronDown,
   MessageCircle,
   Clock,
+  Lightbulb,
 } from "lucide-react";
 import { useAuth } from "../lib/auth-context";
 import { useMCPClient } from "../hooks/useMCPClient";
@@ -217,6 +218,7 @@ export function AIChatPanel({
   const [recentSessions, setRecentSessions] = useState<ChatSession[]>([]);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [loadingSessions, setLoadingSessions] = useState(false);
+  const [showExamplePrompts, setShowExamplePrompts] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { activeChartId, getActiveChartApi } = useActiveChart();
@@ -262,6 +264,11 @@ export function AIChatPanel({
   const handleSend = async (messageText?: string) => {
     const textToSend = messageText || inputValue;
     if (!textToSend.trim() || isLoading || !user) return;
+
+    // Hide example prompts overlay when sending first message
+    if (messages.length === 0 && showExamplePrompts) {
+      setShowExamplePrompts(false);
+    }
 
     const userMessage: Message = {
       id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -559,7 +566,7 @@ export function AIChatPanel({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto relative">
         {messages.length === 0 ? (
           <ChatExamplePrompts onSelectPrompt={(prompt) => handleSend(prompt)} />
         ) : (
@@ -611,30 +618,69 @@ export function AIChatPanel({
             <div ref={messagesEndRef} />
           </div>
         )}
+
+        {/* Example Prompts Overlay */}
+        {showExamplePrompts && messages.length > 0 && (
+          <div
+            className="absolute inset-0 z-50 flex items-center justify-center bg-black/60"
+            onClick={(e) => {
+              // Close if clicking backdrop (not content)
+              if (e.target === e.currentTarget) {
+                setShowExamplePrompts(false);
+              }
+            }}
+          >
+            <div className="relative max-w-2xl w-full mx-4">
+              <ChatExamplePrompts
+                onSelectPrompt={(prompt) => {
+                  handleSend(prompt);
+                  setShowExamplePrompts(false);
+                }}
+                isOverlay={true}
+                onClose={() => setShowExamplePrompts(false)}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Input */}
       <div className="flex-shrink-0 border-t border-gray-700 p-4">
-        <div className="flex gap-2">
+        <div className="relative">
           <textarea
             ref={inputRef}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask about the chart..."
-            className="flex-1 bg-gray-800 text-white rounded-lg px-4 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[40px] max-h-[80px] overflow-y-auto"
+            className="w-full bg-gray-800 text-white rounded-lg pl-4 pr-20 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[40px] max-h-[80px] overflow-y-auto"
             rows={1}
             disabled={isLoading || !user}
           />
-          <ToolbarButton
+
+          {/* Lightbulb button inside input field */}
+          <button
+            onClick={() => setShowExamplePrompts(!showExamplePrompts)}
+            disabled={!user}
+            title="Show example prompts"
+            className={`absolute right-12 top-2 p-1.5 rounded transition-colors ${
+              showExamplePrompts
+                ? "text-yellow-400 hover:text-yellow-300"
+                : "text-gray-400 hover:text-white"
+            } disabled:text-gray-600 disabled:cursor-not-allowed`}
+          >
+            <Lightbulb className="w-4 h-4" />
+          </button>
+
+          {/* Send button inside input field */}
+          <button
             onClick={() => handleSend()}
             disabled={!inputValue.trim() || isLoading || !user}
             title="Send message"
-            active={true}
-            className="!w-[40px] !h-[40px] !p-0"
+            className="absolute right-2 top-2 p-1.5 rounded transition-colors text-blue-400 hover:text-blue-300 disabled:text-gray-600 disabled:cursor-not-allowed"
           >
             <Send className="w-4 h-4" />
-          </ToolbarButton>
+          </button>
         </div>
         {!user && (
           <p className="text-xs text-gray-400 mt-2">
