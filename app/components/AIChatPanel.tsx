@@ -265,8 +265,8 @@ export function AIChatPanel({
     const textToSend = messageText || inputValue;
     if (!textToSend.trim() || isLoading || !user) return;
 
-    // Hide example prompts overlay when sending first message
-    if (messages.length === 0 && showExamplePrompts) {
+    // Hide example prompts overlay when sending any message
+    if (showExamplePrompts) {
       setShowExamplePrompts(false);
     }
 
