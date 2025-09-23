@@ -28,6 +28,52 @@ const examplePrompts: ExamplePrompt[] = [
     category: "Advanced",
     text: "How would you trade with this chart?",
   },
+
+  // Volume and price action prompts
+  {
+    category: "Advanced",
+    text: "What does the current volume tell us about this price movement?",
+  },
+  {
+    category: "Advanced",
+    text: "Analyze the price action and volume in the visible chart.",
+  },
+  {
+    category: "Advanced",
+    text: "Is there high volume supporting this trend?",
+  },
+  {
+    category: "Advanced",
+    text: "What's the average volume for the candles shown?",
+  },
+
+  // Candles analysis prompts
+  {
+    category: "Advanced",
+    text: "What pattern do you see in the recent candles?",
+  },
+  {
+    category: "Advanced",
+    text: "Analyze the last 10 candles for trading signals.",
+  },
+  {
+    category: "Advanced",
+    text: "Are we seeing bullish or bearish candle patterns?",
+  },
+
+  // Indicator-based prompts
+  {
+    category: "Advanced",
+    text: "What do the current active indicators suggest?",
+  },
+  {
+    category: "Advanced",
+    text: "Based on the indicators shown, what's your analysis?",
+  },
+  {
+    category: "Advanced",
+    text: "Are any indicators showing divergence from price?",
+  },
 ];
 
 interface ChatExamplePromptsProps {

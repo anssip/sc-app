@@ -203,7 +203,94 @@ async function processWithLLM({
     } to ${chartContext.timeRange.end} (timestamps in UTC milliseconds)
     - Visible Price Range: $${chartContext.priceRange.min.toFixed(
       2
-    )} to $${chartContext.priceRange.max.toFixed(2)}
+    )} to $${chartContext.priceRange.max.toFixed(2)}`;
+
+    // Add candles data context if available
+    if (chartContext.candles && chartContext.candles.length > 0) {
+      const latestCandle =
+        chartContext.candles[chartContext.candles.length - 1];
+      const oldestCandle = chartContext.candles[0];
+      const totalVolume = chartContext.candles.reduce(
+        (sum: number, c: any) => sum + (c.volume || 0),
+        0
+      );
+      const avgVolume = totalVolume / chartContext.candles.length;
+
+      // Calculate price trend
+      const priceChange =
+        ((latestCandle.close - oldestCandle.open) / oldestCandle.open) * 100;
+      const isUptrend = priceChange > 0;
+
+      // Find highest and lowest prices in visible candles
+      const highestHigh = Math.max(
+        ...chartContext.candles.map((c: any) => c.high)
+      );
+      const lowestLow = Math.min(
+        ...chartContext.candles.map((c: any) => c.low)
+      );
+
+      systemPrompt += `
+
+    PRICE AND VOLUME DATA (${chartContext.candles.length} visible candles):
+    - Latest Price: $${latestCandle.close.toFixed(2)} (${new Date(
+        latestCandle.timestamp
+      ).toISOString()})
+    - Price Change: ${priceChange.toFixed(2)}% (${
+        isUptrend ? "UP" : "DOWN"
+      } from $${oldestCandle.open.toFixed(2)})
+    - Highest Price in View: $${highestHigh.toFixed(2)}
+    - Lowest Price in View: $${lowestLow.toFixed(2)}
+    - Total Volume: ${totalVolume.toLocaleString()}
+    - Average Volume per Candle: ${avgVolume.toLocaleString()}
+    - Latest Candle Volume: ${latestCandle.volume.toLocaleString()}
+
+    When analyzing price action:
+    - The chart shows ${chartContext.candles.length} candles of ${
+        chartContext.granularity
+      } timeframe
+    - Each candle includes: open, high, low, close (OHLC), and volume
+    - High volume on price increases suggests strong buying pressure
+    - High volume on price decreases suggests strong selling pressure
+    - Low volume moves may be less significant or lack conviction
+    - Volume spikes often indicate important price levels or trend changes
+    - Compare current volume to average volume to assess significance
+    - Look for candlestick patterns like doji, hammer, engulfing for reversals
+    - Green/bullish candles: close > open, Red/bearish candles: close < open`;
+    }
+
+    // Add indicators context if available
+    if (chartContext.indicators && chartContext.indicators.length > 0) {
+      systemPrompt += `
+
+    ACTIVE INDICATORS (${chartContext.indicators.length} indicators):`;
+
+      chartContext.indicators.forEach((indicator: any) => {
+        systemPrompt += `
+    - ${indicator.name || indicator.id} (ID: ${indicator.id})`;
+        if (indicator.params) {
+          systemPrompt += ` | Parameters: ${JSON.stringify(indicator.params)}`;
+        }
+        if (indicator.display) {
+          systemPrompt += ` | Display: ${indicator.display}`;
+        }
+      });
+
+      systemPrompt += `
+
+    When discussing indicators:
+    - Reference the specific indicators that are currently visible on the chart
+    - Consider their parameters when giving interpretations
+    - RSI: Look for overbought (>70) or oversold (<30) conditions
+    - Moving Averages: Analyze trend direction and support/resistance levels
+    - MACD: Check for momentum shifts and signal line crossovers
+    - Bollinger Bands: Assess volatility and potential breakout/breakdown levels
+    - Volume: Confirm price movements with corresponding volume changes
+    - Stochastic: Identify potential reversal points in overbought/oversold zones
+    - ATR: Gauge market volatility for position sizing and stop-loss placement
+    - Always relate indicator signals to the current price action and volume`;
+    }
+
+    systemPrompt += `
 
     IMPORTANT - When using ANY price data tools (get_price_data, analyze_price_points):
     - symbol: "${chartContext.symbol}"

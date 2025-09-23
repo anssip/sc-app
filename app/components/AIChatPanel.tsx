@@ -290,6 +290,8 @@ export function AIChatPanel({
         const granularity = activeChartApi.getGranularity?.();
         const timeRange = activeChartApi.getTimeRange?.();
         const priceRange = activeChartApi.getPriceRange?.();
+        const candles = activeChartApi.getCandles?.(); // Get visible candles
+        const indicators = activeChartApi.getVisibleIndicators?.(); // Get active indicators
 
         if (symbol && granularity && timeRange && priceRange) {
           // Extract raw values from potential proxy objects
@@ -309,6 +311,19 @@ export function AIChatPanel({
                   priceRange.range || priceRange.max - priceRange.min
                 ),
               },
+              // Add candles data (limit to last 50 for context efficiency)
+              candles: candles
+                ? candles.slice(-50).map(([timestamp, candle]) => ({
+                    timestamp,
+                    open: candle.open,
+                    high: candle.high,
+                    low: candle.low,
+                    close: candle.close,
+                    volume: candle.volume,
+                  }))
+                : [],
+              // Add active indicators
+              indicators: indicators || [],
             })
           );
         } else {
