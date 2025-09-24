@@ -436,3 +436,29 @@ Add a tool to spot volume divergence in the chart.
 # Example prompts
 
 Fix the example prompts to show up when the chat already has lots of messages. Now it shows hidden up too high in the history. It could actually show up to the left of the chat view.
+
+# Update features and blog with latest AI features
+
+Highlight the following in the features page and in the introduction blog entry:
+
+- Pattern detection and highlighting
+- RSI divergence
+- MACD divergence
+- Volume divergence
+
+# Add new tagline to the front page and footer
+
+Hero: “Your AI co-pilot for trading.”
+Subline: "Ask. Explore. Learn. Trade smarter with charts that think."
+
+variant tagline: “Charts that think.”
+
+# Remove trials
+
+Remove all mentions of trials from this app.
+
+# Fix customer.io endpoint
+
+# Terms
+
+Add a section that we don't offer trading advice. AI suggestions are just possible scenarios. Use at your own risk.
