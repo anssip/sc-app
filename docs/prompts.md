@@ -416,3 +416,23 @@ In the AI Assistant We have the feature for detecting patterns using the "analyz
 Further, enable the pulse wave in the chart using `pulseWave()` function in the chart_api before the pattern detection starts. Then once the detection is ready, stop the animation using `stopPulseWave()`. After stopping, highlight the detected patterns.
 
 Add the necessary commands to control the chart.
+
+# Average volume
+
+Create a tool in openid-service.ts to calculate the average volume from the candles in the chart.
+
+# RSI Divergence
+
+Add a tool to spot RSI divergence in the chart.
+
+# MACD Divergence
+
+Add a tool to spot MACD divergence in the chart.
+
+# Volume Divergence
+
+Add a tool to spot volume divergence in the chart.
+
+# Example prompts
+
+Fix the example prompts to show up when the chat already has lots of messages. Now it shows hidden up too high in the history. It could actually show up to the left of the chat view.
