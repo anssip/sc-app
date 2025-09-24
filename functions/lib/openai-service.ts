@@ -254,8 +254,91 @@ async function processWithLLM({
     - Low volume moves may be less significant or lack conviction
     - Volume spikes often indicate important price levels or trend changes
     - Compare current volume to average volume to assess significance
-    - Look for candlestick patterns like doji, hammer, engulfing for reversals
-    - Green/bullish candles: close > open, Red/bearish candles: close < open`;
+    - Green/bullish candles: close > open, Red/bearish candles: close < open
+
+    CANDLESTICK PATTERN ANALYSIS FORMULAS:
+    When analyzing the visible candles for patterns, use these mathematical criteria:
+
+    Basic Calculations:
+    - Body Size = |close - open|
+    - Total Range = high - low
+    - Body Ratio = Body Size / Total Range (if Total Range > 0)
+    - Upper Shadow = high - max(open, close)
+    - Lower Shadow = min(open, close) - low
+
+    DOJI PATTERNS (Body Ratio < 0.10):
+    - Standard Doji: Body ratio < 0.10, relatively equal shadows
+    - Gravestone Doji: Body ratio < 0.10, upper shadow > 3x body size, minimal lower shadow
+    - Dragonfly Doji: Body ratio < 0.10, lower shadow > 3x body size, minimal upper shadow
+    - Long-legged Doji: Body ratio < 0.10, both shadows > 2x body size
+    - Significance: Higher volume = stronger signal, position matters (top/bottom of trend)
+
+    OTHER KEY PATTERNS:
+    - Hammer: Body in upper 1/3 of range, lower shadow ≥ 2x body size, minimal upper shadow, after downtrend
+    - Shooting Star: Body in lower 1/3 of range, upper shadow ≥ 2x body size, minimal lower shadow, after uptrend
+    - Bullish Engulfing: Green candle body completely covers previous red candle body
+    - Bearish Engulfing: Red candle body completely covers previous green candle body
+    - Morning Star: 3-candle pattern - large red, small body (often doji), large green
+    - Evening Star: 3-candle pattern - large green, small body (often doji), large red
+
+    When users ask about patterns:
+    1. Calculate the metrics for each visible candle using the provided data
+    2. Identify patterns using the formulas above
+    3. Report specific candles with timestamps and pattern types
+    4. Assess pattern significance based on volume and trend context
+    5. Example: "Found Gravestone Doji at 2024-01-15 14:00 UTC ($45,230) with high volume (125M), suggesting potential bearish reversal"`;
+
+      // Perform pattern detection on recent candles
+      const recentPatterns = [];
+      const checkCandles = Math.min(10, chartContext.candles.length); // Check last 10 candles
+
+      for (
+        let i = chartContext.candles.length - checkCandles;
+        i < chartContext.candles.length;
+        i++
+      ) {
+        const candle = chartContext.candles[i];
+        const bodySize = Math.abs(candle.close - candle.open);
+        const totalRange = candle.high - candle.low;
+        const bodyRatio = totalRange > 0 ? bodySize / totalRange : 0;
+
+        if (bodyRatio < 0.1 && totalRange > 0) {
+          const upperShadow = candle.high - Math.max(candle.open, candle.close);
+          const lowerShadow = Math.min(candle.open, candle.close) - candle.low;
+          const candleDate = new Date(candle.timestamp).toISOString();
+
+          let dojiType = "Standard Doji";
+          if (upperShadow > bodySize * 3 && lowerShadow < bodySize) {
+            dojiType = "Gravestone Doji (potential bearish reversal)";
+          } else if (lowerShadow > bodySize * 3 && upperShadow < bodySize) {
+            dojiType = "Dragonfly Doji (potential bullish reversal)";
+          } else if (upperShadow > bodySize * 2 && lowerShadow > bodySize * 2) {
+            dojiType = "Long-legged Doji (high indecision)";
+          }
+
+          recentPatterns.push({
+            time: candleDate,
+            pattern: dojiType,
+            price: candle.close,
+            volume: candle.volume,
+            bodyRatio: (bodyRatio * 100).toFixed(1),
+          });
+        }
+      }
+
+      if (recentPatterns.length > 0) {
+        systemPrompt += `
+
+    DETECTED PATTERNS IN RECENT CANDLES:`;
+        recentPatterns.forEach((p) => {
+          systemPrompt += `
+    - ${p.pattern} at ${p.time} | Price: $${p.price.toFixed(
+            2
+          )} | Volume: ${p.volume.toLocaleString()} | Body Ratio: ${
+            p.bodyRatio
+          }%`;
+        });
+      }
     }
 
     // Add indicators context if available

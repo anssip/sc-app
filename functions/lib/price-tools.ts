@@ -1,6 +1,10 @@
 // Firestore data access tools
 import { Firestore } from "firebase-admin/firestore";
 import { marketAPI, PriceCandle } from "./market-api.js";
+import {
+  PatternDetector,
+  Candle as PatternCandle,
+} from "./pattern-detection.js";
 
 interface ToolDefinition {
   type: string;
@@ -39,6 +43,14 @@ interface SupportResistanceLevelsArgs {
   endTime?: number;
   maxSupports?: number;
   maxResistances?: number;
+}
+
+interface AnalyzeCandlestickPatternsArgs {
+  symbol: string;
+  interval: string;
+  startTime?: number;
+  endTime?: number;
+  patterns?: string[]; // specific patterns to detect or ["all"]
 }
 
 interface Candle {
@@ -205,7 +217,8 @@ export const priceTools = {
             },
             startTime: {
               type: "number",
-              description: "Start timestamp in milliseconds (default: 30 days ago)",
+              description:
+                "Start timestamp in milliseconds (default: 30 days ago)",
             },
             endTime: {
               type: "number",
@@ -213,15 +226,75 @@ export const priceTools = {
             },
             maxSupports: {
               type: "number",
-              description: "Maximum number of support levels to return (default: 5)",
+              description:
+                "Maximum number of support levels to return (default: 5)",
               default: 5,
             },
             maxResistances: {
               type: "number",
-              description: "Maximum number of resistance levels to return (default: 5)",
+              description:
+                "Maximum number of resistance levels to return (default: 5)",
               default: 5,
             },
           },
+        },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "analyze_candlestick_patterns",
+        description:
+          "Analyze candlestick data to identify patterns like doji, hammer, shooting star, engulfing patterns, etc. Returns detailed pattern analysis with timestamps and significance.",
+        parameters: {
+          type: "object",
+          properties: {
+            symbol: {
+              type: "string",
+              description: "Trading pair symbol (e.g., BTC-USD, ETH-USD)",
+            },
+            interval: {
+              type: "string",
+              enum: [
+                "ONE_MINUTE",
+                "FIVE_MINUTES",
+                "FIFTEEN_MINUTES",
+                "THIRTY_MINUTES",
+                "ONE_HOUR",
+                "TWO_HOURS",
+                "SIX_HOURS",
+                "ONE_DAY",
+              ],
+              description: "Time interval for candle data",
+            },
+            startTime: {
+              type: "number",
+              description: "Start timestamp in milliseconds",
+            },
+            endTime: {
+              type: "number",
+              description: "End timestamp in milliseconds",
+            },
+            patterns: {
+              type: "array",
+              items: {
+                type: "string",
+                enum: [
+                  "doji",
+                  "hammer",
+                  "shooting_star",
+                  "engulfing",
+                  "morning_star",
+                  "evening_star",
+                  "all",
+                ],
+              },
+              description:
+                "Specific patterns to detect. Use ['all'] to detect all patterns",
+              default: ["all"],
+            },
+          },
+          required: ["symbol", "interval"],
         },
       },
     },
@@ -242,7 +315,14 @@ export const priceTools = {
       case "analyze_price_points":
         return await this.analyzePricePoints(args as AnalyzePricePointsArgs);
       case "get_support_resistance_levels":
-        return await this.getSupportResistanceLevels(args as SupportResistanceLevelsArgs);
+        return await this.getSupportResistanceLevels(
+          args as SupportResistanceLevelsArgs
+        );
+      case "analyze_candlestick_patterns":
+        return await this.analyzeCandlestickPatterns(
+          args as AnalyzeCandlestickPatternsArgs,
+          db
+        );
       default:
         throw new Error(`Unknown Firestore tool: ${toolName}`);
     }
@@ -586,22 +666,28 @@ export const priceTools = {
   }: SupportResistanceLevelsArgs): Promise<any> {
     try {
       const API_BASE_URL = "https://market.spotcanvas.com";
-      
+
       // Build query parameters
       const params = new URLSearchParams();
       params.append("symbol", symbol);
       params.append("granularity", granularity);
-      
+
       // Add optional parameters if provided - timestamps are already in UTC milliseconds
       if (startTime) {
         const startTimeInt = Math.floor(startTime);
         params.append("start_time", startTimeInt.toString());
-        console.log(`Start time: ${startTimeInt} (${new Date(startTimeInt).toISOString()})`);
+        console.log(
+          `Start time: ${startTimeInt} (${new Date(
+            startTimeInt
+          ).toISOString()})`
+        );
       }
       if (endTime) {
         const endTimeInt = Math.floor(endTime);
         params.append("end_time", endTimeInt.toString());
-        console.log(`End time: ${endTimeInt} (${new Date(endTimeInt).toISOString()})`);
+        console.log(
+          `End time: ${endTimeInt} (${new Date(endTimeInt).toISOString()})`
+        );
       }
       params.append("max_supports", maxSupports.toString());
       params.append("max_resistances", maxResistances.toString());
@@ -609,9 +695,9 @@ export const priceTools = {
       console.log(
         `Fetching support/resistance levels from API: ${API_BASE_URL}/levels?${params}`
       );
-      
+
       const response = await fetch(`${API_BASE_URL}/levels?${params}`);
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`API Error Response: ${errorText}`);
@@ -619,15 +705,15 @@ export const priceTools = {
           `API error: ${response.status} ${response.statusText} - ${errorText}`
         );
       }
-      
+
       const data: any = await response.json();
-      
+
       // The API returns data in the format:
       // {
       //   "supports": [...],
       //   "resistances": [...]
       // }
-      
+
       return {
         symbol,
         granularity,
@@ -639,9 +725,216 @@ export const priceTools = {
         },
       };
     } catch (error: any) {
-      console.error("Error fetching support/resistance levels from API:", error);
-      throw new Error(`Failed to fetch support/resistance levels: ${error.message}`);
+      console.error(
+        "Error fetching support/resistance levels from API:",
+        error
+      );
+      throw new Error(
+        `Failed to fetch support/resistance levels: ${error.message}`
+      );
     }
+  },
+
+  async analyzeCandlestickPatterns(
+    {
+      symbol,
+      interval,
+      startTime,
+      endTime,
+      patterns: _patterns = ["all"],
+    }: AnalyzeCandlestickPatternsArgs,
+    _db: Firestore
+  ): Promise<any> {
+    try {
+      // Calculate time range if not provided
+      if (!startTime || !endTime) {
+        endTime = endTime || Date.now();
+        const intervalMs = this.getIntervalMilliseconds(interval);
+        // Default to 100 candles worth of time
+        startTime = startTime || endTime - intervalMs * 100;
+      }
+
+      // Fetch candle data
+      const candleData = await this.getPriceData({
+        symbol,
+        interval,
+        startTime,
+        endTime,
+      });
+
+      if (!candleData.candles || candleData.candles.length === 0) {
+        return {
+          symbol,
+          interval,
+          patterns: [],
+          summary: "No candle data available for pattern analysis",
+          totalCandles: 0,
+        };
+      }
+
+      // Convert candles to PatternCandle format
+      const patternCandles: PatternCandle[] = candleData.candles.map(
+        (c: any) => {
+          const normalized = this.normalizeCandle(c);
+          return {
+            timestamp: normalized.timestamp,
+            open: normalized.open,
+            high: normalized.high,
+            low: normalized.low,
+            close: normalized.close,
+            volume: normalized.volume,
+          };
+        }
+      );
+
+      // Fetch support/resistance levels to enhance pattern detection
+      let supports: number[] = [];
+      let resistances: number[] = [];
+
+      try {
+        console.log(`Fetching support/resistance levels for ${symbol}...`);
+        const levelsData = await this.getSupportResistanceLevels({
+          symbol,
+          granularity: interval,
+          startTime,
+          endTime,
+        });
+
+        // Extract price values from support/resistance objects
+        supports = (levelsData.supports || [])
+          .map((s: any) => (typeof s === "number" ? s : s.price))
+          .filter((p: number) => p > 0);
+        resistances = (levelsData.resistances || [])
+          .map((r: any) => (typeof r === "number" ? r : r.price))
+          .filter((p: number) => p > 0);
+        console.log(
+          `Found ${supports.length} support and ${resistances.length} resistance levels`
+        );
+      } catch (levelError) {
+        console.log(
+          "Could not fetch support/resistance levels, continuing without them:",
+          levelError
+        );
+      }
+
+      // Use PatternDetector with configuration
+      const detector = new PatternDetector({
+        minVolumeRatio: 1.2, // Require 20% above average volume
+        minSignificance: 0.5, // Filter out low significance patterns
+        levelProximityThreshold: 0.01, // Within 1% of support/resistance
+        supportBoost: 2.0, // Double significance at support levels
+        resistanceBoost: 2.0, // Double significance at resistance levels
+      });
+
+      const detectedPatterns = await detector.detectPatterns(
+        patternCandles,
+        supports,
+        resistances
+      );
+
+      // Calculate average volume for reference
+      const avgVolume =
+        patternCandles.reduce((sum, c) => sum + (c.volume || 0), 0) /
+        patternCandles.length;
+
+      // Convert patterns to the expected format with additional metadata
+      const formattedPatterns = detectedPatterns.map((pattern) => ({
+        type: pattern.type
+          .toLowerCase()
+          .replace(/([A-Z])/g, "_$1")
+          .slice(1),
+        timestamp: pattern.candleTimestamps[0],
+        candleTimestamps: pattern.candleTimestamps,
+        price:
+          patternCandles.find(
+            (c) => c.timestamp === pattern.candleTimestamps[0]
+          )?.close || 0,
+        volume: pattern.volume,
+        significance:
+          pattern.significance >= 1.5
+            ? "very high"
+            : pattern.significance >= 1.0
+            ? "high"
+            : pattern.significance >= 0.7
+            ? "medium"
+            : "low",
+        description: pattern.description,
+        nearLevel: pattern.nearLevel,
+      }));
+
+      // Generate pattern counts
+      const patternCounts: Record<string, number> = {};
+      formattedPatterns.forEach((p) => {
+        patternCounts[p.type] = (patternCounts[p.type] || 0) + 1;
+      });
+
+      // Generate summary
+      let summary = `Analyzed ${patternCandles.length} candles for ${symbol} (${interval}). `;
+      if (formattedPatterns.length > 0) {
+        summary += `Found ${formattedPatterns.length} high-quality patterns`;
+
+        // Add support/resistance context
+        if (supports.length > 0 || resistances.length > 0) {
+          const patternsAtLevels = formattedPatterns.filter(
+            (p) => p.nearLevel
+          ).length;
+          if (patternsAtLevels > 0) {
+            summary += ` (${patternsAtLevels} at key support/resistance levels)`;
+          }
+        }
+
+        summary += `: `;
+        summary += Object.entries(patternCounts)
+          .map(([pattern, count]) => `${count} ${pattern.replace(/_/g, " ")}`)
+          .join(", ");
+
+        // Highlight very high significance patterns
+        const veryHighSigPatterns = formattedPatterns.filter(
+          (p) => p.significance === "very high"
+        );
+        if (veryHighSigPatterns.length > 0) {
+          summary += `. ${veryHighSigPatterns.length} very high-significance pattern(s) at key levels.`;
+        }
+      } else {
+        summary += "No significant patterns detected in the specified range.";
+      }
+
+      return {
+        symbol,
+        interval,
+        timeRange: {
+          start: startTime,
+          end: endTime,
+        },
+        totalCandles: patternCandles.length,
+        patterns: formattedPatterns,
+        patternCounts,
+        avgVolume,
+        supports: supports.slice(0, 5), // Include top 5 support levels
+        resistances: resistances.slice(0, 5), // Include top 5 resistance levels
+        summary,
+      };
+    } catch (error: any) {
+      console.error("Error analyzing candlestick patterns:", error);
+      return {
+        symbol,
+        interval,
+        patterns: [],
+        summary: `Failed to analyze patterns: ${error.message}`,
+        error: error.message,
+      };
+    }
+  },
+
+  normalizeCandle(candle: Candle): NormalizedCandle {
+    return {
+      timestamp: candle.timestamp || candle.time || candle.t || 0,
+      open: candle.open || candle.o || 0,
+      high: candle.high || candle.h || 0,
+      low: candle.low || candle.l || 0,
+      close: candle.close || candle.c || 0,
+      volume: candle.volume || candle.v || 0,
+    };
   },
 
   getIntervalMilliseconds(interval: string): number {
@@ -727,6 +1020,105 @@ export const priceTools = {
           levelsSummary = `No support or resistance levels found for ${result.symbol}.`;
         }
         return levelsSummary;
+
+      case "analyze_candlestick_patterns":
+        if (result.error) {
+          return result.summary;
+        }
+
+        let formattedResult = result.summary + "\n\n";
+
+        if (result.patterns && result.patterns.length > 0) {
+          formattedResult += "**Detected Patterns:**\n";
+
+          result.patterns.forEach((pattern: any) => {
+            formattedResult += `\n• **${pattern.description}**\n`;
+
+            // Format timestamps with timezone conversion placeholders
+            if (
+              pattern.candleTimestamps &&
+              pattern.candleTimestamps.length > 1
+            ) {
+              formattedResult += `  - Pattern formed by ${pattern.candleTimestamps.length} candles:\n`;
+              pattern.candleTimestamps.forEach((ts: number, index: number) => {
+                const label =
+                  pattern.candleTimestamps.length === 2
+                    ? index === 0
+                      ? "Previous"
+                      : "Current"
+                    : `Candle ${index + 1}`;
+                formattedResult += `    - ${label}: <span class="timestamp-utc" data-timestamp="${ts}">(loading time...)</span>\n`;
+              });
+            } else {
+              formattedResult += `  - Time: <span class="timestamp-utc" data-timestamp="${pattern.timestamp}">(loading time...)</span>\n`;
+            }
+
+            formattedResult += `  - Price: $${pattern.price.toFixed(2)}\n`;
+            formattedResult += `  - Volume: ${pattern.volume.toLocaleString()}`;
+
+            // Add volume comparison if we have average
+            if (result.avgVolume) {
+              const volRatio = (pattern.volume / result.avgVolume - 1) * 100;
+              const volRatioStr = volRatio.toFixed(0);
+              formattedResult += ` (${
+                volRatio > 0 ? "+" : ""
+              }${volRatioStr}% vs avg)`;
+            }
+
+            formattedResult += `\n  - Significance: ${pattern.significance.toUpperCase()}\n`;
+
+            // Add near level information
+            if (pattern.nearLevel) {
+              const percentDistance = (
+                pattern.nearLevel.distance * 100
+              ).toFixed(2);
+              formattedResult += `  - **Key Level:** ${
+                pattern.nearLevel.type === "support"
+                  ? "🟢 Support"
+                  : "🔴 Resistance"
+              } at $${pattern.nearLevel.price.toFixed(
+                2
+              )} (${percentDistance}% away)\n`;
+            }
+
+            // Add body ratio for doji patterns
+            if (pattern.type === "doji" && pattern.bodyRatio) {
+              formattedResult += `  - Body Ratio: ${pattern.bodyRatio}%\n`;
+            }
+          });
+        }
+
+        // Add support/resistance levels summary if available
+        if (
+          (result.supports && result.supports.length > 0) ||
+          (result.resistances && result.resistances.length > 0)
+        ) {
+          formattedResult += "\n**Key Price Levels:**\n";
+
+          if (result.supports && result.supports.length > 0) {
+            formattedResult += "\n🟢 **Support Levels:**\n";
+            result.supports.slice(0, 3).forEach((level: any) => {
+              const price = typeof level === "number" ? level : level.price;
+              const confidence = level.confidence
+                ? ` (${level.confidence.toFixed(0)}% confidence)`
+                : "";
+              formattedResult += `  - $${price.toFixed(2)}${confidence}\n`;
+            });
+          }
+
+          if (result.resistances && result.resistances.length > 0) {
+            formattedResult += "\n🔴 **Resistance Levels:**\n";
+            result.resistances.slice(0, 3).forEach((level: any) => {
+              const price = typeof level === "number" ? level : level.price;
+              const confidence = level.confidence
+                ? ` (${level.confidence.toFixed(0)}% confidence)`
+                : "";
+              formattedResult += `  - $${price.toFixed(2)}${confidence}\n`;
+            });
+          }
+        }
+
+        return formattedResult;
 
       default:
         return `Completed ${toolName}`;
