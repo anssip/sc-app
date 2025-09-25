@@ -201,6 +201,10 @@ function preprocessContent(text: string): string {
   // Handle inline bullet points (not at line start) by converting them to line breaks with bullets
   processedText = processedText.replace(/(\S)\s*•\s*/g, "$1\n- ");
 
+  // Preserve line breaks by adding two spaces at the end of lines (Markdown's way)
+  // This ensures multiline user input displays correctly
+  processedText = processedText.replace(/\n/g, "  \n");
+
   return processedText;
 }
 
@@ -418,6 +422,13 @@ export function AIChatPanel({
     }
   };
 
+  // Reset textarea height when input is cleared
+  useEffect(() => {
+    if (inputRef.current && !inputValue) {
+      inputRef.current.style.height = "auto";
+    }
+  }, [inputValue]);
+
   return (
     <div className="h-full max-h-full flex bg-gray-900 text-white overflow-hidden">
       {/* Left Sidebar - Example Prompts */}
@@ -437,297 +448,307 @@ export function AIChatPanel({
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
         <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-gray-700">
-        <div className="flex items-center gap-2">
-          <Bot className="w-5 h-5 text-blue-400" />
-          <div>
-            <h2 className="font-semibold">AI Assistant</h2>
-            {activeChart && (
-              <p className="text-xs text-gray-400">
-                Active: {activeChart.symbol || "Chart"} •{" "}
-                {activeChart.granularity || ""}
-              </p>
-            )}
+          <div className="flex items-center gap-2">
+            <Bot className="w-5 h-5 text-blue-400" />
+            <div>
+              <h2 className="font-semibold">AI Assistant</h2>
+              {activeChart && (
+                <p className="text-xs text-gray-400">
+                  Active: {activeChart.symbol || "Chart"} •{" "}
+                  {activeChart.granularity || ""}
+                </p>
+              )}
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* New Chat Button */}
-          <ToolbarButton
-            onClick={() => {
-              // If we have messages in the current session, add it to the recent sessions
-              if (messages.length > 0 && currentSessionId) {
-                const currentSession: ChatSession = {
-                  id: currentSessionId,
-                  chartId: activeChartId || "default",
-                  timestamp: new Date(),
-                  firstMessage:
-                    messages.find((m) => m.role === "user")?.content ||
-                    "New conversation",
-                  messageCount: messages.length,
-                };
+          <div className="flex items-center gap-2">
+            {/* New Chat Button */}
+            <ToolbarButton
+              onClick={() => {
+                // If we have messages in the current session, add it to the recent sessions
+                if (messages.length > 0 && currentSessionId) {
+                  const currentSession: ChatSession = {
+                    id: currentSessionId,
+                    chartId: activeChartId || "default",
+                    timestamp: new Date(),
+                    firstMessage:
+                      messages.find((m) => m.role === "user")?.content ||
+                      "New conversation",
+                    messageCount: messages.length,
+                  };
 
-                // Add current session to the beginning of recent sessions if it's not already there
-                setRecentSessions((prev) => {
-                  const filtered = prev.filter(
-                    (s) => s.id !== currentSessionId
-                  );
-                  return [currentSession, ...filtered].slice(0, 5);
-                });
-              }
+                  // Add current session to the beginning of recent sessions if it's not already there
+                  setRecentSessions((prev) => {
+                    const filtered = prev.filter(
+                      (s) => s.id !== currentSessionId
+                    );
+                    return [currentSession, ...filtered].slice(0, 5);
+                  });
+                }
 
-              const newId = startNewSession();
-              setMessages([]);
+                const newId = startNewSession();
+                setMessages([]);
 
-              // Reload sessions list with a small delay to ensure Firestore is updated
-              setTimeout(() => {
-                loadSessions(5).then((sessions) => {
-                  setRecentSessions(sessions);
-                });
-              }, 500);
-            }}
-            title="Start new chat"
-            variant="default"
-            active={true}
-          >
-            <Plus className="w-3 h-3" />
-          </ToolbarButton>
-
-          {/* Chat History Dropdown */}
-          <Menu as="div" className="static">
-            <Menu.Button as={ToolbarDropdownButton}>
-              <MessageCircle className="w-3 h-3" />
-              <ChevronDown className="w-3 h-3" />
-            </Menu.Button>
-
-            <Transition
-              as={Fragment}
-              enter="transition ease-out duration-100"
-              enterFrom="transform opacity-0 scale-95"
-              enterTo="transform opacity-100 scale-100"
-              leave="transition ease-in duration-75"
-              leaveFrom="transform opacity-100 scale-100"
-              leaveTo="transform opacity-0 scale-95"
+                // Reload sessions list with a small delay to ensure Firestore is updated
+                setTimeout(() => {
+                  loadSessions(5).then((sessions) => {
+                    setRecentSessions(sessions);
+                  });
+                }, 500);
+              }}
+              title="Start new chat"
+              variant="default"
+              active={true}
             >
-              <Menu.Items className="absolute right-4 mt-2 w-64 bg-black border border-gray-700 rounded-md shadow-lg z-[9999]">
-                <div className="py-1">
-                  {loadingSessions ? (
-                    <div className="px-4 py-3 text-center text-gray-400">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b border-gray-400 mx-auto"></div>
-                    </div>
-                  ) : recentSessions.length === 0 ? (
-                    <div className="px-4 py-3 text-center text-gray-400 text-sm">
-                      No previous chats
-                    </div>
-                  ) : (
-                    <>
-                      {recentSessions.map((session) => (
-                        <Menu.Item key={session.id}>
+              <Plus className="w-3 h-3" />
+            </ToolbarButton>
+
+            {/* Chat History Dropdown */}
+            <Menu as="div" className="static">
+              <Menu.Button as={ToolbarDropdownButton}>
+                <MessageCircle className="w-3 h-3" />
+                <ChevronDown className="w-3 h-3" />
+              </Menu.Button>
+
+              <Transition
+                as={Fragment}
+                enter="transition ease-out duration-100"
+                enterFrom="transform opacity-0 scale-95"
+                enterTo="transform opacity-100 scale-100"
+                leave="transition ease-in duration-75"
+                leaveFrom="transform opacity-100 scale-100"
+                leaveTo="transform opacity-0 scale-95"
+              >
+                <Menu.Items className="absolute right-4 mt-2 w-64 bg-black border border-gray-700 rounded-md shadow-lg z-[9999]">
+                  <div className="py-1">
+                    {loadingSessions ? (
+                      <div className="px-4 py-3 text-center text-gray-400">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b border-gray-400 mx-auto"></div>
+                      </div>
+                    ) : recentSessions.length === 0 ? (
+                      <div className="px-4 py-3 text-center text-gray-400 text-sm">
+                        No previous chats
+                      </div>
+                    ) : (
+                      <>
+                        {recentSessions.map((session) => (
+                          <Menu.Item key={session.id}>
+                            {({ active }) => (
+                              <button
+                                onClick={() => {
+                                  loadSession(session.id).then((history) => {
+                                    setMessages(history);
+                                  });
+                                }}
+                                className={`w-full px-4 py-2 text-left text-sm transition-colors ${
+                                  active ? "bg-gray-900" : ""
+                                } ${
+                                  session.id === currentSessionId
+                                    ? "text-blue-400"
+                                    : "text-gray-300 hover:text-white"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="truncate">
+                                      {session.firstMessage ||
+                                        "New conversation"}
+                                    </p>
+                                    <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                                      <Clock className="w-3 h-3" />
+                                      {new Date(
+                                        session.timestamp
+                                      ).toLocaleDateString()}
+                                    </p>
+                                  </div>
+                                  {session.id === currentSessionId && (
+                                    <svg
+                                      className="w-3 h-3 text-blue-400 flex-shrink-0 ml-2"
+                                      fill="currentColor"
+                                      viewBox="0 0 20 20"
+                                    >
+                                      <path
+                                        fillRule="evenodd"
+                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                        clipRule="evenodd"
+                                      />
+                                    </svg>
+                                  )}
+                                </div>
+                              </button>
+                            )}
+                          </Menu.Item>
+                        ))}
+
+                        {/* Separator */}
+                        <div className="h-px bg-gray-800 my-1"></div>
+
+                        {/* Show All option */}
+                        <Menu.Item>
                           {({ active }) => (
                             <button
                               onClick={() => {
-                                loadSession(session.id).then((history) => {
-                                  setMessages(history);
-                                });
+                                setIsHistoryModalOpen(true);
                               }}
-                              className={`w-full px-4 py-2 text-left text-sm transition-colors ${
+                              className={`w-full px-4 py-2 text-left text-sm transition-colors text-gray-300 hover:text-white flex items-center ${
                                 active ? "bg-gray-900" : ""
-                              } ${
-                                session.id === currentSessionId
-                                  ? "text-blue-400"
-                                  : "text-gray-300 hover:text-white"
                               }`}
                             >
-                              <div className="flex items-center justify-between">
-                                <div className="flex-1 min-w-0">
-                                  <p className="truncate">
-                                    {session.firstMessage || "New conversation"}
-                                  </p>
-                                  <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
-                                    <Clock className="w-3 h-3" />
-                                    {new Date(
-                                      session.timestamp
-                                    ).toLocaleDateString()}
-                                  </p>
-                                </div>
-                                {session.id === currentSessionId && (
-                                  <svg
-                                    className="w-3 h-3 text-blue-400 flex-shrink-0 ml-2"
-                                    fill="currentColor"
-                                    viewBox="0 0 20 20"
-                                  >
-                                    <path
-                                      fillRule="evenodd"
-                                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                      clipRule="evenodd"
-                                    />
-                                  </svg>
-                                )}
-                              </div>
+                              <MessageCircle className="w-3 h-3 mr-2" />
+                              Show all...
                             </button>
                           )}
                         </Menu.Item>
-                      ))}
+                      </>
+                    )}
+                  </div>
+                </Menu.Items>
+              </Transition>
+            </Menu>
 
-                      {/* Separator */}
-                      <div className="h-px bg-gray-800 my-1"></div>
-
-                      {/* Show All option */}
-                      <Menu.Item>
-                        {({ active }) => (
-                          <button
-                            onClick={() => {
-                              setIsHistoryModalOpen(true);
-                            }}
-                            className={`w-full px-4 py-2 text-left text-sm transition-colors text-gray-300 hover:text-white flex items-center ${
-                              active ? "bg-gray-900" : ""
-                            }`}
-                          >
-                            <MessageCircle className="w-3 h-3 mr-2" />
-                            Show all...
-                          </button>
-                        )}
-                      </Menu.Item>
-                    </>
-                  )}
-                </div>
-              </Menu.Items>
-            </Transition>
-          </Menu>
-
-          <ToolbarButton onClick={onClose} title="Close AI panel">
-            <X className="w-4 h-4" />
-          </ToolbarButton>
+            <ToolbarButton onClick={onClose} title="Close AI panel">
+              <X className="w-4 h-4" />
+            </ToolbarButton>
+          </div>
         </div>
-      </div>
 
-      {/* Messages */}
-      <div className="flex-1 min-h-0 overflow-y-auto relative">
-        {messages.length === 0 ? (
-          <ChatExamplePrompts onSelectPrompt={(prompt) => handleSend(prompt)} />
-        ) : (
-          <div className="p-4 space-y-4">
-            {messages.map((message, index) => (
-              <div
-                key={`${message.id}-${index}`}
-                className={`flex ${
-                  message.role === "user" ? "justify-end" : "justify-start"
-                }`}
-              >
+        {/* Messages */}
+        <div className="flex-1 min-h-0 overflow-y-auto relative">
+          {messages.length === 0 ? (
+            <ChatExamplePrompts
+              onSelectPrompt={(prompt) => handleSend(prompt)}
+            />
+          ) : (
+            <div className="p-4 space-y-4">
+              {messages.map((message, index) => (
                 <div
-                  className={`max-w-[80%] rounded-lg p-3 ${
-                    message.role === "user"
-                      ? "bg-blue-600 text-gray-100"
-                      : "bg-gray-800 text-gray-200"
+                  key={`${message.id}-${index}`}
+                  className={`flex ${
+                    message.role === "user" ? "justify-end" : "justify-start"
                   }`}
                 >
-                  <div className="font-light markdown-content overflow-hidden">
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      components={MarkdownComponents}
-                    >
-                      {preprocessContent(message.content)}
-                    </ReactMarkdown>
-                  </div>
-                  {message.commands && message.commands.length > 0 && (
-                    <div className="mt-2 space-y-1">
-                      {message.commands.map((cmd, cmdIndex) => (
-                        <div
-                          key={`${cmd.id}-${cmdIndex}`}
-                          className="text-xs bg-gray-700 rounded px-2 py-1 inline-block mr-1"
-                        >
-                          ✓ {cmd.command.replace(/_/g, " ")}
-                        </div>
-                      ))}
+                  <div
+                    className={`max-w-[80%] rounded-lg px-3 py-1 ${
+                      message.role === "user"
+                        ? "bg-blue-600 text-gray-100"
+                        : "bg-gray-800 text-gray-200"
+                    }`}
+                  >
+                    <div className="font-light markdown-content overflow-hidden">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={MarkdownComponents}
+                      >
+                        {preprocessContent(message.content)}
+                      </ReactMarkdown>
                     </div>
-                  )}
+                    {message.commands && message.commands.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        {message.commands.map((cmd, cmdIndex) => (
+                          <div
+                            key={`${cmd.id}-${cmdIndex}`}
+                            className="text-xs bg-gray-700 rounded px-2 py-1 inline-block mr-1"
+                          >
+                            ✓ {cmd.command.replace(/_/g, " ")}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="bg-gray-800 rounded-lg p-3">
-                  <Loader2 className="w-4 h-4 animate-spin" />
+              ))}
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-gray-800 rounded-lg px-3 py-1">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  </div>
                 </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-        )}
-
-        {/* Example Prompts Overlay */}
-        {showExamplePrompts && messages.length > 0 && (
-          <div
-            className="absolute inset-0 z-50 flex items-center justify-center bg-black/60"
-            onClick={(e) => {
-              // Close if clicking backdrop (not content)
-              if (e.target === e.currentTarget) {
-                setShowExamplePrompts(false);
-              }
-            }}
-          >
-            <div className="relative max-w-2xl w-full mx-4">
-              <ChatExamplePrompts
-                onSelectPrompt={(prompt) => {
-                  handleSend(prompt);
-                  setShowExamplePrompts(false);
-                }}
-                isOverlay={true}
-                onClose={() => setShowExamplePrompts(false)}
-              />
+              )}
+              <div ref={messagesEndRef} />
             </div>
-          </div>
-        )}
-      </div>
+          )}
 
-      {/* Input */}
-      <div className="flex-shrink-0 border-t border-gray-700 p-4">
-        <div className="relative">
-          <textarea
-            ref={inputRef}
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask about the chart..."
-            className="w-full bg-gray-800 text-white rounded-lg pl-4 pr-20 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[40px] max-h-[80px] overflow-y-auto"
-            rows={1}
-            disabled={isLoading || !user}
-          />
-
-          {/* Lightbulb button inside input field */}
-          <button
-            onClick={() => {
-              if (messages.length > 0) {
-                setShowPromptsSidebar(!showPromptsSidebar);
-              } else {
-                setShowExamplePrompts(!showExamplePrompts);
-              }
-            }}
-            disabled={!user}
-            title="Show example prompts"
-            className={`absolute right-12 top-2 p-1.5 rounded transition-colors ${
-              (showExamplePrompts || showPromptsSidebar)
-                ? "text-yellow-400 hover:text-yellow-300"
-                : "text-gray-400 hover:text-white"
-            } disabled:text-gray-600 disabled:cursor-not-allowed`}
-          >
-            <Lightbulb className="w-4 h-4" />
-          </button>
-
-          {/* Send button inside input field */}
-          <button
-            onClick={() => handleSend()}
-            disabled={!inputValue.trim() || isLoading || !user}
-            title="Send message"
-            className="absolute right-2 top-2 p-1.5 rounded transition-colors text-blue-400 hover:text-blue-300 disabled:text-gray-600 disabled:cursor-not-allowed"
-          >
-            <Send className="w-4 h-4" />
-          </button>
+          {/* Example Prompts Overlay */}
+          {showExamplePrompts && messages.length > 0 && (
+            <div
+              className="absolute inset-0 z-50 flex items-center justify-center bg-black/60"
+              onClick={(e) => {
+                // Close if clicking backdrop (not content)
+                if (e.target === e.currentTarget) {
+                  setShowExamplePrompts(false);
+                }
+              }}
+            >
+              <div className="relative max-w-2xl w-full mx-4">
+                <ChatExamplePrompts
+                  onSelectPrompt={(prompt) => {
+                    handleSend(prompt);
+                    setShowExamplePrompts(false);
+                  }}
+                  isOverlay={true}
+                  onClose={() => setShowExamplePrompts(false)}
+                />
+              </div>
+            </div>
+          )}
         </div>
-        {!user && (
-          <p className="text-xs text-gray-400 mt-2">
-            Please sign in to use the AI assistant
-          </p>
-        )}
-      </div>
+
+        {/* Input */}
+        <div className="flex-shrink-0 border-t border-gray-700 p-4">
+          <div className="relative">
+            <textarea
+              ref={inputRef}
+              value={inputValue}
+              onChange={(e) => {
+                setInputValue(e.target.value);
+                // Auto-resize textarea
+                const target = e.target;
+                target.style.height = "auto";
+                target.style.height = Math.min(target.scrollHeight, 120) + "px";
+              }}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask about the chart... (Shift+Enter for new line)"
+              className="w-full bg-gray-800 text-white rounded-lg pl-4 pr-20 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[40px] max-h-[120px] overflow-y-auto"
+              rows={2}
+              style={{ height: "auto" }}
+              disabled={isLoading || !user}
+            />
+
+            {/* Lightbulb button inside input field */}
+            <button
+              onClick={() => {
+                if (messages.length > 0) {
+                  setShowPromptsSidebar(!showPromptsSidebar);
+                } else {
+                  setShowExamplePrompts(!showExamplePrompts);
+                }
+              }}
+              disabled={!user}
+              title="Show example prompts"
+              className={`absolute right-12 top-1/2 -translate-y-1/2 p-1.5 rounded transition-colors ${
+                showExamplePrompts || showPromptsSidebar
+                  ? "text-yellow-400 hover:text-yellow-300"
+                  : "text-gray-400 hover:text-white"
+              } disabled:text-gray-600 disabled:cursor-not-allowed`}
+            >
+              <Lightbulb className="w-4 h-4" />
+            </button>
+
+            {/* Send button inside input field */}
+            <button
+              onClick={() => handleSend()}
+              disabled={!inputValue.trim() || isLoading || !user}
+              title="Send message (Enter)"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded transition-colors text-blue-400 hover:text-blue-300 disabled:text-gray-600 disabled:cursor-not-allowed"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
+          {!user && (
+            <p className="text-xs text-gray-400 mt-2">
+              Please sign in to use the AI assistant
+            </p>
+          )}
+        </div>
 
         {/* Chat History Modal */}
         <ChatHistoryModal
