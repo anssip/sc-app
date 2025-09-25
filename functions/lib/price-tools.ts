@@ -817,13 +817,13 @@ export const priceTools = {
         );
       }
 
-      // Use PatternDetector with configuration
+      // Use PatternDetector with stricter configuration
       const detector = new PatternDetector({
-        minVolumeRatio: 1.2, // Require 20% above average volume
-        minSignificance: 0.5, // Filter out low significance patterns
-        levelProximityThreshold: 0.01, // Within 1% of support/resistance
-        supportBoost: 2.0, // Double significance at support levels
-        resistanceBoost: 2.0, // Double significance at resistance levels
+        minVolumeRatio: 1.5, // Require 50% above average volume (up from 20%)
+        minSignificance: 0.8, // Filter out low significance patterns (up from 0.5)
+        levelProximityThreshold: 0.005, // Within 0.5% of support/resistance (down from 1%)
+        supportBoost: 1.5, // 50% boost at support levels (down from 100%)
+        resistanceBoost: 1.5, // 50% boost at resistance levels (down from 100%)
       });
 
       const detectedPatterns = await detector.detectPatterns(
@@ -838,29 +838,48 @@ export const priceTools = {
         patternCandles.length;
 
       // Convert patterns to the expected format with additional metadata
-      const formattedPatterns = detectedPatterns.map((pattern) => ({
-        type: pattern.type
-          .toLowerCase()
-          .replace(/([A-Z])/g, "_$1")
-          .slice(1),
-        timestamp: pattern.candleTimestamps[0],
-        candleTimestamps: pattern.candleTimestamps,
-        price:
-          patternCandles.find(
-            (c) => c.timestamp === pattern.candleTimestamps[0]
-          )?.close || 0,
-        volume: pattern.volume,
-        significance:
-          pattern.significance >= 1.5
-            ? "very high"
-            : pattern.significance >= 1.0
-            ? "high"
-            : pattern.significance >= 0.7
-            ? "medium"
-            : "low",
-        description: pattern.description,
-        nearLevel: pattern.nearLevel,
-      }));
+      const formattedPatterns = detectedPatterns.map((pattern) => {
+        // Convert camelCase to snake_case properly
+        const snakeType = pattern.type.replace(
+          /([A-Z])/g,
+          (_match, p1, offset) => {
+            // Don't add underscore at the beginning
+            return offset > 0 ? `_${p1.toLowerCase()}` : p1.toLowerCase();
+          }
+        );
+
+        // Create a proper display name
+        const displayName = pattern.type
+          .replace(/([A-Z])/g, " $1")
+          .trim()
+          .split(" ")
+          .map(
+            (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+          )
+          .join(" ");
+
+        return {
+          type: snakeType,
+          name: displayName,
+          timestamp: pattern.candleTimestamps[0],
+          candleTimestamps: pattern.candleTimestamps,
+          price:
+            patternCandles.find(
+              (c) => c.timestamp === pattern.candleTimestamps[0]
+            )?.close || 0,
+          volume: pattern.volume,
+          significance:
+            pattern.significance >= 1.5
+              ? "very high"
+              : pattern.significance >= 1.0
+              ? "high"
+              : pattern.significance >= 0.7
+              ? "medium"
+              : "low",
+          description: pattern.description,
+          nearLevel: pattern.nearLevel,
+        };
+      });
 
       // Generate pattern counts
       const patternCounts: Record<string, number> = {};

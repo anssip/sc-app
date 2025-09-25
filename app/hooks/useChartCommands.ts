@@ -11,7 +11,11 @@ import {
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
-export function useChartCommands(userId: string | undefined, chartApi: any, activeChartId?: string | null) {
+export function useChartCommands(
+  userId: string | undefined,
+  chartApi: any,
+  activeChartId?: string | null
+) {
   const processedCommands = useRef(new Set<string>());
 
   useEffect(() => {
@@ -29,57 +33,61 @@ export function useChartCommands(userId: string | undefined, chartApi: any, acti
       q,
       async (snapshot) => {
         for (const change of snapshot.docChanges()) {
-        if (change.type === "added") {
-          const commandDoc = change.doc;
-          const commandId = commandDoc.id;
+          if (change.type === "added") {
+            const commandDoc = change.doc;
+            const commandId = commandDoc.id;
 
-          // Skip if already processed
-          if (processedCommands.current.has(commandId)) {
-            continue;
-          }
+            // Skip if already processed
+            if (processedCommands.current.has(commandId)) {
+              continue;
+            }
 
-          processedCommands.current.add(commandId);
-          const command = commandDoc.data();
+            processedCommands.current.add(commandId);
+            const command = commandDoc.data();
 
-          // Check if command has a target chart ID and if it matches the active chart
-          if (command.targetChartId && command.targetChartId !== activeChartId) {
-            continue;
-          }
+            // Check if command has a target chart ID and if it matches the active chart
+            if (
+              command.targetChartId &&
+              command.targetChartId !== activeChartId
+            ) {
+              continue;
+            }
 
-          try {
-            // Execute the command using the Chart API
-            const result = await executeChartCommand(
-              chartApi,
-              command.command,
-              command.parameters
-            );
-            // Update command status to executed
-            await updateDoc(
-              doc(db, "users", userId, "chart_commands", commandId),
-              {
-                status: "executed",
-                executedAt: serverTimestamp(),
-                result: result || null,
-              }
-            );
-          } catch (error) {
-            // Update command status to failed
-            await updateDoc(
-              doc(db, "users", userId, "chart_commands", commandId),
-              {
-                status: "failed",
-                executedAt: serverTimestamp(),
-                error: error instanceof Error ? error.message : "Unknown error",
-              }
-            );
+            try {
+              // Execute the command using the Chart API
+              const result = await executeChartCommand(
+                chartApi,
+                command.command,
+                command.parameters
+              );
+              // Update command status to executed
+              await updateDoc(
+                doc(db, "users", userId, "chart_commands", commandId),
+                {
+                  status: "executed",
+                  executedAt: serverTimestamp(),
+                  result: result || null,
+                }
+              );
+            } catch (error) {
+              // Update command status to failed
+              await updateDoc(
+                doc(db, "users", userId, "chart_commands", commandId),
+                {
+                  status: "failed",
+                  executedAt: serverTimestamp(),
+                  error:
+                    error instanceof Error ? error.message : "Unknown error",
+                }
+              );
+            }
           }
         }
+      },
+      (error) => {
+        // Don't throw - just log the error to prevent uncaught promise rejections
       }
-    },
-    (error) => {
-      // Don't throw - just log the error to prevent uncaught promise rejections
-    }
-  );
+    );
 
     return () => {
       unsubscribe();
@@ -169,7 +177,7 @@ async function executeChartCommand(
       }
       if (api.hideIndicator) {
         api.hideIndicator(params.id);
-        } else {
+      } else {
         throw new Error("Chart API hideIndicator method not available");
       }
       return { indicator: params.id, visible: false };
@@ -180,12 +188,12 @@ async function executeChartCommand(
       if (params.lastTest) {
         const date = new Date(params.lastTest);
         const localDateStr = date.toLocaleString(undefined, {
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          timeZoneName: 'short'
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZoneName: "short",
         });
 
         // Append local time to description
@@ -269,6 +277,49 @@ async function executeChartCommand(
       // This is a data fetch operation, handled server-side
       // Just acknowledge it was requested
       return { requested: true };
+
+    case "highlight_patterns":
+      if (!params.patterns || !Array.isArray(params.patterns)) {
+        throw new Error(
+          "Patterns array is required for highlight_patterns command"
+        );
+      }
+      if (api.highlightPatterns) {
+        api.highlightPatterns(params.patterns);
+      } else {
+        throw new Error("Chart API highlightPatterns method not available");
+      }
+      return { highlighted: params.patterns.length };
+
+    case "pulse_wave":
+      if (api.pulseWave) {
+        api.pulseWave({
+          speed: params.speed,
+          color: params.color,
+          numCandles: params.numCandles,
+        });
+      } else {
+        throw new Error("Chart API pulseWave method not available");
+      }
+      return { pulseStarted: true };
+
+    case "stop_pulse_wave":
+      if (api.stopPulseWave) {
+        api.stopPulseWave();
+      } else {
+        throw new Error("Chart API stopPulseWave method not available");
+      }
+      return { pulseStopped: true };
+
+    case "clear_pattern_highlights":
+      if (api.clearPatternHighlights) {
+        api.clearPatternHighlights();
+      } else {
+        throw new Error(
+          "Chart API clearPatternHighlights method not available"
+        );
+      }
+      return { cleared: true };
 
     default:
       throw new Error(`Unknown command: ${command}`);

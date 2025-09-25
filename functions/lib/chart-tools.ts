@@ -183,7 +183,8 @@ export const chartTools = {
             levelType: {
               type: "string",
               enum: ["spike", "swing", "horizontal"],
-              description: "Type of support/resistance level (spike = extreme reversal, swing = regular reversal, horizontal = consolidation)",
+              description:
+                "Type of support/resistance level (spike = extreme reversal, swing = regular reversal, horizontal = consolidation)",
             },
             opacity: {
               type: "number",
@@ -225,16 +226,19 @@ export const chartTools = {
             },
             animation: {
               type: "object",
-              description: "Optional animation configuration (e.g., for spike levels)",
+              description:
+                "Optional animation configuration (e.g., for spike levels)",
               properties: {
                 type: {
                   type: "string",
                   enum: ["pulse"],
-                  description: "Animation type (currently only pulse is supported)",
+                  description:
+                    "Animation type (currently only pulse is supported)",
                 },
                 duration: {
                   type: "number",
-                  description: "Duration of one animation cycle in milliseconds",
+                  description:
+                    "Duration of one animation cycle in milliseconds",
                   default: 2000,
                 },
                 intensity: {
@@ -253,7 +257,8 @@ export const chartTools = {
             },
             lastTest: {
               type: "number",
-              description: "Unix timestamp in milliseconds of when this level was last tested (for browser timezone conversion)",
+              description:
+                "Unix timestamp in milliseconds of when this level was last tested (for browser timezone conversion)",
             },
           },
           required: ["start", "end"],
@@ -417,7 +422,8 @@ export const chartTools = {
             },
             color: {
               type: "string",
-              description: "Line color in hex format (optional - defaults to red for resistance, green for support)",
+              description:
+                "Line color in hex format (optional - defaults to red for resistance, green for support)",
             },
             lineWidth: {
               type: "number",
@@ -471,12 +477,14 @@ export const chartTools = {
             },
             maxSupports: {
               type: "number",
-              description: "Maximum number of support levels to draw (default: 3)",
+              description:
+                "Maximum number of support levels to draw (default: 3)",
               default: 3,
             },
             maxResistances: {
               type: "number",
-              description: "Maximum number of resistance levels to draw (default: 3)",
+              description:
+                "Maximum number of resistance levels to draw (default: 3)",
               default: 3,
             },
             supportColor: {
@@ -491,6 +499,152 @@ export const chartTools = {
             },
           },
           required: ["symbol", "granularity", "startTime", "endTime"],
+        },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "highlight_patterns",
+        description: "Highlight detected candlestick patterns on the chart",
+        parameters: {
+          type: "object",
+          properties: {
+            patterns: {
+              type: "array",
+              description: "Array of pattern highlights to display",
+              items: {
+                type: "object",
+                properties: {
+                  id: {
+                    type: "string",
+                    description: "Unique identifier for the pattern",
+                  },
+                  type: {
+                    type: "string",
+                    description: "Pattern marker type",
+                    enum: ["pattern"],
+                  },
+                  patternType: {
+                    type: "string",
+                    description: "Type of candlestick pattern",
+                  },
+                  name: {
+                    type: "string",
+                    description: "Display name for the pattern",
+                  },
+                  description: {
+                    type: "string",
+                    description: "Detailed description of the pattern",
+                  },
+                  candleTimestamps: {
+                    type: "array",
+                    description:
+                      "Array of timestamps for candles in the pattern",
+                    items: {
+                      type: "number",
+                    },
+                  },
+                  significance: {
+                    type: "string",
+                    enum: ["low", "medium", "high", "very high", "effect"],
+                    description: "Pattern significance level",
+                  },
+                  color: {
+                    type: "string",
+                    description:
+                      "Highlight color (optional, defaults based on pattern type)",
+                  },
+                  style: {
+                    type: "string",
+                    enum: ["outline", "fill", "both"],
+                    description: "Highlight style",
+                    default: "outline",
+                  },
+                  nearLevel: {
+                    type: "object",
+                    description:
+                      "Information about nearby support/resistance level",
+                    properties: {
+                      type: {
+                        type: "string",
+                        enum: ["support", "resistance"],
+                      },
+                      price: {
+                        type: "number",
+                      },
+                      distance: {
+                        type: "number",
+                        description: "Percentage distance from the level",
+                      },
+                    },
+                  },
+                },
+                required: [
+                  "id",
+                  "type",
+                  "patternType",
+                  "name",
+                  "description",
+                  "candleTimestamps",
+                  "significance",
+                ],
+              },
+            },
+          },
+          required: ["patterns"],
+        },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "pulse_wave",
+        description: "Start an animated pulsating wave effect on the chart",
+        parameters: {
+          type: "object",
+          properties: {
+            speed: {
+              type: "number",
+              description: "Speed of wave movement (1-50, default: 5)",
+              minimum: 1,
+              maximum: 50,
+              default: 5,
+            },
+            color: {
+              type: "string",
+              description: "Hex color for the wave",
+              default: "#ec4899",
+            },
+            numCandles: {
+              type: "number",
+              description: "Number of candles in the wave width",
+              minimum: 5,
+              default: 20,
+            },
+          },
+        },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "stop_pulse_wave",
+        description: "Stop the currently running pulse wave animation",
+        parameters: {
+          type: "object",
+          properties: {},
+        },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "clear_pattern_highlights",
+        description: "Remove all pattern highlights from the chart",
+        parameters: {
+          type: "object",
+          properties: {},
         },
       },
     },
@@ -536,6 +690,17 @@ export const chartTools = {
         return `✓ Trend line tool activated`;
       case "get_candles":
         return `✓ Fetched candle data`;
+      case "highlight_patterns":
+        const count = args.patterns?.length || 0;
+        return `✓ Highlighted ${count} pattern${
+          count !== 1 ? "s" : ""
+        } on the chart`;
+      case "pulse_wave":
+        return `✓ Started pattern scanning animation`;
+      case "stop_pulse_wave":
+        return `✓ Stopped scanning animation`;
+      case "clear_pattern_highlights":
+        return `✓ Cleared pattern highlights`;
       default:
         return `✓ Executed ${toolName}`;
     }

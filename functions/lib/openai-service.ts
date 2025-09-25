@@ -1382,23 +1382,162 @@ Return your analysis in this JSON format:
             assistantMessage += "\n\n" + confirmationMessage;
           }
         } else if (priceTools.isPriceTool(toolCall.function.name)) {
-          // Price data tools are executed immediately
-          console.log(`Executing price tool: ${toolCall.function.name}`);
-          const result = await priceTools.execute(
-            toolCall.function.name,
-            args,
-            db
-          );
+          // Special handling for pattern analysis with chart animations
+          if (toolCall.function.name === "analyze_candlestick_patterns") {
+            console.log(
+              "Starting candlestick pattern analysis with animations..."
+            );
 
-          console.log(`Price tool result:`, result);
+            // Start pulse wave animation on the chart
+            const pulseWaveCommand = {
+              function: {
+                name: "pulse_wave",
+                arguments: JSON.stringify({
+                  speed: 50, // 5x faster (was 10, now 50)
+                  color: "#60a5fa", // Blue color for scanning
+                  numCandles: 25,
+                }),
+              },
+            };
+            await onToolCall(pulseWaveCommand);
+            onStream("\n\n🔍 Scanning chart for candlestick patterns...");
 
-          // Send result summary
-          const summary = priceTools.formatResult(
-            toolCall.function.name,
-            result
-          );
-          onStream("\n\n" + summary);
-          assistantMessage += "\n\n" + summary;
+            // Execute the pattern detection
+            const result = await priceTools.execute(
+              toolCall.function.name,
+              args,
+              db
+            );
+
+            console.log(`Pattern detection result:`, result);
+
+            // Stop the pulse wave animation
+            const stopPulseCommand = {
+              function: {
+                name: "stop_pulse_wave",
+                arguments: JSON.stringify({}),
+              },
+            };
+            await onToolCall(stopPulseCommand);
+
+            // Transform detected patterns for chart highlighting
+            if (result.patterns && result.patterns.length > 0) {
+              const patternHighlights = result.patterns.map(
+                (pattern: any, index: number) => {
+                  // Determine color based on pattern type
+                  let color = "#60a5fa"; // Default blue
+                  const patternType = pattern.type.toLowerCase();
+
+                  // Bullish patterns - green
+                  if (
+                    patternType.includes("bullish") ||
+                    patternType.includes("hammer") ||
+                    patternType.includes("morning")
+                  ) {
+                    color = "#4ade80";
+                  }
+                  // Bearish patterns - red
+                  else if (
+                    patternType.includes("bearish") ||
+                    patternType.includes("shooting") ||
+                    patternType.includes("evening")
+                  ) {
+                    color = "#ef4444";
+                  }
+                  // Neutral/indecision patterns - yellow
+                  else if (
+                    patternType.includes("doji") ||
+                    patternType.includes("spinning") ||
+                    patternType.includes("inside")
+                  ) {
+                    color = "#fbbf24";
+                  }
+
+                  // Use the name field from the pattern if available, otherwise format from type
+                  const displayName =
+                    pattern.name ||
+                    pattern.type
+                      .split("_")
+                      .map(
+                        (word: string) =>
+                          word.charAt(0).toUpperCase() + word.slice(1)
+                      )
+                      .join(" ");
+
+                  return {
+                    id: `pattern_${index}_${Date.now()}`,
+                    type: "pattern",
+                    patternType: pattern.type,
+                    name: displayName,
+                    description:
+                      pattern.description ||
+                      `${displayName} pattern${
+                        pattern.nearLevel
+                          ? ` near ${
+                              pattern.nearLevel.type
+                            } at $${pattern.nearLevel.price.toFixed(2)}`
+                          : ""
+                      }`,
+                    candleTimestamps: pattern.candleTimestamps || [
+                      pattern.timestamp,
+                    ],
+                    significance: pattern.significance || "medium",
+                    color: color,
+                    style:
+                      pattern.significance === "very high"
+                        ? "both"
+                        : pattern.significance === "high"
+                        ? "both"
+                        : "outline",
+                    nearLevel: pattern.nearLevel,
+                  };
+                }
+              );
+
+              // Send highlight patterns command to the chart
+              const highlightCommand = {
+                function: {
+                  name: "highlight_patterns",
+                  arguments: JSON.stringify({
+                    patterns: patternHighlights,
+                  }),
+                },
+              };
+              await onToolCall(highlightCommand);
+
+              onStream(
+                `\n\n✨ Highlighted ${patternHighlights.length} pattern${
+                  patternHighlights.length !== 1 ? "s" : ""
+                } on the chart.\n`
+              );
+            }
+
+            // Send formatted result summary
+            const summary = priceTools.formatResult(
+              toolCall.function.name,
+              result
+            );
+            onStream("\n" + summary);
+            assistantMessage += "\n\n" + summary;
+          } else {
+            // Standard price tool execution
+            console.log(`Executing price tool: ${toolCall.function.name}`);
+            const result = await priceTools.execute(
+              toolCall.function.name,
+              args,
+              db
+            );
+
+            console.log(`Price tool result:`, result);
+
+            // Send result summary
+            const summary = priceTools.formatResult(
+              toolCall.function.name,
+              result
+            );
+            onStream("\n\n" + summary);
+            assistantMessage += "\n\n" + summary;
+          }
         }
       } catch (error: any) {
         console.error(

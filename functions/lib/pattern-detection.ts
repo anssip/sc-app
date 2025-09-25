@@ -68,7 +68,7 @@ export class PatternDetector {
 
     this.applyLevelBoosts(patterns, supports, resistances);
 
-    return this.filterPatterns(patterns);
+    return this.filterPatterns(patterns, candles.length, avgVolume);
   }
 
   private calculateAverageVolume(candles: Candle[]): number {
@@ -91,8 +91,12 @@ export class PatternDetector {
       const lowerShadow = Math.min(candle.open, candle.close) - candle.low;
       const shadowBalance = Math.abs(upperShadow - lowerShadow) / range;
 
-      let significance = 0.7;
-      if (shadowBalance < 0.1) significance += 0.2;
+      // Start with lower base significance
+      let significance = 0.5; // Down from 0.7
+      if (shadowBalance < 0.1) significance += 0.15; // Less boost for balance
+
+      // Require higher body ratio for stronger doji
+      if (bodyRatio < 5) significance += 0.1; // Extra boost for very small body
 
       const volumeRatio = avgVolume > 0 ? candle.volume / avgVolume : 1;
       if (volumeRatio > this.config.minVolumeRatio) {
@@ -186,7 +190,7 @@ export class PatternDetector {
         nextCandle.open <= candle.close &&
         nextCandle.close >= candle.open
       ) {
-        let significance = 0.75;
+        let significance = 0.6; // Down from 0.75
         const volumeRatio = avgVolume > 0 ? nextCandle.volume / avgVolume : 1;
         if (volumeRatio > this.config.minVolumeRatio) {
           significance += 0.15 * Math.min(volumeRatio - 1, 1);
@@ -206,7 +210,7 @@ export class PatternDetector {
         nextCandle.open >= candle.close &&
         nextCandle.close <= candle.open
       ) {
-        let significance = 0.75;
+        let significance = 0.6; // Down from 0.75
         const volumeRatio = avgVolume > 0 ? nextCandle.volume / avgVolume : 1;
         if (volumeRatio > this.config.minVolumeRatio) {
           significance += 0.15 * Math.min(volumeRatio - 1, 1);
@@ -253,6 +257,7 @@ export class PatternDetector {
         }
       }
 
+      // Handle bullish patterns at support
       if (nearestSupport && this.isBullishPattern(pattern.type)) {
         pattern.significance *= this.config.supportBoost;
         pattern.nearLevel = {
@@ -263,7 +268,9 @@ export class PatternDetector {
         pattern.description += ` at support $${nearestSupport.price.toFixed(
           2
         )}`;
-      } else if (nearestResistance && this.isBearishPattern(pattern.type)) {
+      }
+      // Handle bearish patterns at resistance
+      else if (nearestResistance && this.isBearishPattern(pattern.type)) {
         pattern.significance *= this.config.resistanceBoost;
         pattern.nearLevel = {
           type: "resistance",
@@ -274,22 +281,95 @@ export class PatternDetector {
           2
         )}`;
       }
+      // Handle neutral patterns (Doji) - boost at either level but less aggressively
+      else if (this.isNeutralPattern(pattern.type)) {
+        if (
+          nearestSupport &&
+          (!nearestResistance ||
+            nearestSupport.distance < nearestResistance.distance)
+        ) {
+          pattern.significance *= Math.min(
+            this.config.supportBoost * 0.75,
+            1.3
+          );
+          pattern.nearLevel = {
+            type: "support",
+            price: nearestSupport.price,
+            distance: nearestSupport.distance,
+          };
+          pattern.description += ` at support $${nearestSupport.price.toFixed(
+            2
+          )}`;
+        } else if (nearestResistance) {
+          pattern.significance *= Math.min(
+            this.config.resistanceBoost * 0.75,
+            1.3
+          );
+          pattern.nearLevel = {
+            type: "resistance",
+            price: nearestResistance.price,
+            distance: nearestResistance.distance,
+          };
+          pattern.description += ` at resistance $${nearestResistance.price.toFixed(
+            2
+          )}`;
+        }
+      }
     }
   }
 
   private isBullishPattern(type: string): boolean {
-    return ["Hammer", "BullishEngulfing", "Doji"].includes(type);
+    return ["Hammer", "BullishEngulfing"].includes(type);
   }
 
   private isBearishPattern(type: string): boolean {
-    return ["ShootingStar", "BearishEngulfing", "Doji"].includes(type);
+    return ["ShootingStar", "BearishEngulfing"].includes(type);
   }
 
-  private filterPatterns(patterns: Pattern[]): Pattern[] {
-    return patterns
+  private isNeutralPattern(type: string): boolean {
+    return ["Doji"].includes(type);
+  }
+
+  private filterPatterns(
+    patterns: Pattern[],
+    candleCount: number,
+    avgVolume: number
+  ): Pattern[] {
+    // Calculate dynamic limit based on candle count (5% of candles, min 1, max 5)
+    const maxPatterns = Math.min(
+      5,
+      Math.max(1, Math.floor(candleCount * 0.05))
+    );
+
+    // Filter by significance and volume
+    const filtered = patterns
       .filter((p) => p.significance >= this.config.minSignificance)
+      .filter((p) => !p.volume || p.volume >= avgVolume * 0.8); // Remove low-volume patterns
+
+    // Deduplicate patterns at same price level (within 0.2%)
+    const deduplicated: Pattern[] = [];
+    const priceGroups = new Map<number, Pattern[]>();
+
+    // Group patterns by price level
+    for (const pattern of filtered) {
+      const priceKey = Math.round(pattern.price / 0.002) * 0.002; // Round to 0.2% buckets
+      if (!priceGroups.has(priceKey)) {
+        priceGroups.set(priceKey, []);
+      }
+      priceGroups.get(priceKey)!.push(pattern);
+    }
+
+    // Keep only the highest significance pattern from each price group
+    for (const group of priceGroups.values()) {
+      const best = group.sort((a, b) => b.significance - a.significance)[0];
+      deduplicated.push(best);
+    }
+
+    // Sort by significance, take top patterns, then re-sort by timestamp (oldest first)
+    return deduplicated
       .sort((a, b) => b.significance - a.significance)
-      .slice(0, 10);
+      .slice(0, maxPatterns)
+      .sort((a, b) => a.candleTimestamps[0] - b.candleTimestamps[0]);
   }
 }
 
