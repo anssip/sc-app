@@ -10,6 +10,10 @@ import {
   detectVolumeDivergence,
   Divergence,
 } from "./divergence-detection.js";
+import {
+  detectMACDCrossovers,
+  MACDCrossover,
+} from "./tools/macd-crossover.js";
 
 interface ToolDefinition {
   type: string;
@@ -100,6 +104,16 @@ interface DetectVolumeDivergenceArgs {
   endTime?: number;
   lookbackPeriod?: number;
   minStrength?: number;
+}
+
+interface DetectMACDCrossoverArgs {
+  symbol: string;
+  interval: string;
+  startTime?: number;
+  endTime?: number;
+  crossoverTypes?: ("bullish" | "bearish" | "zero" | "all")[];
+  minStrength?: number;
+  includeHistogram?: boolean;
 }
 
 interface Candle {
@@ -601,6 +615,68 @@ export const priceTools = {
         },
       },
     },
+    {
+      type: "function",
+      function: {
+        name: "detect_macd_crossover",
+        description:
+          "Detect MACD crossovers including signal line crossovers and zero-line crossovers. Signal line crossovers indicate potential trend changes - bullish when MACD crosses above signal (buy signal), bearish when MACD crosses below signal (sell signal). Zero-line crossovers confirm trend direction - above zero indicates bullish momentum, below zero indicates bearish momentum. When crossovers are detected, automatically highlight them on the chart with markers and labels.",
+        parameters: {
+          type: "object",
+          properties: {
+            symbol: {
+              type: "string",
+              description: "Trading pair symbol (e.g., BTC-USD, ETH-USD)",
+            },
+            interval: {
+              type: "string",
+              enum: [
+                "ONE_MINUTE",
+                "FIVE_MINUTES",
+                "FIFTEEN_MINUTES",
+                "THIRTY_MINUTES",
+                "ONE_HOUR",
+                "TWO_HOURS",
+                "SIX_HOURS",
+                "ONE_DAY",
+              ],
+              description: "Time interval for analysis",
+            },
+            startTime: {
+              type: "number",
+              description: "Start timestamp in milliseconds",
+            },
+            endTime: {
+              type: "number",
+              description: "End timestamp in milliseconds",
+            },
+            crossoverTypes: {
+              type: "array",
+              items: {
+                type: "string",
+                enum: ["bullish", "bearish", "zero", "all"],
+              },
+              description:
+                "Types of crossovers to detect. 'bullish'/'bearish' for signal line crossovers, 'zero' for zero-line crossovers",
+              default: ["bullish", "bearish"],
+            },
+            minStrength: {
+              type: "number",
+              description:
+                "Minimum crossover strength to report (0-100, default: 30)",
+              default: 30,
+            },
+            includeHistogram: {
+              type: "boolean",
+              description:
+                "Include histogram analysis for additional confirmation (default: true)",
+              default: true,
+            },
+          },
+          required: ["symbol", "interval"],
+        },
+      },
+    },
   ] as ToolDefinition[],
 
   isPriceTool(name: string): boolean {
@@ -634,6 +710,8 @@ export const priceTools = {
         return await this.detectMACDDivergence(args as DetectMACDDivergenceArgs, db);
       case "detect_volume_divergence":
         return await this.detectVolumeDivergence(args as DetectVolumeDivergenceArgs, db);
+      case "detect_macd_crossover":
+        return await this.detectMACDCrossover(args as DetectMACDCrossoverArgs, db);
       default:
         throw new Error(`Unknown Firestore tool: ${toolName}`);
     }
@@ -1525,6 +1603,102 @@ export const priceTools = {
     }
   },
 
+  async detectMACDCrossover(
+    { symbol, interval, startTime, endTime, crossoverTypes = ["bullish", "bearish"], minStrength = 30, includeHistogram = true }: DetectMACDCrossoverArgs,
+    _db: Firestore
+  ): Promise<any> {
+    try {
+      // Calculate time range if not provided
+      if (!startTime || !endTime) {
+        endTime = endTime || Date.now();
+        const intervalMs = this.getIntervalMilliseconds(interval);
+        startTime = startTime || endTime - intervalMs * 100;
+      }
+
+      // Detect MACD crossovers
+      const detectionResult = await detectMACDCrossovers(
+        symbol,
+        interval,
+        startTime,
+        endTime,
+        {
+          crossoverTypes,
+          minStrength,
+          includeHistogram,
+        }
+      );
+
+      const { crossovers, totalFound, filtered } = detectionResult;
+
+      // Generate summary
+      let summary = "";
+      if (crossovers.length === 0) {
+        summary = "No MACD crossovers detected in the specified range.";
+      } else {
+        const bullish = crossovers.filter((c) => c.type === "bullish" || c.type === "bullish_zero");
+        const bearish = crossovers.filter((c) => c.type === "bearish" || c.type === "bearish_zero");
+
+        // Show filtering information if applicable
+        if (filtered) {
+          summary = `Found ${totalFound} MACD crossovers (showing top ${crossovers.length} by significance): `;
+        } else {
+          summary = `Found ${crossovers.length} MACD crossover${crossovers.length !== 1 ? "s" : ""}: `;
+        }
+
+        if (bullish.length > 0) {
+          summary += `${bullish.length} bullish`;
+        }
+        if (bearish.length > 0) {
+          if (bullish.length > 0) summary += ", ";
+          summary += `${bearish.length} bearish`;
+        }
+
+        // Highlight high-confidence crossovers
+        const highConfidence = crossovers.filter((c) => c.confidence >= 75);
+        if (highConfidence.length > 0) {
+          summary += `. ${highConfidence.length} high-confidence signal${highConfidence.length !== 1 ? "s" : ""} shown`;
+        }
+
+        // Add note about filtering criteria if filtered
+        if (filtered) {
+          summary += " (filtered by confidence and strength)";
+        }
+      }
+
+      const result: any = {
+        symbol,
+        interval,
+        timeRange: {
+          start: startTime,
+          end: endTime,
+        },
+        crossovers,
+        count: crossovers.length,
+        totalFound,
+        filtered,
+        summary,
+      };
+
+      // Add visualization suggestion if crossovers were found
+      if (crossovers.length > 0) {
+        result.suggestedVisualization = {
+          tool: "visualize_macd_crossovers",
+          description: "Use visualize_macd_crossovers tool to mark these crossovers on the chart",
+          parameters: {
+            crossovers,
+            drawMarkers: true,
+            showLabels: true,
+          },
+        };
+      }
+
+      return result;
+    } catch (error: any) {
+      console.error("Error detecting MACD crossovers:", error);
+      throw new Error(`Failed to detect MACD crossovers: ${error.message}`);
+    }
+  },
+
   formatDivergenceSummary(divergences: Divergence[]): string {
     if (divergences.length === 0) {
       return "No divergences detected in the specified range.";
@@ -1712,6 +1886,48 @@ export const priceTools = {
         }
 
         return formattedResult;
+
+      case "detect_macd_crossover":
+        if (result.crossovers && result.crossovers.length > 0) {
+          let formattedResult = result.summary + "\n\n";
+
+          if (result.filtered) {
+            formattedResult += "*Note: Showing only the most significant crossovers based on confidence and strength.*\n\n";
+          }
+
+          result.crossovers.forEach((crossover: MACDCrossover, index: number) => {
+            const date = new Date(crossover.timestamp).toLocaleString("en-US", {
+              month: "short",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+              timeZone: "UTC",
+            });
+
+            const typeEmoji =
+              crossover.type === "bullish" || crossover.type === "bullish_zero"
+                ? "🟢"
+                : "🔴";
+            const typeLabel = crossover.type
+              .replace(/_/g, " ")
+              .split(" ")
+              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(" ");
+
+            formattedResult += `**${index + 1}. ${typeEmoji} ${typeLabel} Crossover**\n`;
+            formattedResult += `  - **Time:** ${date} UTC\n`;
+            formattedResult += `  - **Price:** $${crossover.price.toFixed(2)}\n`;
+            formattedResult += `  - **MACD:** ${crossover.macdValue.toFixed(2)}\n`;
+            formattedResult += `  - **Signal:** ${crossover.signalValue.toFixed(2)}\n`;
+            formattedResult += `  - **Histogram:** ${crossover.histogramValue.toFixed(2)}\n`;
+            formattedResult += `  - **Strength:** ${crossover.strength.toFixed(0)}%\n`;
+            formattedResult += `  - **Confidence:** ${crossover.confidence.toFixed(0)}%\n`;
+            formattedResult += `  - **Analysis:** ${crossover.description}\n\n`;
+          });
+
+          return formattedResult;
+        }
+        return result.summary || "No MACD crossovers detected.";
 
       case "detect_divergence":
       case "detect_rsi_divergence":

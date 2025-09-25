@@ -157,6 +157,12 @@ async function processWithLLM({
       - "Check MACD divergence" → use detect_macd_divergence
       - "Volume divergence?" → use detect_volume_divergence
       - "Any divergences?" → use detect_divergence with indicator:"any"
+    - When user asks about MACD crossovers:
+      - "MACD crossover?", "MACD signal?", "MACD golden cross?" → use detect_macd_crossover
+      - This will automatically highlight crossovers on the chart
+      - Bullish crossovers (MACD crosses above signal) = potential buy signal
+      - Bearish crossovers (MACD crosses below signal) = potential sell signal
+      - Zero-line crossovers confirm trend momentum
     - Divergence types:
       - REGULAR BULLISH: Price makes lower low, indicator makes higher low → Potential bullish reversal
       - REGULAR BEARISH: Price makes higher high, indicator makes lower high → Potential bearish reversal
@@ -179,6 +185,15 @@ async function processWithLLM({
       - Explain the significance (reversal vs continuation)
       - Highlight high-confidence divergences (>75%)
       - Suggest potential entry/exit strategies if appropriate
+
+    MACD CROSSOVER VISUALIZATION RULE:
+    - When detect_macd_crossover returns crossovers (count > 0):
+      - The crossovers are AUTOMATICALLY highlighted on the chart
+      - Do NOT mention "I'll highlight these" - they're already highlighted
+      - Just explain what was found and their significance
+      - Bullish crossovers appear as green highlights
+      - Bearish crossovers appear as red highlights
+      - High-confidence crossovers (≥75%) show with fill + outline
 
     VOLUME ANALYSIS GUIDELINES:
     - When user asks for average volume, use the 'calculate_average_volume' tool
@@ -1757,6 +1772,9 @@ Return your analysis in this JSON format:
               "detect_volume_divergence"
             ].includes(toolCall.function.name);
 
+            // Check if this is MACD crossover detection tool
+            const isMACDCrossoverTool = toolCall.function.name === "detect_macd_crossover";
+
             if (isDivergenceTool && result.divergences && result.divergences.length > 0) {
               console.log(`Auto-visualizing ${result.divergences.length} divergences...`);
 
@@ -1781,6 +1799,85 @@ Return your analysis in this JSON format:
               // Add a subtle confirmation that divergences were visualized
               onStream("\n\n📊 Divergences have been drawn on the chart.\n");
               assistantMessage += "\n\n📊 Divergences have been drawn on the chart.\n";
+            }
+
+            // Auto-highlight MACD crossovers if found
+            if (isMACDCrossoverTool && result.crossovers && result.crossovers.length > 0) {
+              console.log(`Auto-highlighting ${result.crossovers.length} MACD crossovers...`);
+
+              // Convert MACD crossovers to pattern highlights
+              const crossoverHighlights = result.crossovers.map(
+                (crossover: any, index: number) => {
+                  // Determine color based on crossover type
+                  let color = "#6b7280"; // Default gray
+                  let patternType = "macd_crossover";
+                  let displayName = "MACD Crossover";
+
+                  if (crossover.type === "bullish" || crossover.type === "bullish_zero") {
+                    color = "#10b981"; // Green for bullish
+                    patternType = crossover.type === "bullish" ? "macd_bullish_crossover" : "macd_bullish_zero_crossover";
+                    displayName = crossover.type === "bullish" ? "Bullish MACD Crossover" : "Bullish Zero-Line Crossover";
+                  } else if (crossover.type === "bearish" || crossover.type === "bearish_zero") {
+                    color = "#ef4444"; // Red for bearish
+                    patternType = crossover.type === "bearish" ? "macd_bearish_crossover" : "macd_bearish_zero_crossover";
+                    displayName = crossover.type === "bearish" ? "Bearish MACD Crossover" : "Bearish Zero-Line Crossover";
+                  }
+
+                  // Determine significance based on confidence
+                  let significance = "medium";
+                  if (crossover.confidence >= 85) {
+                    significance = "very high";
+                  } else if (crossover.confidence >= 75) {
+                    significance = "high";
+                  } else if (crossover.confidence < 50) {
+                    significance = "low";
+                  }
+
+                  // Determine style based on confidence
+                  const style = crossover.confidence >= 75 ? "both" : "outline";
+
+                  return {
+                    id: `macd_crossover_${index}_${Date.now()}`,
+                    type: "pattern",
+                    patternType: patternType,
+                    name: displayName,
+                    description: crossover.description ||
+                      `${displayName} - MACD: ${crossover.macdValue.toFixed(2)}, Signal: ${crossover.signalValue.toFixed(2)} at $${crossover.price.toFixed(2)}`,
+                    candleTimestamps: [crossover.timestamp],
+                    significance: significance,
+                    color: color,
+                    style: style,
+                    // Include additional metadata for reference
+                    metadata: {
+                      macdValue: crossover.macdValue,
+                      signalValue: crossover.signalValue,
+                      histogramValue: crossover.histogramValue,
+                      strength: crossover.strength,
+                      confidence: crossover.confidence
+                    }
+                  };
+                }
+              );
+
+              // Send highlight patterns command to the chart
+              const highlightCommand = {
+                function: {
+                  name: "highlight_patterns",
+                  arguments: JSON.stringify({
+                    patterns: crossoverHighlights,
+                  }),
+                },
+              };
+              await onToolCall(highlightCommand);
+
+              onStream(
+                `\n\n✨ Highlighted ${crossoverHighlights.length} MACD crossover${
+                  crossoverHighlights.length !== 1 ? "s" : ""
+                } on the chart.\n`
+              );
+              assistantMessage += `\n\n✨ Highlighted ${crossoverHighlights.length} MACD crossover${
+                crossoverHighlights.length !== 1 ? "s" : ""
+              } on the chart.\n`;
             }
 
             // Send result summary
