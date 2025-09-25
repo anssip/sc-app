@@ -151,6 +151,19 @@ async function processWithLLM({
     - Always use the exact indicator ID from the list above
     - When hiding indicators, you must provide the exact ID that was used to show it
 
+    VOLUME ANALYSIS GUIDELINES:
+    - When user asks for average volume, use the 'calculate_average_volume' tool
+    - When user asks to COMPARE volume to a different period, you should:
+      1. First use 'get_price_data' to fetch candles for the comparison period
+      2. Calculate the average volume from those fetched candles
+      3. Compare it to the current visible chart's average volume
+      4. Present both averages and the percentage change
+    - Example: "Compare to previous 50 candles" means:
+      - Calculate current average from visible candles (use calculate_average_volume)
+      - Fetch previous 50 candles before the current visible range
+      - Calculate average volume from those previous candles
+      - Show comparison: "Current avg: X, Previous avg: Y, Change: +/-Z%"
+
     SUPPORT & RESISTANCE WORKFLOW - DEFAULT TO API ENDPOINT:
 
     DEFAULT (use fetch_support_resistance_levels):
@@ -381,6 +394,21 @@ async function processWithLLM({
     - startTime: ${chartContext.timeRange.start}
     - endTime: ${chartContext.timeRange.end}
 
+    VOLUME COMPARISON EXAMPLE:
+    When user says "Compare that to the period of the previous 50 candles":
+    1. Current visible candles already analyzed: ${
+      chartContext.candles.length
+    } candles
+    2. To get previous 50 candles, use get_price_data with:
+       - symbol: "${chartContext.symbol}"
+       - interval: "${chartContext.granularity}"
+       - endTime: ${
+         chartContext.timeRange.start
+       } (start of current visible range)
+       - limit: 50
+    3. Calculate average volume from the fetched candles
+    4. Compare: "Previous 50 candles avg: X, Current visible avg: Y, Change: +/-Z%"
+
     CRITICAL:
     - All timestamps are already in UTC milliseconds including time of day
     - All timestamps MUST be integers (no decimals). Use Math.floor() if needed.
@@ -444,7 +472,14 @@ async function processWithLLM({
     ...history,
     {
       role: "user" as const,
-      content: message,
+      content:
+        message +
+        // Add context hint when user asks for comparisons
+        (message.toLowerCase().includes("compare") &&
+        message.toLowerCase().includes("previous") &&
+        message.toLowerCase().includes("candles")
+          ? "\n\n[System hint: Use get_price_data to fetch historical candles for the comparison period, then calculate and compare the average volumes]"
+          : ""),
     },
   ];
 
@@ -1149,6 +1184,229 @@ async function processWithLLM({
                 `\n\nFailed to fetch support/resistance levels: ${error.message}`
               );
               assistantMessage += `\n\nFailed to fetch support/resistance levels: ${error.message}`;
+            }
+          }
+          // Special handling for calculate_average_volume tool
+          else if (toolCall.function.name === "calculate_average_volume") {
+            try {
+              console.log("Calculating average volume from chart candles...");
+
+              // Check if we have candles data in the chart context
+              if (
+                !chartContext ||
+                !chartContext.candles ||
+                chartContext.candles.length === 0
+              ) {
+                onStream(
+                  "\n\n⚠️ No candle data available to calculate volume statistics."
+                );
+                assistantMessage +=
+                  "\n\n⚠️ No candle data available to calculate volume statistics.";
+                continue;
+              }
+
+              const candles = chartContext.candles;
+
+              // Calculate volume statistics
+              const totalVolume = candles.reduce(
+                (sum: number, c: any) => sum + (c.volume || 0),
+                0
+              );
+              const avgVolume = totalVolume / candles.length;
+
+              // Find highest and lowest volume candles
+              let highestVolumeCandle = candles[0];
+              let lowestVolumeCandle = candles[0];
+
+              candles.forEach((candle: any) => {
+                if (candle.volume > highestVolumeCandle.volume) {
+                  highestVolumeCandle = candle;
+                }
+                if (candle.volume < lowestVolumeCandle.volume) {
+                  lowestVolumeCandle = candle;
+                }
+              });
+
+              // Calculate volume trend (comparing first half to second half)
+              const midPoint = Math.floor(candles.length / 2);
+              const firstHalfVolume =
+                candles
+                  .slice(0, midPoint)
+                  .reduce((sum: number, c: any) => sum + (c.volume || 0), 0) /
+                midPoint;
+              const secondHalfVolume =
+                candles
+                  .slice(midPoint)
+                  .reduce((sum: number, c: any) => sum + (c.volume || 0), 0) /
+                (candles.length - midPoint);
+              const volumeTrendPercent =
+                ((secondHalfVolume - firstHalfVolume) / firstHalfVolume) * 100;
+
+              // Calculate volume volatility (standard deviation)
+              const volumeVariance =
+                candles.reduce((sum: number, c: any) => {
+                  const diff = (c.volume || 0) - avgVolume;
+                  return sum + diff * diff;
+                }, 0) / candles.length;
+              const volumeStdDev = Math.sqrt(volumeVariance);
+              const volumeCoefficient = (volumeStdDev / avgVolume) * 100;
+
+              // Format large numbers
+              const formatVolume = (volume: number): string => {
+                if (volume >= 1e9) return `${(volume / 1e9).toFixed(2)}B`;
+                if (volume >= 1e6) return `${(volume / 1e6).toFixed(2)}M`;
+                if (volume >= 1e3) return `${(volume / 1e3).toFixed(2)}K`;
+                return volume.toFixed(2);
+              };
+
+              // Format timestamp for display
+              const formatTimestamp = (timestamp: number): string => {
+                const date = new Date(timestamp);
+                return date.toLocaleString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  timeZone: "UTC",
+                  timeZoneName: "short",
+                });
+              };
+
+              // Count green vs red candles with volume
+              const bullishVolume = candles
+                .filter((c: any) => c.close > c.open)
+                .reduce((sum: number, c: any) => sum + (c.volume || 0), 0);
+              const bearishVolume = candles
+                .filter((c: any) => c.close <= c.open)
+                .reduce((sum: number, c: any) => sum + (c.volume || 0), 0);
+              const bullishVolumePercent = (bullishVolume / totalVolume) * 100;
+
+              // Generate the output
+              let output = `\n\n📊 **Volume Analysis Report**\n\n`;
+              output += `---\n\n`;
+              output += `**Overview:**\n`;
+              output += `- Symbol: ${chartContext.symbol}\n`;
+              output += `- Timeframe: ${chartContext.granularity}\n`;
+              output += `- Candles Analyzed: ${candles.length}\n\n`;
+
+              output += `**Volume Statistics:**\n`;
+              output += `- **Total Volume:** ${formatVolume(totalVolume)}\n`;
+              output += `- **Average Volume per Candle:** ${formatVolume(
+                avgVolume
+              )}\n`;
+              output += `- **Volume Volatility:** ${volumeCoefficient.toFixed(
+                1
+              )}% (${
+                volumeCoefficient < 30
+                  ? "Low"
+                  : volumeCoefficient < 60
+                  ? "Moderate"
+                  : "High"
+              })\n\n`;
+
+              output += `**Volume Extremes:**\n`;
+              output += `- **Highest Volume:** ${formatVolume(
+                highestVolumeCandle.volume
+              )} at ${formatTimestamp(highestVolumeCandle.timestamp)}\n`;
+              output += `  - Price: $${highestVolumeCandle.close.toFixed(2)} (${
+                highestVolumeCandle.close > highestVolumeCandle.open
+                  ? "🟢 Bullish"
+                  : "🔴 Bearish"
+              } candle)\n`;
+              output += `- **Lowest Volume:** ${formatVolume(
+                lowestVolumeCandle.volume
+              )} at ${formatTimestamp(lowestVolumeCandle.timestamp)}\n`;
+              output += `  - Price: $${lowestVolumeCandle.close.toFixed(2)} (${
+                lowestVolumeCandle.close > lowestVolumeCandle.open
+                  ? "🟢 Bullish"
+                  : "🔴 Bearish"
+              } candle)\n\n`;
+
+              output += `**Volume Trend Analysis:**\n`;
+              output += `- **First Half Avg:** ${formatVolume(
+                firstHalfVolume
+              )}\n`;
+              output += `- **Second Half Avg:** ${formatVolume(
+                secondHalfVolume
+              )}\n`;
+              output += `- **Trend:** ${
+                volumeTrendPercent > 10
+                  ? "📈 Increasing"
+                  : volumeTrendPercent < -10
+                  ? "📉 Decreasing"
+                  : "➡️ Stable"
+              } (${
+                volumeTrendPercent > 0 ? "+" : ""
+              }${volumeTrendPercent.toFixed(1)}%)\n\n`;
+
+              output += `**Volume Distribution:**\n`;
+              output += `- **Bullish Volume:** ${formatVolume(
+                bullishVolume
+              )} (${bullishVolumePercent.toFixed(1)}%)\n`;
+              output += `- **Bearish Volume:** ${formatVolume(
+                bearishVolume
+              )} (${(100 - bullishVolumePercent).toFixed(1)}%)\n`;
+              output += `- **Buy/Sell Pressure:** ${
+                bullishVolumePercent > 55
+                  ? "🟢 Buying pressure dominant"
+                  : bullishVolumePercent < 45
+                  ? "🔴 Selling pressure dominant"
+                  : "⚪ Balanced"
+              }\n\n`;
+
+              // Add interpretation
+              output += `**💡 Interpretation:**\n`;
+
+              // Volume trend interpretation
+              if (volumeTrendPercent > 20) {
+                output += `- Volume is significantly increasing, suggesting growing market interest and potential trend acceleration.\n`;
+              } else if (volumeTrendPercent < -20) {
+                output += `- Volume is declining, which may indicate decreasing market interest or consolidation.\n`;
+              }
+
+              // Volume distribution interpretation
+              if (bullishVolumePercent > 60) {
+                output += `- Strong buying volume dominates, supporting bullish momentum.\n`;
+              } else if (bullishVolumePercent < 40) {
+                output += `- Heavy selling volume suggests bearish pressure in the market.\n`;
+              }
+
+              // Volatility interpretation
+              if (volumeCoefficient > 60) {
+                output += `- High volume volatility indicates irregular trading patterns, possibly from news events or whale activity.\n`;
+              } else if (volumeCoefficient < 30) {
+                output += `- Low volume volatility suggests consistent trading activity without major disruptions.\n`;
+              }
+
+              // Relative volume interpretation
+              if (candles.length >= 10) {
+                const recentAvg =
+                  candles
+                    .slice(-5)
+                    .reduce((sum: number, c: any) => sum + (c.volume || 0), 0) /
+                  5;
+                const relativeVolume = (recentAvg / avgVolume) * 100;
+                if (relativeVolume > 120) {
+                  output += `- Recent volume (${formatVolume(recentAvg)}) is ${(
+                    relativeVolume - 100
+                  ).toFixed(
+                    0
+                  )}% above average, signaling increased activity.\n`;
+                } else if (relativeVolume < 80) {
+                  output += `- Recent volume (${formatVolume(recentAvg)}) is ${(
+                    100 - relativeVolume
+                  ).toFixed(0)}% below average, indicating reduced activity.\n`;
+                }
+              }
+
+              onStream(output);
+              assistantMessage += output;
+            } catch (error: any) {
+              console.error("Error calculating volume statistics:", error);
+              onStream(
+                `\n\nFailed to calculate volume statistics: ${error.message}`
+              );
+              assistantMessage += `\n\nFailed to calculate volume statistics: ${error.message}`;
             }
           }
           // Special handling for AI-based trend line tool

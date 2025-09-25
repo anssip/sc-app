@@ -648,6 +648,18 @@ export const chartTools = {
         },
       },
     },
+    {
+      type: "function",
+      function: {
+        name: "calculate_average_volume",
+        description:
+          "Calculate average volume and volume statistics from the visible candles on the chart",
+        parameters: {
+          type: "object",
+          properties: {},
+        },
+      },
+    },
   ] as ToolDefinition[],
 
   isChartTool(name: string): boolean {
@@ -701,6 +713,8 @@ export const chartTools = {
         return `✓ Stopped scanning animation`;
       case "clear_pattern_highlights":
         return `✓ Cleared pattern highlights`;
+      case "calculate_average_volume":
+        return `✓ Calculated volume statistics`;
       default:
         return `✓ Executed ${toolName}`;
     }

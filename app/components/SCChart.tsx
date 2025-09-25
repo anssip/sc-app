@@ -34,6 +34,8 @@ export interface SCChartRef {
   getGranularity: () => Granularity;
   getTimeRange: () => { start: number; end: number } | null;
   getPriceRange: () => { min: number; max: number; range?: number } | null;
+  getCandles: () => any[] | null;
+  getVisibleIndicators: () => any[] | null;
   getState: () => any;
   api: ChartApi | null;
   activateTrendLineTool: () => void;
@@ -42,7 +44,16 @@ export interface SCChartRef {
 
 export const SCChart = forwardRef<SCChartRef, SCChartProps>(
   (
-    { firestore, initialState, className, style, onReady, onError, chartId, onApiReady },
+    {
+      firestore,
+      initialState,
+      className,
+      style,
+      onReady,
+      onError,
+      chartId,
+      onApiReady,
+    },
     ref
   ) => {
     const containerRef = useRef<HTMLDivElement>(null);
@@ -113,7 +124,7 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
             if (apiRef.current.setSymbol) {
               try {
                 await apiRef.current.setSymbol(symbol);
-                
+
                 // Update the context to trigger persistence
                 chartSettings.setSymbol(symbol, uniqueChartId.current);
               } catch (error) {
@@ -137,7 +148,7 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
             if (apiRef.current.setGranularity) {
               try {
                 await apiRef.current.setGranularity(granularity);
-                
+
                 // Update the context to trigger persistence
                 chartSettings.setGranularity(
                   granularity,
@@ -168,7 +179,7 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
             const timeRange = apiRef.current.getTimeRange();
             return timeRange;
           }
-          
+
           return null;
         },
         getPriceRange: () => {
@@ -177,8 +188,59 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
             const priceRange = apiRef.current.getPriceRange();
             return priceRange;
           }
-          
+
           return null;
+        },
+        getCandles: () => {
+          // Try to get candles from the API
+          if (apiRef.current?.getCandles) {
+            return apiRef.current.getCandles();
+          }
+
+          // Fallback: try to get candles from the chart state
+          if (apiRef.current?.getState) {
+            const state = apiRef.current.getState();
+            if (state?.candles) {
+              return state.candles;
+            }
+          }
+
+          // Another fallback: try to get from the chart element directly
+          if (chartRef.current) {
+            const chart = chartRef.current.querySelector("rs-chart");
+            if (chart && chart.candles) {
+              return chart.candles;
+            }
+            // Try accessing through the state
+            if (chart && chart._state?.candles) {
+              return chart._state.candles;
+            }
+          }
+
+          return null;
+        },
+        getVisibleIndicators: () => {
+          // Try to get indicators from the API
+          if (apiRef.current?.getVisibleIndicators) {
+            return apiRef.current.getVisibleIndicators();
+          }
+
+          // Fallback: try to get indicators from the chart state
+          if (apiRef.current?.getState) {
+            const state = apiRef.current.getState();
+            if (state?.indicators) {
+              return state.indicators;
+            }
+          }
+
+          // Another fallback: get from chart settings context
+          const chartId = uniqueChartId.current;
+          const settings = chartSettings[chartId];
+          if (settings?.indicators) {
+            return settings.indicators;
+          }
+
+          return [];
         },
         getState: () => {
           // Get the full chart state for debugging/fallback
@@ -189,7 +251,7 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
             return appRef.current._state;
           }
           if (chartRef.current) {
-            const chart = chartRef.current.querySelector('chart-container');
+            const chart = chartRef.current.querySelector("chart-container");
             if (chart && chart._state) {
               return chart._state;
             }
@@ -315,7 +377,6 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
 
         // Store the ready handler reference for cleanup
         readyHandlerRef.current = (event: any) => {
-
           // Always mark as initialized when ready
           isInitializedRef.current = true;
           setIsApiReady(true); // Mark API as ready
@@ -327,7 +388,6 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
             currentInitialState.indicators.length > 0 &&
             api.showIndicator
           ) {
-
             // Show all indicators at once using setIndicators if available
             if (api.setIndicators) {
               // Convert string array to IndicatorConfig array
@@ -349,8 +409,7 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
                       name: indicatorId.toUpperCase(),
                       visible: true,
                     });
-                  } catch (error) {
-                  }
+                  } catch (error) {}
                 }
               });
             }
@@ -381,7 +440,6 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
             (ind: any) => ind.id
           );
           const currentTrendLines = apiRef.current?.getTrendLines?.() || [];
-
 
           // Clean up existing chart and event listeners
           if (apiRef.current) {
@@ -427,7 +485,6 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
             trendLines: currentTrendLines, // Preserve trend lines
             // Don't pass indicators - they will be restored after chart is ready
           };
-
 
           // Find the container
           const container = document.querySelector(
@@ -489,7 +546,6 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
 
     // Add trend lines to chart when BOTH API is available AND trend lines are present
     useEffect(() => {
-
       // Only proceed if both conditions are met
       if (
         !isApiReady ||
@@ -507,7 +563,6 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
         initialState?.trendLines &&
         initialState.trendLines.length > 0
       ) {
-
         // Check if addTrendLine method exists
         if (!apiRef.current.addTrendLine) {
           return;
@@ -519,7 +574,6 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
           currentTrendLines.map((line: any) => line.id)
         );
 
-
         // Add only new trend lines that aren't already in the chart
         initialState.trendLines.forEach((trendLine: any) => {
           if (!currentIds.has(trendLine.id)) {
@@ -528,8 +582,7 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
                 ...trendLine,
                 selected: false, // trend lines from initial state should not be selected
               });
-            } catch (error) {
-            }
+            } catch (error) {}
           } else {
           }
         });
@@ -615,7 +668,6 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
           // Remove indicators from initial state as they're added after chart is ready
           trendLines: initialState?.trendLines || [], // Include trend lines if provided
         };
-
 
         const { app, api } = initChartWithApi(
           chartContainer as any,
