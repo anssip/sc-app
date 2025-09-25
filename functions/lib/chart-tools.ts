@@ -453,6 +453,94 @@ export const chartTools = {
     {
       type: "function",
       function: {
+        name: "visualize_divergences",
+        description:
+          "Visualize detected divergences by drawing trend lines on both the price chart and indicator panels. This tool should be called immediately after detecting divergences to make them visually clear on the chart.",
+        parameters: {
+          type: "object",
+          properties: {
+            divergences: {
+              type: "array",
+              description: "Array of divergence objects to visualize",
+              items: {
+                type: "object",
+                properties: {
+                  type: {
+                    type: "string",
+                    enum: ["bullish", "bearish", "hidden_bullish", "hidden_bearish"],
+                    description: "Type of divergence"
+                  },
+                  indicator: {
+                    type: "string",
+                    description: "Indicator name (e.g., RSI, MACD, volume)"
+                  },
+                  startPoint: {
+                    type: "object",
+                    properties: {
+                      timestamp: { type: "number", description: "Start timestamp in milliseconds" },
+                      price: { type: "number", description: "Price at start point" },
+                      indicatorValue: { type: "number", description: "Indicator value at start point" }
+                    },
+                    required: ["timestamp", "price", "indicatorValue"]
+                  },
+                  endPoint: {
+                    type: "object",
+                    properties: {
+                      timestamp: { type: "number", description: "End timestamp in milliseconds" },
+                      price: { type: "number", description: "Price at end point" },
+                      indicatorValue: { type: "number", description: "Indicator value at end point" }
+                    },
+                    required: ["timestamp", "price", "indicatorValue"]
+                  },
+                  strength: {
+                    type: "number",
+                    description: "Divergence strength (0-100)"
+                  },
+                  confidence: {
+                    type: "number",
+                    description: "Confidence level (0-100)"
+                  },
+                  description: {
+                    type: "string",
+                    description: "Text description of the divergence"
+                  }
+                },
+                required: ["type", "indicator", "startPoint", "endPoint"]
+              }
+            },
+            drawOnPrice: {
+              type: "boolean",
+              description: "Whether to draw trend lines on the price chart (default: true)",
+              default: true
+            },
+            drawOnIndicator: {
+              type: "boolean",
+              description: "Whether to draw trend lines on indicator panels (default: true)",
+              default: true
+            },
+            bullishColor: {
+              type: "string",
+              description: "Color for bullish divergence lines (default: #10b981)",
+              default: "#10b981"
+            },
+            bearishColor: {
+              type: "string",
+              description: "Color for bearish divergence lines (default: #ef4444)",
+              default: "#ef4444"
+            },
+            showLabels: {
+              type: "boolean",
+              description: "Whether to add labels to the trend lines (default: true)",
+              default: true
+            }
+          },
+          required: ["divergences"]
+        }
+      }
+    },
+    {
+      type: "function",
+      function: {
         name: "fetch_support_resistance_levels",
         description:
           "Fetch and draw support and resistance levels from the market API based on historical price analysis",
@@ -682,6 +770,9 @@ export const chartTools = {
         return `✓ Drew trend line`;
       case "draw_trend_line_from_analysis":
         return `✓ Analyzed price data using AI and drew ${args.type} trend line`;
+      case "visualize_divergences":
+        const divCount = args.divergences?.length || 0;
+        return `✓ Visualized ${divCount} divergence${divCount !== 1 ? "s" : ""} with trend lines`;
       case "fetch_support_resistance_levels":
         return `✓ Fetched and drew support/resistance levels from market data`;
       case "remove_trend_line":

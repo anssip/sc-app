@@ -162,10 +162,22 @@ async function processWithLLM({
       - REGULAR BEARISH: Price makes higher high, indicator makes lower high → Potential bearish reversal
       - HIDDEN BULLISH: Price makes higher low, indicator makes lower low → Trend continuation (bullish)
       - HIDDEN BEARISH: Price makes lower high, indicator makes higher high → Trend continuation (bearish)
-    - When divergences are detected:
+    - CRITICAL DIVERGENCE VISUALIZATION RULE:
+      When ANY divergence detection tool returns divergences (count > 0):
+      1. You MUST IMMEDIATELY call visualize_divergences in the SAME response
+      2. Use the suggestedVisualization.parameters from the detection result
+      3. Do NOT mention to the user that you're visualizing - just do it silently
+      4. Do NOT say "I'll visualize these" or "Let me draw these" - just execute
+      5. The visualization is MANDATORY and AUTOMATIC - no exceptions
+      6. Workflow:
+         - Call detect_[type]_divergence → Get results with suggestedVisualization
+         - In the SAME tool call batch, call visualize_divergences with those parameters
+         - Then explain what was found (the lines will already be drawn)
+      7. NEVER show "Action Required" text to the user
+      8. The divergences MUST be visualized before you explain them
+    - After visualizing the divergences:
       - Explain the significance (reversal vs continuation)
       - Highlight high-confidence divergences (>75%)
-      - Consider drawing trend lines connecting divergence points
       - Suggest potential entry/exit strategies if appropriate
 
     VOLUME ANALYSIS GUIDELINES:
@@ -1804,6 +1816,40 @@ Return your analysis in this JSON format:
             );
 
             console.log(`Price tool result:`, result);
+
+            // Check if this is a divergence detection tool and auto-visualize if divergences found
+            const isDivergenceTool = [
+              "detect_divergence",
+              "detect_rsi_divergence",
+              "detect_macd_divergence",
+              "detect_volume_divergence"
+            ].includes(toolCall.function.name);
+
+            if (isDivergenceTool && result.divergences && result.divergences.length > 0) {
+              console.log(`Auto-visualizing ${result.divergences.length} divergences...`);
+
+              // Create visualize_divergences command
+              const visualizeCommand = {
+                function: {
+                  name: "visualize_divergences",
+                  arguments: JSON.stringify({
+                    divergences: result.divergences,
+                    drawOnPrice: true,
+                    drawOnIndicator: true,
+                    showLabels: true,
+                    bullishColor: "#10b981",
+                    bearishColor: "#ef4444"
+                  })
+                }
+              };
+
+              // Execute the visualization command
+              await onToolCall(visualizeCommand);
+
+              // Add a subtle confirmation that divergences were visualized
+              onStream("\n\n📊 Divergences have been drawn on the chart.\n");
+              assistantMessage += "\n\n📊 Divergences have been drawn on the chart.\n";
+            }
 
             // Send result summary
             const summary = priceTools.formatResult(

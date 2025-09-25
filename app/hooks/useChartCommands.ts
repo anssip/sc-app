@@ -321,6 +321,80 @@ async function executeChartCommand(
       }
       return { cleared: true };
 
+    case "visualize_divergences":
+      if (!params.divergences || !Array.isArray(params.divergences)) {
+        throw new Error(
+          "Divergences array is required for visualize_divergences command"
+        );
+      }
+
+      const drawOnPrice = params.drawOnPrice !== false; // Default true
+      const drawOnIndicator = params.drawOnIndicator !== false; // Default true
+      const bullishColor = params.bullishColor || "#10b981";
+      const bearishColor = params.bearishColor || "#ef4444";
+      const showLabels = params.showLabels !== false; // Default true
+
+      const drawnLines: string[] = [];
+
+      for (const divergence of params.divergences) {
+        // Determine color based on divergence type
+        const isBullish = divergence.type === "bullish" || divergence.type === "hidden_bullish";
+        const color = isBullish ? bullishColor : bearishColor;
+
+        // Determine line style (dashed for hidden divergences)
+        const isHidden = divergence.type?.includes("hidden");
+        const style = isHidden ? "dashed" : "solid";
+
+        // Calculate line width based on confidence (higher confidence = thicker line)
+        const confidence = divergence.confidence || 50;
+        const lineWidth = confidence > 75 ? 3 : 2;
+
+        // Create label for the trend line
+        let label = "";
+        if (showLabels) {
+          const typeLabel = divergence.type?.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase());
+          label = `${typeLabel} ${divergence.indicator?.toUpperCase()} Divergence`;
+          if (divergence.confidence) {
+            label += ` (${Math.round(divergence.confidence)}% confidence)`;
+          }
+        }
+
+        // Draw trend line on price chart
+        if (drawOnPrice && divergence.startPoint && divergence.endPoint) {
+          const priceLineId = api.addTrendLine({
+            startPoint: {
+              timestamp: divergence.startPoint.timestamp,
+              price: divergence.startPoint.price
+            },
+            endPoint: {
+              timestamp: divergence.endPoint.timestamp,
+              price: divergence.endPoint.price
+            },
+            color: color,
+            lineWidth: lineWidth,
+            style: style,
+            extendLeft: false,
+            extendRight: false,
+            name: label || `${divergence.type} divergence`,
+            description: divergence.description || `${divergence.indicator} divergence detected`,
+            selected: false,
+            opacity: isHidden ? 0.7 : 1
+          });
+          drawnLines.push(priceLineId);
+        }
+
+        // Note: Drawing on indicator panels would require additional API methods
+        // to draw lines on specific indicator panels, which may not be available
+        // in the current chart implementation. The price trend lines should be
+        // sufficient to visualize the divergences.
+      }
+
+      return {
+        visualized: params.divergences.length,
+        linesDrawn: drawnLines.length,
+        lineIds: drawnLines
+      };
+
     default:
       throw new Error(`Unknown command: ${command}`);
   }

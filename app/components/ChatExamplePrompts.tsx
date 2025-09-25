@@ -54,7 +54,11 @@ const examplePrompts: ExamplePrompt[] = [
   },
   {
     category: "Advanced",
-    text: "Are any indicators showing divergence from price?",
+    text: "Visualize the divergences in RSI that you see in the chart.",
+  },
+  {
+    category: "Advanced",
+    text: "Visualize the divergences in indicators that you see in the chart.",
   },
 ];
 

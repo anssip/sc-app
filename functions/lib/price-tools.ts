@@ -352,7 +352,7 @@ export const priceTools = {
       function: {
         name: "detect_divergence",
         description:
-          "Detect divergences between price and any technical indicator. Divergences signal potential trend reversals or continuations.",
+          "Detect divergences between price and any technical indicator. Divergences signal potential trend reversals or continuations. When divergences are detected, automatically draw trend lines on the chart: 1) Draw a line on the price chart connecting the two price points (from startPoint to endPoint), 2) Draw a corresponding line on the indicator panel connecting the indicator values, 3) Use green lines for bullish divergences and red lines for bearish divergences, 4) Use dashed lines with lower opacity for hidden divergences, 5) Add labels showing the divergence type and confidence level.",
         parameters: {
           type: "object",
           properties: {
@@ -419,7 +419,7 @@ export const priceTools = {
       function: {
         name: "detect_rsi_divergence",
         description:
-          "Detect RSI divergences with price action. RSI divergences often signal potential trend reversals.",
+          "Detect RSI divergences with price action. RSI divergences often signal potential trend reversals. When divergences are detected, automatically draw trend lines on the chart: 1) Draw a line on the price chart connecting the two price points, 2) Draw a line on the RSI indicator panel connecting the RSI values, 3) Use green lines for bullish divergences and red lines for bearish divergences, 4) Use dashed lines for hidden divergences, 5) Add labels with divergence type and confidence.",
         parameters: {
           type: "object",
           properties: {
@@ -480,7 +480,7 @@ export const priceTools = {
       function: {
         name: "detect_macd_divergence",
         description:
-          "Detect MACD divergences with price action. MACD divergences indicate momentum shifts.",
+          "Detect MACD divergences with price action. MACD divergences indicate momentum shifts. When divergences are detected, automatically draw trend lines on the chart: 1) Draw a line on the price chart connecting the two price points, 2) Draw a line on the MACD indicator panel connecting the MACD values, 3) Use green lines for bullish divergences and red lines for bearish divergences, 4) Use dashed lines for hidden divergences, 5) Add labels with divergence type and confidence.",
         parameters: {
           type: "object",
           properties: {
@@ -554,7 +554,7 @@ export const priceTools = {
       function: {
         name: "detect_volume_divergence",
         description:
-          "Detect volume divergences with price movements. Volume divergences indicate weak price moves that may reverse.",
+          "Detect volume divergences with price movements. Volume divergences indicate weak price moves that may reverse. When divergences are detected, automatically draw trend lines on the chart: 1) Draw a line on the price chart connecting the two price points, 2) Highlight the volume bars at divergence points, 3) Use red lines for bearish volume divergences (price up, volume down), 4) Add labels showing the divergence strength and confidence.",
         parameters: {
           type: "object",
           properties: {
@@ -1401,7 +1401,7 @@ export const priceTools = {
       // Sort by confidence
       allDivergences.sort((a, b) => b.confidence - a.confidence);
 
-      return {
+      const result: any = {
         symbol,
         interval,
         timeRange: {
@@ -1412,6 +1412,22 @@ export const priceTools = {
         count: allDivergences.length,
         summary: this.formatDivergenceSummary(allDivergences),
       };
+
+      // Add visualization suggestion if divergences were found
+      if (allDivergences.length > 0) {
+        result.suggestedVisualization = {
+          tool: "visualize_divergences",
+          description: "Use visualize_divergences tool to draw these divergences on the chart",
+          parameters: {
+            divergences: allDivergences,
+            drawOnPrice: true,
+            drawOnIndicator: true,
+            showLabels: true
+          }
+        };
+      }
+
+      return result;
     } catch (error: any) {
       console.error("Error detecting divergences:", error);
       throw new Error(`Failed to detect divergences: ${error.message}`);
@@ -1734,6 +1750,9 @@ export const priceTools = {
             formattedResult += `  - **Confidence:** ${divergence.confidence.toFixed(0)}%\n`;
             formattedResult += `  - **Analysis:** ${divergence.description}\n\n`;
           });
+
+          // Don't show action required to user - AI should handle it automatically
+          // The suggestedVisualization field in the result will trigger automatic visualization
 
           return formattedResult;
         }
