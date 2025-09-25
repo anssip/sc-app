@@ -3,6 +3,20 @@
  * Handles batching and rate limiting for the market.spotcanvas.com API
  */
 
+export interface IndicatorValue {
+  name: string;
+  timestamp: number;
+  value: number;
+  plot_ref?: string;
+}
+
+export interface Evaluation {
+  id: string;
+  name?: string;
+  values: IndicatorValue[];
+  plot_styles?: any;
+}
+
 export interface PriceCandle {
   timestamp: number;
   open: number;
@@ -10,6 +24,7 @@ export interface PriceCandle {
   low: number;
   close: number;
   volume?: number;
+  evaluations?: Evaluation[];
 }
 
 export interface TimeRange {
@@ -30,7 +45,8 @@ export class MarketAPI {
     interval: string,
     startTime: number,
     endTime: number,
-    onProgress?: (message: string) => void
+    onProgress?: (message: string) => void,
+    evaluators?: string[]
   ): Promise<PriceCandle[]> {
     try {
       console.log("=== MarketAPI.fetchPriceData DEBUG ===");
@@ -114,7 +130,8 @@ export class MarketAPI {
           symbol,
           interval,
           alignedStart,
-          alignedEnd
+          alignedEnd,
+          evaluators
         );
       }
 
@@ -161,7 +178,8 @@ export class MarketAPI {
           symbol,
           interval,
           currentStart,
-          batchEnd
+          batchEnd,
+          evaluators
         );
 
         results.push(...batchData);
@@ -186,7 +204,8 @@ export class MarketAPI {
     symbol: string,
     interval: string,
     startTime: number,
-    endTime: number
+    endTime: number,
+    evaluators?: string[]
   ): Promise<PriceCandle[]> {
     // Build query parameters
     // Ensure timestamps are integers (no decimals)
@@ -195,6 +214,11 @@ export class MarketAPI {
     params.append("granularity", interval);
     params.append("start_time", Math.floor(startTime).toString());
     params.append("end_time", Math.floor(endTime).toString());
+
+    // Add evaluators if provided
+    if (evaluators && evaluators.length > 0) {
+      params.append("evaluators", evaluators.join(","));
+    }
 
     console.log("=== fetchSingleBatch DEBUG ===");
     console.log(
@@ -256,6 +280,7 @@ export class MarketAPI {
       low: Number(candle.low),
       close: Number(candle.close),
       volume: Number(candle.volume || 0),
+      evaluations: candle.evaluations || undefined,
     }));
   }
 

@@ -5,6 +5,11 @@ import {
   PatternDetector,
   Candle as PatternCandle,
 } from "./pattern-detection.js";
+import {
+  detectDivergence,
+  detectVolumeDivergence,
+  Divergence,
+} from "./divergence-detection.js";
 
 interface ToolDefinition {
   type: string;
@@ -51,6 +56,50 @@ interface AnalyzeCandlestickPatternsArgs {
   startTime?: number;
   endTime?: number;
   patterns?: string[]; // specific patterns to detect or ["all"]
+}
+
+interface DetectDivergenceArgs {
+  symbol: string;
+  interval: string;
+  indicator: string;
+  startTime?: number;
+  endTime?: number;
+  divergenceTypes?: ("regular" | "hidden" | "all")[];
+  lookbackPeriod?: number;
+  minStrength?: number;
+}
+
+interface DetectRSIDivergenceArgs {
+  symbol: string;
+  interval: string;
+  startTime?: number;
+  endTime?: number;
+  rsiPeriod?: number;
+  divergenceTypes?: ("regular" | "hidden" | "all")[];
+  minStrength?: number;
+}
+
+interface DetectMACDDivergenceArgs {
+  symbol: string;
+  interval: string;
+  startTime?: number;
+  endTime?: number;
+  macdSettings?: {
+    fast?: number;
+    slow?: number;
+    signal?: number;
+  };
+  divergenceTypes?: ("regular" | "hidden" | "all")[];
+  minStrength?: number;
+}
+
+interface DetectVolumeDivergenceArgs {
+  symbol: string;
+  interval: string;
+  startTime?: number;
+  endTime?: number;
+  lookbackPeriod?: number;
+  minStrength?: number;
 }
 
 interface Candle {
@@ -298,6 +347,260 @@ export const priceTools = {
         },
       },
     },
+    {
+      type: "function",
+      function: {
+        name: "detect_divergence",
+        description:
+          "Detect divergences between price and any technical indicator. Divergences signal potential trend reversals or continuations.",
+        parameters: {
+          type: "object",
+          properties: {
+            symbol: {
+              type: "string",
+              description: "Trading pair symbol (e.g., BTC-USD, ETH-USD)",
+            },
+            interval: {
+              type: "string",
+              enum: [
+                "ONE_MINUTE",
+                "FIVE_MINUTES",
+                "FIFTEEN_MINUTES",
+                "THIRTY_MINUTES",
+                "ONE_HOUR",
+                "TWO_HOURS",
+                "SIX_HOURS",
+                "ONE_DAY",
+              ],
+              description: "Time interval for analysis",
+            },
+            indicator: {
+              type: "string",
+              enum: ["rsi", "macd", "stochastic", "any"],
+              description: "Technical indicator to check for divergence",
+            },
+            startTime: {
+              type: "number",
+              description: "Start timestamp in milliseconds",
+            },
+            endTime: {
+              type: "number",
+              description: "End timestamp in milliseconds",
+            },
+            divergenceTypes: {
+              type: "array",
+              items: {
+                type: "string",
+                enum: ["regular", "hidden", "all"],
+              },
+              description:
+                "Types of divergences to detect. Regular = potential reversals, Hidden = trend continuation",
+              default: ["regular"],
+            },
+            lookbackPeriod: {
+              type: "number",
+              description:
+                "Number of candles to look back for peaks/troughs (default: 5)",
+              default: 5,
+            },
+            minStrength: {
+              type: "number",
+              description:
+                "Minimum divergence strength to report (0-100, default: 30)",
+              default: 30,
+            },
+          },
+          required: ["symbol", "interval", "indicator"],
+        },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "detect_rsi_divergence",
+        description:
+          "Detect RSI divergences with price action. RSI divergences often signal potential trend reversals.",
+        parameters: {
+          type: "object",
+          properties: {
+            symbol: {
+              type: "string",
+              description: "Trading pair symbol (e.g., BTC-USD, ETH-USD)",
+            },
+            interval: {
+              type: "string",
+              enum: [
+                "ONE_MINUTE",
+                "FIVE_MINUTES",
+                "FIFTEEN_MINUTES",
+                "THIRTY_MINUTES",
+                "ONE_HOUR",
+                "TWO_HOURS",
+                "SIX_HOURS",
+                "ONE_DAY",
+              ],
+              description: "Time interval for analysis",
+            },
+            startTime: {
+              type: "number",
+              description: "Start timestamp in milliseconds",
+            },
+            endTime: {
+              type: "number",
+              description: "End timestamp in milliseconds",
+            },
+            rsiPeriod: {
+              type: "number",
+              description: "RSI calculation period (default: 14)",
+              default: 14,
+            },
+            divergenceTypes: {
+              type: "array",
+              items: {
+                type: "string",
+                enum: ["regular", "hidden", "all"],
+              },
+              description:
+                "Types of divergences to detect",
+              default: ["regular"],
+            },
+            minStrength: {
+              type: "number",
+              description:
+                "Minimum divergence strength (0-100, default: 30)",
+              default: 30,
+            },
+          },
+          required: ["symbol", "interval"],
+        },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "detect_macd_divergence",
+        description:
+          "Detect MACD divergences with price action. MACD divergences indicate momentum shifts.",
+        parameters: {
+          type: "object",
+          properties: {
+            symbol: {
+              type: "string",
+              description: "Trading pair symbol (e.g., BTC-USD, ETH-USD)",
+            },
+            interval: {
+              type: "string",
+              enum: [
+                "ONE_MINUTE",
+                "FIVE_MINUTES",
+                "FIFTEEN_MINUTES",
+                "THIRTY_MINUTES",
+                "ONE_HOUR",
+                "TWO_HOURS",
+                "SIX_HOURS",
+                "ONE_DAY",
+              ],
+              description: "Time interval for analysis",
+            },
+            startTime: {
+              type: "number",
+              description: "Start timestamp in milliseconds",
+            },
+            endTime: {
+              type: "number",
+              description: "End timestamp in milliseconds",
+            },
+            macdSettings: {
+              type: "object",
+              properties: {
+                fast: {
+                  type: "number",
+                  default: 12,
+                },
+                slow: {
+                  type: "number",
+                  default: 26,
+                },
+                signal: {
+                  type: "number",
+                  default: 9,
+                },
+              },
+              description: "MACD calculation settings",
+            },
+            divergenceTypes: {
+              type: "array",
+              items: {
+                type: "string",
+                enum: ["regular", "hidden", "all"],
+              },
+              description:
+                "Types of divergences to detect",
+              default: ["regular"],
+            },
+            minStrength: {
+              type: "number",
+              description:
+                "Minimum divergence strength (0-100, default: 30)",
+              default: 30,
+            },
+          },
+          required: ["symbol", "interval"],
+        },
+      },
+    },
+    {
+      type: "function",
+      function: {
+        name: "detect_volume_divergence",
+        description:
+          "Detect volume divergences with price movements. Volume divergences indicate weak price moves that may reverse.",
+        parameters: {
+          type: "object",
+          properties: {
+            symbol: {
+              type: "string",
+              description: "Trading pair symbol (e.g., BTC-USD, ETH-USD)",
+            },
+            interval: {
+              type: "string",
+              enum: [
+                "ONE_MINUTE",
+                "FIVE_MINUTES",
+                "FIFTEEN_MINUTES",
+                "THIRTY_MINUTES",
+                "ONE_HOUR",
+                "TWO_HOURS",
+                "SIX_HOURS",
+                "ONE_DAY",
+              ],
+              description: "Time interval for analysis",
+            },
+            startTime: {
+              type: "number",
+              description: "Start timestamp in milliseconds",
+            },
+            endTime: {
+              type: "number",
+              description: "End timestamp in milliseconds",
+            },
+            lookbackPeriod: {
+              type: "number",
+              description:
+                "Number of candles to analyze for divergence (default: 5)",
+              default: 5,
+            },
+            minStrength: {
+              type: "number",
+              description:
+                "Minimum divergence strength (0-100, default: 30)",
+              default: 30,
+            },
+          },
+          required: ["symbol", "interval"],
+        },
+      },
+    },
   ] as ToolDefinition[],
 
   isPriceTool(name: string): boolean {
@@ -323,6 +626,14 @@ export const priceTools = {
           args as AnalyzeCandlestickPatternsArgs,
           db
         );
+      case "detect_divergence":
+        return await this.detectDivergence(args as DetectDivergenceArgs, db);
+      case "detect_rsi_divergence":
+        return await this.detectRSIDivergence(args as DetectRSIDivergenceArgs, db);
+      case "detect_macd_divergence":
+        return await this.detectMACDDivergence(args as DetectMACDDivergenceArgs, db);
+      case "detect_volume_divergence":
+        return await this.detectVolumeDivergence(args as DetectVolumeDivergenceArgs, db);
       default:
         throw new Error(`Unknown Firestore tool: ${toolName}`);
     }
@@ -978,6 +1289,253 @@ export const priceTools = {
     return intervals[interval] || 60 * 60 * 1000; // Default to 1 hour
   },
 
+  async detectDivergence(
+    { symbol, interval, indicator, startTime, endTime, divergenceTypes = ["regular"], lookbackPeriod = 5, minStrength = 30 }: DetectDivergenceArgs,
+    _db: Firestore
+  ): Promise<any> {
+    try {
+      // Calculate time range if not provided
+      if (!startTime || !endTime) {
+        endTime = endTime || Date.now();
+        const intervalMs = this.getIntervalMilliseconds(interval);
+        startTime = startTime || endTime - intervalMs * 100;
+      }
+
+      // Determine which evaluator to use based on indicator
+      const evaluatorMap: Record<string, string> = {
+        rsi: "rsi",
+        macd: "macd",
+        stochastic: "stochastic",
+      };
+
+      const evaluator = evaluatorMap[indicator.toLowerCase()];
+      if (!evaluator && indicator !== "any") {
+        throw new Error(`Unsupported indicator: ${indicator}`);
+      }
+
+      // If "any" is selected, check all available indicators
+      const evaluatorsToCheck = indicator === "any"
+        ? ["rsi", "macd", "stochastic"]
+        : [evaluator];
+
+      const allDivergences: Divergence[] = [];
+
+      for (const evalId of evaluatorsToCheck) {
+        // Fetch candles with indicator data
+        const candles = await marketAPI.fetchPriceData(
+          symbol,
+          interval,
+          Math.floor(startTime),
+          Math.floor(endTime),
+          undefined,
+          [evalId]
+        );
+
+        if (!candles || candles.length === 0) {
+          continue;
+        }
+
+        // Extract indicator values
+        const indicatorData: { timestamp: number; value: number }[] = [];
+
+        candles.forEach((candle) => {
+          if (candle.evaluations && candle.evaluations.length > 0) {
+            const evaluation = candle.evaluations.find((e) =>
+              e.name?.toLowerCase().includes(evalId.toLowerCase())
+            );
+            if (evaluation && evaluation.values && evaluation.values.length > 0) {
+              // For MACD, use the MACD line value (not signal or histogram)
+              // For RSI and other indicators, match by name
+              const value = evaluation.values.find((v) => {
+                if (evalId === "macd") {
+                  return v.name === "macd";
+                }
+                // For RSI and other indicators, the name should match the evalId
+                return v.name === evalId;
+              });
+
+              if (value) {
+                indicatorData.push({
+                  timestamp: candle.timestamp,
+                  value: value.value,
+                });
+              }
+            }
+          }
+        });
+
+        console.log(`Fetched ${candles.length} candles for ${evalId}`);
+        console.log(`Extracted ${indicatorData.length} indicator values`);
+        if (indicatorData.length > 0) {
+          console.log(`Sample indicator value:`, indicatorData[0]);
+          const minIndicator = Math.min(...indicatorData.map(d => d.value));
+          const maxIndicator = Math.max(...indicatorData.map(d => d.value));
+          console.log(`${evalId.toUpperCase()} range: ${minIndicator.toFixed(2)} to ${maxIndicator.toFixed(2)}`);
+        }
+
+        if (indicatorData.length < 10) {
+          console.log(`Skipping ${evalId}: not enough data (${indicatorData.length} < 10)`);
+          continue; // Not enough data for meaningful divergence detection
+        }
+
+        // Detect divergences
+        const divergences = detectDivergence(
+          candles,
+          indicatorData,
+          evalId.toUpperCase(),
+          {
+            lookbackPeriod,
+            minStrength,
+            divergenceTypes,
+          }
+        );
+
+        console.log(`Detected ${divergences.length} divergences for ${evalId}`);
+        if (divergences.length > 0) {
+          console.log(`First divergence:`, divergences[0]);
+        }
+
+        allDivergences.push(...divergences);
+      }
+
+      // Sort by confidence
+      allDivergences.sort((a, b) => b.confidence - a.confidence);
+
+      return {
+        symbol,
+        interval,
+        timeRange: {
+          start: startTime,
+          end: endTime,
+        },
+        divergences: allDivergences,
+        count: allDivergences.length,
+        summary: this.formatDivergenceSummary(allDivergences),
+      };
+    } catch (error: any) {
+      console.error("Error detecting divergences:", error);
+      throw new Error(`Failed to detect divergences: ${error.message}`);
+    }
+  },
+
+  async detectRSIDivergence(
+    { symbol, interval, startTime, endTime, rsiPeriod: _rsiPeriod = 14, divergenceTypes = ["regular"], minStrength = 30 }: DetectRSIDivergenceArgs,
+    db: Firestore
+  ): Promise<any> {
+    return this.detectDivergence(
+      {
+        symbol,
+        interval,
+        indicator: "rsi",
+        startTime,
+        endTime,
+        divergenceTypes,
+        lookbackPeriod: 5,
+        minStrength,
+      },
+      db
+    );
+  },
+
+  async detectMACDDivergence(
+    { symbol, interval, startTime, endTime, macdSettings: _macdSettings, divergenceTypes = ["regular"], minStrength = 30 }: DetectMACDDivergenceArgs,
+    db: Firestore
+  ): Promise<any> {
+    return this.detectDivergence(
+      {
+        symbol,
+        interval,
+        indicator: "macd",
+        startTime,
+        endTime,
+        divergenceTypes,
+        lookbackPeriod: 5,
+        minStrength,
+      },
+      db
+    );
+  },
+
+  async detectVolumeDivergence(
+    { symbol, interval, startTime, endTime, lookbackPeriod = 5, minStrength = 30 }: DetectVolumeDivergenceArgs,
+    _db: Firestore
+  ): Promise<any> {
+    try {
+      // Calculate time range if not provided
+      if (!startTime || !endTime) {
+        endTime = endTime || Date.now();
+        const intervalMs = this.getIntervalMilliseconds(interval);
+        startTime = startTime || endTime - intervalMs * 100;
+      }
+
+      // Fetch candles (no evaluator needed for volume)
+      const candles = await marketAPI.fetchPriceData(
+        symbol,
+        interval,
+        Math.floor(startTime),
+        Math.floor(endTime)
+      );
+
+      if (!candles || candles.length === 0) {
+        return {
+          symbol,
+          interval,
+          divergences: [],
+          count: 0,
+          summary: "No data available for volume divergence analysis",
+        };
+      }
+
+      // Detect volume divergences
+      const divergences = detectVolumeDivergence(candles, {
+        lookbackPeriod,
+        minStrength,
+      });
+
+      return {
+        symbol,
+        interval,
+        timeRange: {
+          start: startTime,
+          end: endTime,
+        },
+        divergences,
+        count: divergences.length,
+        summary: this.formatDivergenceSummary(divergences),
+      };
+    } catch (error: any) {
+      console.error("Error detecting volume divergences:", error);
+      throw new Error(`Failed to detect volume divergences: ${error.message}`);
+    }
+  },
+
+  formatDivergenceSummary(divergences: Divergence[]): string {
+    if (divergences.length === 0) {
+      return "No divergences detected in the specified range.";
+    }
+
+    const bullish = divergences.filter((d) => d.type === "bullish" || d.type === "hidden_bullish");
+    const bearish = divergences.filter((d) => d.type === "bearish" || d.type === "hidden_bearish");
+
+    let summary = `Found ${divergences.length} divergence${divergences.length !== 1 ? "s" : ""}: `;
+
+    if (bullish.length > 0) {
+      summary += `${bullish.length} bullish`;
+    }
+    if (bearish.length > 0) {
+      if (bullish.length > 0) summary += ", ";
+      summary += `${bearish.length} bearish`;
+    }
+
+    // Highlight high-confidence divergences
+    const highConfidence = divergences.filter((d) => d.confidence >= 75);
+    if (highConfidence.length > 0) {
+      summary += `. ${highConfidence.length} high-confidence signal${highConfidence.length !== 1 ? "s" : ""} detected`;
+    }
+
+    return summary;
+  },
+
   formatResult(toolName: string, result: any): string {
     switch (toolName) {
       case "get_price_data":
@@ -1138,6 +1696,48 @@ export const priceTools = {
         }
 
         return formattedResult;
+
+      case "detect_divergence":
+      case "detect_rsi_divergence":
+      case "detect_macd_divergence":
+      case "detect_volume_divergence":
+        if (result.divergences && result.divergences.length > 0) {
+          let formattedResult = result.summary + "\n\n";
+
+          result.divergences.forEach((divergence: Divergence, index: number) => {
+            const startDate = new Date(divergence.startPoint.timestamp).toLocaleString("en-US", {
+              month: "short",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+              timeZone: "UTC",
+            });
+            const endDate = new Date(divergence.endPoint.timestamp).toLocaleString("en-US", {
+              month: "short",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+              timeZone: "UTC",
+            });
+
+            const typeEmoji = divergence.type.includes("bullish") ? "🟢" : "🔴";
+            const typeLabel = divergence.type.replace(/_/g, " ").split(" ").map(word =>
+              word.charAt(0).toUpperCase() + word.slice(1)
+            ).join(" ");
+
+            formattedResult += `**${index + 1}. ${typeEmoji} ${typeLabel} Divergence**\n`;
+            formattedResult += `  - **Indicator:** ${divergence.indicator}\n`;
+            formattedResult += `  - **Period:** ${startDate} → ${endDate}\n`;
+            formattedResult += `  - **Price:** $${divergence.startPoint.price.toFixed(2)} → $${divergence.endPoint.price.toFixed(2)}\n`;
+            formattedResult += `  - **Indicator Value:** ${divergence.startPoint.indicatorValue.toFixed(2)} → ${divergence.endPoint.indicatorValue.toFixed(2)}\n`;
+            formattedResult += `  - **Strength:** ${divergence.strength.toFixed(1)}%\n`;
+            formattedResult += `  - **Confidence:** ${divergence.confidence.toFixed(0)}%\n`;
+            formattedResult += `  - **Analysis:** ${divergence.description}\n\n`;
+          });
+
+          return formattedResult;
+        }
+        return result.summary || "No divergences detected.";
 
       default:
         return `Completed ${toolName}`;

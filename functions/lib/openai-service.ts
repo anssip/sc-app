@@ -151,6 +151,23 @@ async function processWithLLM({
     - Always use the exact indicator ID from the list above
     - When hiding indicators, you must provide the exact ID that was used to show it
 
+    DIVERGENCE DETECTION GUIDELINES:
+    - When user asks about divergences, use the appropriate detection tool:
+      - "Is there RSI divergence?" → use detect_rsi_divergence
+      - "Check MACD divergence" → use detect_macd_divergence
+      - "Volume divergence?" → use detect_volume_divergence
+      - "Any divergences?" → use detect_divergence with indicator:"any"
+    - Divergence types:
+      - REGULAR BULLISH: Price makes lower low, indicator makes higher low → Potential bullish reversal
+      - REGULAR BEARISH: Price makes higher high, indicator makes lower high → Potential bearish reversal
+      - HIDDEN BULLISH: Price makes higher low, indicator makes lower low → Trend continuation (bullish)
+      - HIDDEN BEARISH: Price makes lower high, indicator makes higher high → Trend continuation (bearish)
+    - When divergences are detected:
+      - Explain the significance (reversal vs continuation)
+      - Highlight high-confidence divergences (>75%)
+      - Consider drawing trend lines connecting divergence points
+      - Suggest potential entry/exit strategies if appropriate
+
     VOLUME ANALYSIS GUIDELINES:
     - When user asks for average volume, use the 'calculate_average_volume' tool
     - When user asks to COMPARE volume to a different period, you should:
