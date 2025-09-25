@@ -26,16 +26,14 @@ const examplePrompts: ExamplePrompt[] = [
   },
   {
     category: "Advanced",
-    text: "How would you trade with this chart?",
+    text: "Can you help me analyze this chart?",
   },
 
-  // Candles analysis prompts
   {
     category: "Advanced",
     text: "What pattern do you see in the candles on this chart?",
   },
 
-  // Volume and price action prompts
   {
     category: "Advanced",
     text: "Analyze the price action and volume in the visible chart.",
@@ -63,12 +61,14 @@ const examplePrompts: ExamplePrompt[] = [
 interface ChatExamplePromptsProps {
   onSelectPrompt: (prompt: string) => void;
   isOverlay?: boolean;
+  isSidebar?: boolean;
   onClose?: () => void;
 }
 
 export function ChatExamplePrompts({
   onSelectPrompt,
   isOverlay = false,
+  isSidebar = false,
   onClose,
 }: ChatExamplePromptsProps) {
   const { user } = useAuth();
@@ -86,7 +86,9 @@ export function ChatExamplePrompts({
     }
   };
 
-  const containerClasses = isOverlay
+  const containerClasses = isSidebar
+    ? "h-full bg-gray-950 p-4 overflow-y-auto"
+    : isOverlay
     ? "bg-gray-900 rounded-lg p-6 relative max-h-[80vh] overflow-y-auto"
     : "flex-1 flex flex-col items-center justify-center p-6";
 
@@ -103,17 +105,32 @@ export function ChatExamplePrompts({
           </button>
         )}
 
-        <div className={isOverlay ? "flex flex-col items-center" : ""}>
-          <Bot className="w-12 h-12 text-gray-400 mb-4 mx-auto" />
-          <h3 className="text-lg font-semibold text-white mb-2 text-center">
-            Ask me about the chart, or ask me to change the chart!
-          </h3>
-          <p className="text-sm text-gray-400 mb-6 text-center">
-            Click on a suggestion to get started
-          </p>
+        {/* Header - compact for sidebar */}
+        <div
+          className={
+            isSidebar ? "" : isOverlay ? "flex flex-col items-center" : ""
+          }
+        >
+          {!isSidebar && (
+            <Bot className="w-12 h-12 text-gray-400 mb-4 mx-auto" />
+          )}
+          {isSidebar ? (
+            <h3 className="text-sm font-semibold text-white mb-4">
+              Example Prompts
+            </h3>
+          ) : (
+            <>
+              <h3 className="text-lg font-semibold text-white mb-2 text-center">
+                Ask me about the chart, or ask me to change the chart!
+              </h3>
+              <p className="text-sm text-gray-400 mb-6 text-center">
+                Click on a suggestion to get started
+              </p>
+            </>
+          )}
         </div>
 
-        <div className="w-full max-w-2xl space-y-6">
+        <div className={`w-full ${isSidebar ? "" : "max-w-2xl"} space-y-6`}>
           {/* Basic prompts */}
           <div>
             <h4 className="text-xs uppercase text-gray-500 font-semibold mb-3 tracking-wider">
@@ -124,7 +141,11 @@ export function ChatExamplePrompts({
                 <button
                   key={`basic-${index}`}
                   onClick={() => handlePromptClick(prompt.text)}
-                  className="text-left px-4 py-3 bg-gray-800 hover:bg-gray-750 text-gray-200 rounded-lg transition-colors text-sm border border-gray-700 hover:border-gray-600"
+                  className={`text-left ${
+                    isSidebar ? "px-3 py-2" : "px-4 py-3"
+                  } bg-gray-800 hover:bg-gray-750 text-gray-200 rounded-lg transition-colors ${
+                    isSidebar ? "text-xs" : "text-sm"
+                  } border border-gray-700 hover:border-gray-600`}
                 >
                   {prompt.text}
                 </button>
@@ -142,7 +163,11 @@ export function ChatExamplePrompts({
                 <button
                   key={`advanced-${index}`}
                   onClick={() => handlePromptClick(prompt.text)}
-                  className="text-left px-4 py-3 text-gray-200 rounded-lg transition-all text-sm border hover:opacity-90"
+                  className={`text-left ${
+                    isSidebar ? "px-3 py-2" : "px-4 py-3"
+                  } text-gray-200 rounded-lg transition-all ${
+                    isSidebar ? "text-xs" : "text-sm"
+                  } border hover:opacity-90`}
                   style={{
                     backgroundColor: "rgba(143, 255, 0, 0.15)",
                     borderColor: "rgba(143, 255, 0, 0.3)",

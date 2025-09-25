@@ -219,6 +219,7 @@ export function AIChatPanel({
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [loadingSessions, setLoadingSessions] = useState(false);
   const [showExamplePrompts, setShowExamplePrompts] = useState(false);
+  const [showPromptsSidebar, setShowPromptsSidebar] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { activeChartId, getActiveChartApi } = useActiveChart();
@@ -265,9 +266,12 @@ export function AIChatPanel({
     const textToSend = messageText || inputValue;
     if (!textToSend.trim() || isLoading || !user) return;
 
-    // Hide example prompts overlay when sending any message
+    // Hide example prompts overlay/sidebar when sending any message
     if (showExamplePrompts) {
       setShowExamplePrompts(false);
+    }
+    if (showPromptsSidebar) {
+      setShowPromptsSidebar(false);
     }
 
     const userMessage: Message = {
@@ -415,9 +419,24 @@ export function AIChatPanel({
   };
 
   return (
-    <div className="h-full max-h-full flex flex-col bg-gray-900 text-white overflow-hidden">
-      {/* Header */}
-      <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-gray-700">
+    <div className="h-full max-h-full flex bg-gray-900 text-white overflow-hidden">
+      {/* Left Sidebar - Example Prompts */}
+      {showPromptsSidebar && messages.length > 0 && (
+        <div className="w-64 border-r border-gray-700 flex-shrink-0 overflow-y-auto">
+          <ChatExamplePrompts
+            onSelectPrompt={(prompt) => {
+              handleSend(prompt);
+              setShowPromptsSidebar(false);
+            }}
+            isSidebar={true}
+          />
+        </div>
+      )}
+
+      {/* Main Chat Area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header */}
+        <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-gray-700">
         <div className="flex items-center gap-2">
           <Bot className="w-5 h-5 text-blue-400" />
           <div>
@@ -675,11 +694,17 @@ export function AIChatPanel({
 
           {/* Lightbulb button inside input field */}
           <button
-            onClick={() => setShowExamplePrompts(!showExamplePrompts)}
+            onClick={() => {
+              if (messages.length > 0) {
+                setShowPromptsSidebar(!showPromptsSidebar);
+              } else {
+                setShowExamplePrompts(!showExamplePrompts);
+              }
+            }}
             disabled={!user}
             title="Show example prompts"
             className={`absolute right-12 top-2 p-1.5 rounded transition-colors ${
-              showExamplePrompts
+              (showExamplePrompts || showPromptsSidebar)
                 ? "text-yellow-400 hover:text-yellow-300"
                 : "text-gray-400 hover:text-white"
             } disabled:text-gray-600 disabled:cursor-not-allowed`}
@@ -704,23 +729,24 @@ export function AIChatPanel({
         )}
       </div>
 
-      {/* Chat History Modal */}
-      <ChatHistoryModal
-        isOpen={isHistoryModalOpen}
-        onClose={() => setIsHistoryModalOpen(false)}
-        onSelectSession={(sessionId) => {
-          loadSession(sessionId).then((history) => {
-            setMessages(history);
-            // Reload recent sessions
-            loadSessions(5).then((sessions) => {
-              setRecentSessions(sessions);
+        {/* Chat History Modal */}
+        <ChatHistoryModal
+          isOpen={isHistoryModalOpen}
+          onClose={() => setIsHistoryModalOpen(false)}
+          onSelectSession={(sessionId) => {
+            loadSession(sessionId).then((history) => {
+              setMessages(history);
+              // Reload recent sessions
+              loadSessions(5).then((sessions) => {
+                setRecentSessions(sessions);
+              });
             });
-          });
-        }}
-        sessions={recentSessions}
-        currentSessionId={currentSessionId}
-        loading={loadingSessions}
-      />
+          }}
+          sessions={recentSessions}
+          currentSessionId={currentSessionId}
+          loading={loadingSessions}
+        />
+      </div>
     </div>
   );
 }
