@@ -92,12 +92,19 @@ export default function App() {
     if (typeof window !== 'undefined') {
       (window as any)._cio = (window as any)._cio || [];
       const siteId = import.meta.env?.VITE_CUSTOMER_IO_SITE_ID || '4d9f36e34ddeda617136';
-      
+
       if (siteId && !document.getElementById('cio-tracker')) {
+        // Configure cookie settings for proper domain handling
+        (window as any)._cio.push(['config', {
+          cookie_domain: window.location.hostname, // Use current hostname
+          region: 'eu' // Specify EU region
+        }]);
+
         const script = document.createElement('script');
         script.async = true;
         script.id = 'cio-tracker';
         script.setAttribute('data-site-id', siteId);
+        script.setAttribute('data-region', 'eu'); // Add EU region attribute
         script.src = 'https://assets.customer.io/assets/track-eu.js';
         document.body.appendChild(script);
       }

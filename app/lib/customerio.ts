@@ -257,13 +257,20 @@ export const initializeCustomerIOScript = (siteId: string): void => {
   // Initialize Customer.io array if not exists
   (window as any)._cio = (window as any)._cio || [];
 
+  // Configure cookie settings for proper domain handling
+  (window as any)._cio.push(['config', {
+    cookie_domain: window.location.hostname, // Use current hostname
+    region: 'eu' // Specify EU region
+  }]);
+
   // Add Customer.io tracking script
   const script = document.createElement('script')
   script.type = 'text/javascript'
   script.async = true
   script.id = 'cio-tracker'
   script.setAttribute('data-site-id', siteId)
+  script.setAttribute('data-region', 'eu') // Add EU region attribute
   script.src = 'https://assets.customer.io/assets/track-eu.js'
-  
+
   document.head.appendChild(script)
 }
