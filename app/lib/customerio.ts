@@ -79,14 +79,27 @@ class CustomerIO {
       }
 
       // If using Customer.io JavaScript SDK in the browser:
+      // _cio is initially an array that queues calls until the script loads
       if (typeof window !== 'undefined' && (window as any)._cio) {
-        (window as any)._cio.identify({
-          id: userData.userId,
-          email: userData.email,
-          created_at: userData.createdAt || Math.floor(Date.now() / 1000),
-          email_verified: userData.emailVerified,
-          marketing_consent: userData.marketingConsent,
-        })
+        if (typeof (window as any)._cio.identify === 'function') {
+          // Script is loaded, call directly
+          (window as any)._cio.identify({
+            id: userData.userId,
+            email: userData.email,
+            created_at: userData.createdAt || Math.floor(Date.now() / 1000),
+            email_verified: userData.emailVerified,
+            marketing_consent: userData.marketingConsent,
+          })
+        } else {
+          // Script not loaded yet, push to queue
+          (window as any)._cio.push(['identify', {
+            id: userData.userId,
+            email: userData.email,
+            created_at: userData.createdAt || Math.floor(Date.now() / 1000),
+            email_verified: userData.emailVerified,
+            marketing_consent: userData.marketingConsent,
+          }])
+        }
       }
     } catch (error) {
     }
@@ -104,7 +117,13 @@ class CustomerIO {
 
       // If using Customer.io JavaScript SDK in the browser:
       if (typeof window !== 'undefined' && (window as any)._cio) {
-        (window as any)._cio.track(eventName, eventData || {})
+        if (typeof (window as any)._cio.track === 'function') {
+          // Script is loaded, call directly
+          (window as any)._cio.track(eventName, eventData || {})
+        } else {
+          // Script not loaded yet, push to queue
+          (window as any)._cio.push(['track', eventName, eventData || {}])
+        }
       }
     } catch (error) {
     }
@@ -129,11 +148,21 @@ class CustomerIO {
 
       // Update user attributes
       if (typeof window !== 'undefined' && (window as any)._cio) {
-        (window as any)._cio.identify({
-          id: userId,
-          marketing_consent: consent,
-          marketing_consent_updated_at: Math.floor(Date.now() / 1000),
-        })
+        if (typeof (window as any)._cio.identify === 'function') {
+          // Script is loaded, call directly
+          (window as any)._cio.identify({
+            id: userId,
+            marketing_consent: consent,
+            marketing_consent_updated_at: Math.floor(Date.now() / 1000),
+          })
+        } else {
+          // Script not loaded yet, push to queue
+          (window as any)._cio.push(['identify', {
+            id: userId,
+            marketing_consent: consent,
+            marketing_consent_updated_at: Math.floor(Date.now() / 1000),
+          }])
+        }
       }
     } catch (error) {
     }
@@ -163,11 +192,21 @@ class CustomerIO {
 
     // Update user attribute
     if (typeof window !== 'undefined' && (window as any)._cio) {
-      (window as any)._cio.identify({
-        id: userId,
-        email_verified: true,
-        email_verified_at: Math.floor(Date.now() / 1000),
-      })
+      if (typeof (window as any)._cio.identify === 'function') {
+        // Script is loaded, call directly
+        (window as any)._cio.identify({
+          id: userId,
+          email_verified: true,
+          email_verified_at: Math.floor(Date.now() / 1000),
+        })
+      } else {
+        // Script not loaded yet, push to queue
+        (window as any)._cio.push(['identify', {
+          id: userId,
+          email_verified: true,
+          email_verified_at: Math.floor(Date.now() / 1000),
+        }])
+      }
     }
   }
 
@@ -212,20 +251,19 @@ export const customerIO = new CustomerIO()
 export const initializeCustomerIOScript = (siteId: string): void => {
   if (typeof window === 'undefined') return
   
-  // Check if already initialized
-  if ((window as any)._cio) return
+  // Check if already initialized (if _cio.identify is a function, script is loaded)
+  if ((window as any)._cio && typeof (window as any)._cio.identify === 'function') return
+
+  // Initialize Customer.io array if not exists
+  (window as any)._cio = (window as any)._cio || [];
 
   // Add Customer.io tracking script
   const script = document.createElement('script')
   script.type = 'text/javascript'
   script.async = true
-  script.src = 'https://assets-eu.customer.io/assets/track-eu.js'
-  
-  // Initialize Customer.io
-  (window as any)._cio = (window as any)._cio || [];
-  (window as any)._cio.push(['initialize', {
-    siteId,
-  }])
+  script.id = 'cio-tracker'
+  script.setAttribute('data-site-id', siteId)
+  script.src = 'https://assets.customer.io/assets/track-eu.js'
   
   document.head.appendChild(script)
 }
