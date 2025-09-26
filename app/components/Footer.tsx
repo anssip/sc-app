@@ -172,7 +172,7 @@ export default function Footer({ variant = "default" }: FooterProps) {
                   isDark ? "text-gray-400" : "text-black/80"
                 } text-sm`}
               >
-                Trading charts for the on-chain generation
+                Ask. Explore. Learn. Trade smarter with charts that think.
               </p>
             </div>
             <p

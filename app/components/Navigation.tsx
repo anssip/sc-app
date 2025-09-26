@@ -1,6 +1,6 @@
 import { Link, useLocation } from "@remix-run/react";
 import { useState, useEffect, useRef } from "react";
-import { Menu, X, Star } from "lucide-react";
+import { Menu, X, Star, ChevronDown } from "lucide-react";
 import AccountMenu from "~/components/AccountMenu";
 import type { BlogPostMeta } from "~/lib/blog.server";
 
@@ -12,31 +12,37 @@ interface NavigationProps {
 export default function Navigation({ showGetStarted = true, featuredPost }: NavigationProps) {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isResourcesDropdownOpen, setIsResourcesDropdownOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const resourcesDropdownRef = useRef<HTMLDivElement>(null);
 
   const isActive = (path: string) => {
     return location.pathname === path;
   };
 
-  // Close mobile menu when clicking outside
+  // Close mobile menu and dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsMobileMenuOpen(false);
       }
+      if (resourcesDropdownRef.current && !resourcesDropdownRef.current.contains(event.target as Node)) {
+        setIsResourcesDropdownOpen(false);
+      }
     }
 
-    if (isMobileMenuOpen) {
+    if (isMobileMenuOpen || isResourcesDropdownOpen) {
       document.addEventListener("mousedown", handleClickOutside);
       return () => {
         document.removeEventListener("mousedown", handleClickOutside);
       };
     }
-  }, [isMobileMenuOpen]);
+  }, [isMobileMenuOpen, isResourcesDropdownOpen]);
 
-  // Close mobile menu on route change
+  // Close mobile menu and dropdown on route change
   useEffect(() => {
     setIsMobileMenuOpen(false);
+    setIsResourcesDropdownOpen(false);
   }, [location]);
 
   return (
@@ -78,16 +84,49 @@ export default function Navigation({ showGetStarted = true, featuredPost }: Navi
           >
             Pricing
           </Link>
-          <Link
-            to="/blog"
-            className={`transition-colors ${
-              isActive("/blog")
-                ? "text-white"
-                : "text-gray-400 hover:text-white"
-            }`}
-          >
-            Blog
-          </Link>
+          <div className="relative" ref={resourcesDropdownRef}>
+            <button
+              onClick={() => setIsResourcesDropdownOpen(!isResourcesDropdownOpen)}
+              className={`flex items-center gap-1 transition-colors ${
+                isActive("/blog") || isActive("/manual")
+                  ? "text-white"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              Resources
+              <ChevronDown
+                className={`h-4 w-4 transition-transform ${
+                  isResourcesDropdownOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+            {isResourcesDropdownOpen && (
+              <div className="absolute top-full mt-2 left-0 bg-gray-900 border border-gray-800 rounded-lg shadow-lg py-2 min-w-[150px]">
+                <Link
+                  to="/blog"
+                  className={`block px-4 py-2 transition-colors ${
+                    isActive("/blog")
+                      ? "text-white bg-gray-800"
+                      : "text-gray-400 hover:text-white hover:bg-gray-800"
+                  }`}
+                  onClick={() => setIsResourcesDropdownOpen(false)}
+                >
+                  Blog
+                </Link>
+                <Link
+                  to="/manual"
+                  className={`block px-4 py-2 transition-colors ${
+                    isActive("/manual")
+                      ? "text-white bg-gray-800"
+                      : "text-gray-400 hover:text-white hover:bg-gray-800"
+                  }`}
+                  onClick={() => setIsResourcesDropdownOpen(false)}
+                >
+                  User Manual
+                </Link>
+              </div>
+            )}
+          </div>
           <a
             href="#contact"
             className="text-gray-400 hover:text-white transition-colors"
@@ -177,16 +216,31 @@ export default function Navigation({ showGetStarted = true, featuredPost }: Navi
                 >
                   Pricing
                 </Link>
-                <Link
-                  to="/blog"
-                  className={`block text-2xl transition-colors ${
-                    isActive("/blog")
-                      ? "text-white"
-                      : "text-gray-400 hover:text-white"
-                  }`}
-                >
-                  Blog
-                </Link>
+                <div className="space-y-2">
+                  <p className="text-2xl text-white">Resources</p>
+                  <div className="pl-4 space-y-3">
+                    <Link
+                      to="/blog"
+                      className={`block text-xl transition-colors ${
+                        isActive("/blog")
+                          ? "text-white"
+                          : "text-gray-400 hover:text-white"
+                      }`}
+                    >
+                      Blog
+                    </Link>
+                    <Link
+                      to="/manual"
+                      className={`block text-xl transition-colors ${
+                        isActive("/manual")
+                          ? "text-white"
+                          : "text-gray-400 hover:text-white"
+                      }`}
+                    >
+                      User Manual
+                    </Link>
+                  </div>
+                </div>
                 <a
                   href="#contact"
                   className="block text-2xl text-gray-400 hover:text-white transition-colors"

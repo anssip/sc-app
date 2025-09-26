@@ -25,10 +25,10 @@ export const loader: LoaderFunction = async () => {
 
 export const meta: MetaFunction = () => {
   return [
-    { title: "Spot Canvas - Trading charts for the on-chain generation" },
+    { title: "Spot Canvas - Charts that think" },
     {
       name: "description",
-      content: "Trading charts for the on-chain generation",
+      content: "Ask. Explore. Learn. Trade smarter with charts that think.",
     },
   ];
 };
@@ -258,13 +258,11 @@ export default function Index() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
               <div className="lg:col-span-6">
                 <h1 className="text-5xl lg:text-7xl text-white mb-8 font-primary whitespace-nowrap">
-                  Trading Charts{" "}
-                  <p className="text-accent-1 relative mt-4">
-                    <span>Reimagined.</span>
-                  </p>
+                  Charts that{" "}
+                  <span className="text-accent-1 relative mt-4">Think.</span>
                 </h1>
                 <p className="text-xl text-gray-200 my-8 leading-relaxed">
-                  Trading charts, reimagined for the on-chain world.
+                  Your AI co-pilot for trading
                 </p>
                 <div className="flex gap-4">
                   <Button
@@ -302,7 +300,10 @@ export default function Index() {
             </h2>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto">
               Powerful tools and capabilities designed for crypto enthusiasts
-              and traders.
+              and traders -{" "}
+              <span style={{ color: "var(--color-primary)" }}>
+                with AI superpowers
+              </span>
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

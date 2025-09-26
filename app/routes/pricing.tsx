@@ -198,8 +198,12 @@ export default function PricingPage() {
             </h1>
             <p className="text-xl text-gray-400 max-w-2xl mx-auto">
               Choose the perfect plan to match your needs and ambition. Both
-              plans include a free 7-day trial period. During the trial period,
-              you will have access to the Pro plan features.
+              plans include a free{" "}
+              <span style={{ color: "var(--color-accent-1)" }}>
+                7-day trial period
+              </span>
+              . During the trial period, you will have access to the Pro plan
+              features.
             </p>
           </div>
 

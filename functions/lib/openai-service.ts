@@ -1627,7 +1627,7 @@ Return your analysis in this JSON format:
               function: {
                 name: "pulse_wave",
                 arguments: JSON.stringify({
-                  speed: 50, // 5x faster (was 10, now 50)
+                  speed: 20,
                   color: "#60a5fa", // Blue color for scanning
                   numCandles: 25,
                 }),
@@ -1769,14 +1769,21 @@ Return your analysis in this JSON format:
               "detect_divergence",
               "detect_rsi_divergence",
               "detect_macd_divergence",
-              "detect_volume_divergence"
+              "detect_volume_divergence",
             ].includes(toolCall.function.name);
 
             // Check if this is MACD crossover detection tool
-            const isMACDCrossoverTool = toolCall.function.name === "detect_macd_crossover";
+            const isMACDCrossoverTool =
+              toolCall.function.name === "detect_macd_crossover";
 
-            if (isDivergenceTool && result.divergences && result.divergences.length > 0) {
-              console.log(`Auto-visualizing ${result.divergences.length} divergences...`);
+            if (
+              isDivergenceTool &&
+              result.divergences &&
+              result.divergences.length > 0
+            ) {
+              console.log(
+                `Auto-visualizing ${result.divergences.length} divergences...`
+              );
 
               // Create visualize_divergences command
               const visualizeCommand = {
@@ -1788,9 +1795,9 @@ Return your analysis in this JSON format:
                     drawOnIndicator: true,
                     showLabels: true,
                     bullishColor: "#10b981",
-                    bearishColor: "#ef4444"
-                  })
-                }
+                    bearishColor: "#ef4444",
+                  }),
+                },
               };
 
               // Execute the visualization command
@@ -1798,12 +1805,19 @@ Return your analysis in this JSON format:
 
               // Add a subtle confirmation that divergences were visualized
               onStream("\n\n📊 Divergences have been drawn on the chart.\n");
-              assistantMessage += "\n\n📊 Divergences have been drawn on the chart.\n";
+              assistantMessage +=
+                "\n\n📊 Divergences have been drawn on the chart.\n";
             }
 
             // Auto-highlight MACD crossovers if found
-            if (isMACDCrossoverTool && result.crossovers && result.crossovers.length > 0) {
-              console.log(`Auto-highlighting ${result.crossovers.length} MACD crossovers...`);
+            if (
+              isMACDCrossoverTool &&
+              result.crossovers &&
+              result.crossovers.length > 0
+            ) {
+              console.log(
+                `Auto-highlighting ${result.crossovers.length} MACD crossovers...`
+              );
 
               // Convert MACD crossovers to pattern highlights
               const crossoverHighlights = result.crossovers.map(
@@ -1813,14 +1827,32 @@ Return your analysis in this JSON format:
                   let patternType = "macd_crossover";
                   let displayName = "MACD Crossover";
 
-                  if (crossover.type === "bullish" || crossover.type === "bullish_zero") {
+                  if (
+                    crossover.type === "bullish" ||
+                    crossover.type === "bullish_zero"
+                  ) {
                     color = "#10b981"; // Green for bullish
-                    patternType = crossover.type === "bullish" ? "macd_bullish_crossover" : "macd_bullish_zero_crossover";
-                    displayName = crossover.type === "bullish" ? "Bullish MACD Crossover" : "Bullish Zero-Line Crossover";
-                  } else if (crossover.type === "bearish" || crossover.type === "bearish_zero") {
+                    patternType =
+                      crossover.type === "bullish"
+                        ? "macd_bullish_crossover"
+                        : "macd_bullish_zero_crossover";
+                    displayName =
+                      crossover.type === "bullish"
+                        ? "Bullish MACD Crossover"
+                        : "Bullish Zero-Line Crossover";
+                  } else if (
+                    crossover.type === "bearish" ||
+                    crossover.type === "bearish_zero"
+                  ) {
                     color = "#ef4444"; // Red for bearish
-                    patternType = crossover.type === "bearish" ? "macd_bearish_crossover" : "macd_bearish_zero_crossover";
-                    displayName = crossover.type === "bearish" ? "Bearish MACD Crossover" : "Bearish Zero-Line Crossover";
+                    patternType =
+                      crossover.type === "bearish"
+                        ? "macd_bearish_crossover"
+                        : "macd_bearish_zero_crossover";
+                    displayName =
+                      crossover.type === "bearish"
+                        ? "Bearish MACD Crossover"
+                        : "Bearish Zero-Line Crossover";
                   }
 
                   // Determine significance based on confidence
@@ -1841,8 +1873,13 @@ Return your analysis in this JSON format:
                     type: "pattern",
                     patternType: patternType,
                     name: displayName,
-                    description: crossover.description ||
-                      `${displayName} - MACD: ${crossover.macdValue.toFixed(2)}, Signal: ${crossover.signalValue.toFixed(2)} at $${crossover.price.toFixed(2)}`,
+                    description:
+                      crossover.description ||
+                      `${displayName} - MACD: ${crossover.macdValue.toFixed(
+                        2
+                      )}, Signal: ${crossover.signalValue.toFixed(
+                        2
+                      )} at $${crossover.price.toFixed(2)}`,
                     candleTimestamps: [crossover.timestamp],
                     significance: significance,
                     color: color,
@@ -1853,8 +1890,8 @@ Return your analysis in this JSON format:
                       signalValue: crossover.signalValue,
                       histogramValue: crossover.histogramValue,
                       strength: crossover.strength,
-                      confidence: crossover.confidence
-                    }
+                      confidence: crossover.confidence,
+                    },
                   };
                 }
               );
@@ -1871,11 +1908,15 @@ Return your analysis in this JSON format:
               await onToolCall(highlightCommand);
 
               onStream(
-                `\n\n✨ Highlighted ${crossoverHighlights.length} MACD crossover${
+                `\n\n✨ Highlighted ${
+                  crossoverHighlights.length
+                } MACD crossover${
                   crossoverHighlights.length !== 1 ? "s" : ""
                 } on the chart.\n`
               );
-              assistantMessage += `\n\n✨ Highlighted ${crossoverHighlights.length} MACD crossover${
+              assistantMessage += `\n\n✨ Highlighted ${
+                crossoverHighlights.length
+              } MACD crossover${
                 crossoverHighlights.length !== 1 ? "s" : ""
               } on the chart.\n`;
             }

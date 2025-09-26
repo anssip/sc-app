@@ -1,6 +1,6 @@
 # SpotCanvas Features
 
-SpotCanvas is a professional cryptocurrency charting platform designed for traders, market analysts and crypto enthusiasts. Our comprehensive suite of tools provides everything you need for technical analysis and market monitoring.
+SpotCanvas is an AI-Powered cryptocurrency charting platform designed for traders, market analysts and crypto enthusiasts. Our comprehensive suite of tools provides everything you need for technical analysis and market monitoring.
 
 ## 📊 Multi-Chart Layout Management
 
