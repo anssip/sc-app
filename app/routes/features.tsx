@@ -139,7 +139,13 @@ const FeatureCard = ({
   alt: string;
   items: { label: string; desc: string }[];
 }) => (
-  <section className="rounded-2xl border border-white/20 bg-dark-lighter/50 p-8 md:p-10 shadow-sm">
+  <section
+    className="rounded-2xl border border-white/20 p-8 md:p-10"
+    style={{
+      background: "linear-gradient(135deg, rgba(93, 91, 237, 0.15), rgba(147, 51, 234, 0.05), rgba(30, 30, 30, 0.9))",
+      boxShadow: "0 0 20px rgba(93, 91, 237, 0.25), 0 0 40px rgba(147, 51, 234, 0.1)",
+    }}
+  >
     <h2 className="text-2xl font-semibold text-white">{title}</h2>
     <p className="mt-3 text-gray-400">{description}</p>
     <LightboxImage src={src} alt={alt} />
