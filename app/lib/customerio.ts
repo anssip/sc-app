@@ -219,7 +219,7 @@ export const initializeCustomerIOScript = (siteId: string): void => {
   const script = document.createElement('script')
   script.type = 'text/javascript'
   script.async = true
-  script.src = 'https://assets.customer.io/assets/track.js'
+  script.src = 'https://assets-eu.customer.io/assets/track-eu.js'
   
   // Initialize Customer.io
   (window as any)._cio = (window as any)._cio || [];

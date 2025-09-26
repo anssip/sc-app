@@ -98,7 +98,7 @@ export default function App() {
         script.async = true;
         script.id = 'cio-tracker';
         script.setAttribute('data-site-id', siteId);
-        script.src = 'https://assets.customer.io/assets/track.js';
+        script.src = 'https://assets-eu.customer.io/assets/track-eu.js';
         document.body.appendChild(script);
       }
       
