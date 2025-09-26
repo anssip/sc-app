@@ -224,6 +224,7 @@ export function AIChatPanel({
   const [loadingSessions, setLoadingSessions] = useState(false);
   const [showExamplePrompts, setShowExamplePrompts] = useState(false);
   const [showPromptsSidebar, setShowPromptsSidebar] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { activeChartId, getActiveChartApi } = useActiveChart();
@@ -706,12 +707,33 @@ export function AIChatPanel({
                 target.style.height = Math.min(target.scrollHeight, 120) + "px";
               }}
               onKeyDown={handleKeyDown}
-              placeholder="Ask about the chart... (Shift+Enter for new line)"
+              onFocus={() => setIsInputFocused(true)}
+              onBlur={() => setIsInputFocused(false)}
+              placeholder={user ? "Ask about the chart... (Shift+Enter for new line)" : ""}
               className="w-full bg-gray-800 text-white rounded-lg pl-4 pr-20 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[40px] max-h-[120px] overflow-y-auto"
               rows={2}
               style={{ height: "auto" }}
               disabled={isLoading || !user}
             />
+
+            {/* Login overlay for unauthenticated users */}
+            {!user && !isInputFocused && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <p className="text-gray-400 pointer-events-auto">
+                  Please{" "}
+                  <a
+                    href="/signin?redirect=/chart"
+                    className="text-blue-400 hover:text-blue-300 underline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                  >
+                    sign in
+                  </a>{" "}
+                  to use the AI assistant
+                </p>
+              </div>
+            )}
 
             {/* Lightbulb button inside input field */}
             <button
@@ -743,11 +765,6 @@ export function AIChatPanel({
               <Send className="w-4 h-4" />
             </button>
           </div>
-          {!user && (
-            <p className="text-xs text-gray-400 mt-2">
-              Please sign in to use the AI assistant
-            </p>
-          )}
         </div>
 
         {/* Chat History Modal */}
