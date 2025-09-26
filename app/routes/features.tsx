@@ -128,17 +128,20 @@ const LightboxImage = ({ src, alt, caption }: LightboxImageProps) => {
 
 const FeatureCard = ({
   title,
+  description,
   src,
   alt,
   items,
 }: {
   title: string;
+  description: string;
   src: string;
   alt: string;
   items: { label: string; desc: string }[];
 }) => (
   <section className="rounded-2xl border border-white/20 bg-dark-lighter/50 p-8 md:p-10 shadow-sm">
     <h2 className="text-2xl font-semibold text-white">{title}</h2>
+    <p className="mt-3 text-gray-400">{description}</p>
     <LightboxImage src={src} alt={alt} />
     <div className="mt-8 w-full">
       <ul className="list-disc pl-6 space-y-2 text-gray-400">
@@ -225,7 +228,7 @@ const Features = () => {
           </span>
         </h1>
         <p className="mt-2 text-gray-400 max-w-3xl">
-          SpotCanvas is a professional cryptocurrency charting platform designed
+          SpotCanvas is an AI-powered cryptocurrency charting platform designed
           for traders, market analysts and crypto enthusiasts.
         </p>
       </header>
@@ -234,6 +237,7 @@ const Features = () => {
         <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
           <FeatureCard
             title="AI-Powered Chart Assistant"
+            description="Speed up technical analysis and facilitate learning through intelligent, conversational chart interactions. Our AI Spotlight assistant transforms complex market analysis into simple conversations."
             src={IMAGES.aiAssistant}
             alt="SpotCanvas AI Assistant analyzing BTC-USD with automated support and resistance levels"
             items={[
@@ -246,24 +250,24 @@ const Features = () => {
                 desc: "Instant detection of support/resistance levels with confidence scores and visual markers",
               },
               {
-                label: "Smart Pattern Recognition",
-                desc: "AI identifies spike levels, swing points, and consolidation zones automatically",
+                label: "Pattern Recognition",
+                desc: "AI identifies different candle patterns automatically",
+              },
+              {
+                label: "Divergende Detection",
+                desc: "Detect divergencies between price and indicators like RSI and Volume",
+              },
+              {
+                label: "Automatic highlighting in the chart",
+                desc: "AI-detected patterns, divergencies, support/resistance levels are automatically highlighted in the chart.",
               },
               {
                 label: "Real-Time Trading Insights",
                 desc: "Get professional analysis and trading suggestions based on current chart data",
               },
               {
-                label: "Dual Analysis Methods",
-                desc: "Fast API-based levels or deep AI-powered trend line analysis on demand",
-              },
-              {
                 label: "Interactive Chart Commands",
                 desc: "Draw trend lines, enable indicators, switch granularities - all through conversation",
-              },
-              {
-                label: "AI Powered Intelligence",
-                desc: "Latest AI model provides accurate, context-aware responses to complex queries",
               },
               {
                 label: "Historical Data Analysis",
@@ -282,6 +286,7 @@ const Features = () => {
 
           <FeatureCard
             title="Multi-Chart Layout Management"
+            description="Monitor multiple markets simultaneously and compare correlations with flexible, customizable workspace arrangements tailored to your trading style."
             src={IMAGES.layouts}
             alt="SpotCanvas multi-chart layouts in a 2x2 grid view with individual toolbars"
             items={[
@@ -310,6 +315,7 @@ const Features = () => {
 
           <FeatureCard
             title="Symbol Management"
+            description="Seamlessly navigate and track your preferred cryptocurrency pairs with real-time data and intelligent organization for efficient market monitoring."
             src={IMAGES.symbols}
             alt="Symbol Manager modal showing selected and available crypto pairs in SpotCanvas"
             items={[
@@ -342,6 +348,7 @@ const Features = () => {
 
           <FeatureCard
             title="Trend Lines & Drawing Tools"
+            description="Identify key market levels and patterns with precision drawing tools that persist across sessions, helping you track and validate your technical analysis."
             src={IMAGES.trend}
             alt="Drawing tools on a SpotCanvas chart with trend lines and inline toolbar"
             items={[
@@ -370,6 +377,7 @@ const Features = () => {
 
           <FeatureCard
             title="Technical Indicators"
+            description="Make informed trading decisions with a comprehensive suite of technical analysis tools and customizable parameters to match your strategy."
             src={IMAGES.indicators}
             alt="SpotCanvas indicators including Bollinger Bands and MACD on a crypto chart"
             items={[
@@ -403,11 +411,20 @@ const Features = () => {
               },
             ]}
           />
+
+          <div className="flex items-center justify-center">
+            <img
+              src="/logo/icon/purple.svg"
+              alt="SpotCanvas Logo"
+              className="w-48 h-48 opacity-50"
+            />
+          </div>
         </div>
 
         <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8">
           <FeatureCard
             title="Advanced Charting Features"
+            description="Experience professional-grade charting with high-performance rendering and intuitive controls for detailed market analysis and precise trade execution."
             src={IMAGES.panningZooming}
             alt="Advanced charting features including candlestick charts and crosshairs"
             items={[
@@ -466,24 +483,13 @@ const Features = () => {
           <div id="road-ahead">
             <FeatureCard
               title="🚀 The Road Ahead: More AI-Assisted Features"
+              description="Transform your trading workflow with upcoming AI-powered features that automate complex analysis, provide educational insights, and enhance decision-making."
               src={IMAGES.blockchain}
               alt="Abstract blockchain network illustration for SpotCanvas roadmap"
               items={[
                 {
-                  label: "Pattern Recognition",
-                  desc: "Detect head-and-shoulders, triangles, flags, wedges, double tops/bottoms and highlight them on the chart with drawn trendlines/boxes",
-                },
-                {
-                  label: "Indicator Explanations",
-                  desc: "Ask 'What's RSI telling me here?' and AI fetches RSI data, explains whether it's overbought/oversold, and adds context",
-                },
-                {
                   label: "Multi-Timeframe Analysis",
                   desc: "AI compares signals from daily vs hourly charts and can summarize across timeframes (e.g., short-term bullish, long-term bearish)",
-                },
-                {
-                  label: "Event Annotations",
-                  desc: "Automatically marks large price gaps, volatility spikes, or indicator crossovers and explains their trading significance",
                 },
                 {
                   label: "Risk/Reward Analysis",
