@@ -1,23 +1,23 @@
-import React from 'react'
-import { LayoutSelector } from './LayoutSelector'
-import AccountMenu from './AccountMenu'
-import PreviewTimer from './PreviewTimer'
-import { Bot } from 'lucide-react'
-import { ToolbarButton } from './ToolbarButton'
-import type { PanelLayout } from './ChartPanel'
-import type { Repository } from '~/services/repository'
+import React from "react";
+import { LayoutSelector } from "./LayoutSelector";
+import AccountMenu from "./AccountMenu";
+import PreviewTimer from "./PreviewTimer";
+import { Bot } from "lucide-react";
+import { ToolbarButton } from "./ToolbarButton";
+import type { PanelLayout } from "./ChartPanel";
+import type { Repository } from "~/services/repository";
 
 interface AppToolbarProps {
-  repository: Repository | null
-  currentLayout: PanelLayout | null
-  currentLayoutId: string | null
-  onLayoutChange: (layout: PanelLayout, layoutId?: string) => void
-  migrationStatus?: string | null
-  hasPreviewAccess?: boolean
-  previewStartTime?: number | null
-  onPreviewExpire?: () => void
-  showAIChat?: boolean
-  onToggleAIChat?: () => void
+  repository: Repository | null;
+  currentLayout: PanelLayout | null;
+  currentLayoutId: string | null;
+  onLayoutChange: (layout: PanelLayout, layoutId?: string) => void;
+  migrationStatus?: string | null;
+  hasPreviewAccess?: boolean;
+  previewStartTime?: number | null;
+  onPreviewExpire?: () => void;
+  showAIChat?: boolean;
+  onToggleAIChat?: () => void;
 }
 
 export const AppToolbar: React.FC<AppToolbarProps> = ({
@@ -38,7 +38,11 @@ export const AppToolbar: React.FC<AppToolbarProps> = ({
         {/* Left side - Logo, AccountMenu, Status */}
         <div className="flex items-center gap-2 sm:gap-4">
           {/* Logo */}
-          <img src="/full-logo-accent-1.svg" alt="Spot Canvas" className="h-6 w-auto" />
+          <img
+            src="/full-logo-accent-1.svg"
+            alt="Spot Canvas"
+            className="h-6 w-auto"
+          />
 
           {/* Account Menu */}
           <AccountMenu />
@@ -47,15 +51,19 @@ export const AppToolbar: React.FC<AppToolbarProps> = ({
           {repository && (
             <div
               className="flex items-center gap-2"
-              title={repository.isOnline() ? 'Repository Online' : 'Repository Offline'}
+              title={
+                repository.isOnline()
+                  ? "Repository Online"
+                  : "Repository Offline"
+              }
             >
               <div
                 className={`h-2 w-2 rounded-full ${
-                  repository.isOnline() ? 'bg-green-500' : 'bg-red-500'
+                  repository.isOnline() ? "bg-green-500" : "bg-red-500"
                 }`}
               ></div>
               <span className="text-xs text-gray-400 hidden sm:inline">
-                {repository.isOnline() ? 'Online' : 'Offline'}
+                {repository.isOnline() ? "Online" : "Offline"}
               </span>
             </div>
           )}
@@ -81,7 +89,11 @@ export const AppToolbar: React.FC<AppToolbarProps> = ({
           <ToolbarButton
             onClick={onToggleAIChat || (() => {})}
             active={showAIChat}
-            title={showAIChat ? 'Close AI Assistant' : 'Open AI Assistant (Cmd/Ctrl + Shift + A)'}
+            title={
+              showAIChat
+                ? "Close Spotlight"
+                : "Open Spotlight (Cmd/Ctrl + Shift + A)"
+            }
           >
             <Bot className="w-4 h-4" />
           </ToolbarButton>
@@ -98,7 +110,7 @@ export const AppToolbar: React.FC<AppToolbarProps> = ({
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default AppToolbar
+export default AppToolbar;

@@ -397,7 +397,7 @@ export function AIChatPanel({
 
               if ((error as any).requiresSubscription) {
                 errorContent =
-                  "⚠️ Your preview period has expired. Please subscribe to continue using the AI assistant.\
+                  "⚠️ Your preview period has expired. Please subscribe to continue using the Spotlight AI assistant.\
                   ";
               }
 
@@ -452,7 +452,7 @@ export function AIChatPanel({
           <div className="flex items-center gap-2">
             <Bot className="w-5 h-5 text-blue-400" />
             <div>
-              <h2 className="font-semibold">AI Assistant</h2>
+              <h2 className="font-semibold">Spotlight AI Assistantt</h2>
               {activeChart && (
                 <p className="text-xs text-gray-400">
                   Active: {activeChart.symbol || "Chart"} •{" "}
@@ -709,7 +709,9 @@ export function AIChatPanel({
               onKeyDown={handleKeyDown}
               onFocus={() => setIsInputFocused(true)}
               onBlur={() => setIsInputFocused(false)}
-              placeholder={user ? "Ask about the chart... (Shift+Enter for new line)" : ""}
+              placeholder={
+                user ? "Ask about the chart... (Shift+Enter for new line)" : ""
+              }
               className="w-full bg-gray-800 text-white rounded-lg pl-4 pr-20 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[40px] max-h-[120px] overflow-y-auto"
               rows={2}
               style={{ height: "auto" }}
@@ -730,7 +732,7 @@ export function AIChatPanel({
                   >
                     sign in
                   </a>{" "}
-                  to use the AI assistant
+                  to use Spotligt
                 </p>
               </div>
             )}
