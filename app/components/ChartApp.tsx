@@ -480,7 +480,7 @@ export const ChartApp: React.FC<ChartAppProps> = ({
           {/* Desktop: Show chart with optional side panel for AI chat */}
           <PanelGroup direction="horizontal" className="h-full">
             {/* Main Chart Panel - Hidden on mobile when AI chat is active */}
-            {(!isMobileView || !showAIChat) && (
+            {(isMobileView ? !showAIChat : true) && (
               <Panel>
                 <ChartPanel
                   layout={currentLayout}
