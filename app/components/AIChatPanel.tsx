@@ -451,15 +451,12 @@ export function AIChatPanel({
         <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-gray-700">
           <div className="flex items-center gap-2">
             <Bot className="w-5 h-5 text-blue-400" />
-            <div>
-              <h2 className="font-semibold">Spotlight AI Assistantt</h2>
-              {activeChart && (
-                <p className="text-xs text-gray-400">
-                  Active: {activeChart.symbol || "Chart"} •{" "}
-                  {activeChart.granularity || ""}
-                </p>
-              )}
-            </div>
+            {activeChart && (
+              <p className="text-xs text-gray-400">
+                Active: {activeChart.symbol || "Chart"} •{" "}
+                {activeChart.granularity || ""}
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-2">
             {/* New Chat Button */}

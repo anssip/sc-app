@@ -49,27 +49,6 @@ export const AppToolbar: React.FC<AppToolbarProps> = ({
             {/* Account Menu */}
             <AccountMenu />
 
-            {/* Status indicator light */}
-            {repository && (
-              <div
-                className="flex items-center gap-2"
-                title={
-                  repository.isOnline()
-                    ? "Repository Online"
-                    : "Repository Offline"
-                }
-              >
-                <div
-                  className={`h-2 w-2 rounded-full ${
-                    repository.isOnline() ? "bg-green-500" : "bg-red-500"
-                  }`}
-                ></div>
-                <span className="text-xs text-gray-400 hidden sm:inline">
-                  {repository.isOnline() ? "Online" : "Offline"}
-                </span>
-              </div>
-            )}
-
             {migrationStatus && (
               <div className="text-xs text-blue-400 bg-blue-900/20 px-2 py-1 rounded border border-blue-800">
                 {migrationStatus}
@@ -141,8 +120,8 @@ export const AppToolbar: React.FC<AppToolbarProps> = ({
           <AccountMenu />
         </div>
 
-        {/* Second Row - Chart/Spotlight AI Toggle (centered) */}
-        <div className="flex justify-center px-3 pb-2">
+        {/* Second Row - Chart/Spotlight AI Toggle and Preview Timer */}
+        <div className="flex items-center justify-center gap-3 px-3 pb-2">
           <div className="inline-flex rounded-lg bg-gray-800 p-0.5">
             <button
               onClick={() => onToggleAIChat && onToggleAIChat()}
@@ -165,38 +144,22 @@ export const AppToolbar: React.FC<AppToolbarProps> = ({
               Spotlight AI
             </button>
           </div>
+
+          {/* Preview Timer for mobile */}
+          {hasPreviewAccess && previewStartTime && (
+            <PreviewTimer
+              previewStartTime={previewStartTime}
+              onExpire={onPreviewExpire || (() => window.location.reload())}
+            />
+          )}
         </div>
 
-        {/* Status and Migration info - shown below if present */}
-        {(repository ||
-          migrationStatus ||
-          (hasPreviewAccess && previewStartTime)) && (
+        {/* Migration info - shown below if present */}
+        {migrationStatus && (
           <div className="flex items-center gap-2 px-3 pb-2 border-t border-gray-800 pt-2">
-            {repository && (
-              <div className="flex items-center gap-1.5">
-                <div
-                  className={`h-1.5 w-1.5 rounded-full ${
-                    repository.isOnline() ? "bg-green-500" : "bg-red-500"
-                  }`}
-                ></div>
-                <span className="text-xs text-gray-400">
-                  {repository.isOnline() ? "Online" : "Offline"}
-                </span>
-              </div>
-            )}
-
-            {migrationStatus && (
-              <div className="text-xs text-blue-400 bg-blue-900/20 px-2 py-0.5 rounded">
-                {migrationStatus}
-              </div>
-            )}
-
-            {hasPreviewAccess && previewStartTime && (
-              <PreviewTimer
-                previewStartTime={previewStartTime}
-                onExpire={onPreviewExpire || (() => window.location.reload())}
-              />
-            )}
+            <div className="text-xs text-blue-400 bg-blue-900/20 px-2 py-0.5 rounded">
+              {migrationStatus}
+            </div>
           </div>
         )}
       </div>
