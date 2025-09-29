@@ -53,6 +53,47 @@ order: 1
   margin-top: 4px;
   line-height: 1.5;
 }
+
+/* Enhanced table styling for better visibility */
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 2px solid var(--color-gray-600, #4a5568);
+  border-radius: 8px;
+  overflow: hidden;
+  width: 100%;
+  margin: 20px 0;
+}
+
+table thead {
+  background: var(--color-gray-800, #1a202c);
+}
+
+table th {
+  border: 1px solid var(--color-gray-600, #4a5568);
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--color-gray-100, #f7fafc);
+}
+
+table td {
+  border: 1px solid var(--color-gray-700, #2d3748);
+  padding: 10px 12px;
+  color: var(--color-gray-200, #e2e8f0);
+}
+
+table tbody tr {
+  background: var(--color-gray-900, #0a0b0d);
+}
+
+table tbody tr:nth-child(even) {
+  background: var(--color-gray-850, #12131a);
+}
+
+table tbody tr:hover {
+  background: var(--color-gray-800, #1a202c);
+}
 </style>
 
 ## Overview
@@ -282,6 +323,8 @@ These step-by-step workflows demonstrate the power of the Spotlight AI assistant
 | **Divergence - MACD** | ✅ **Yes** | Trend lines on price & MACD | <span style="color: #22c55e">Green</span> Bullish / <span style="color: #ef4444">Red</span> Bearish |
 | **Divergence - Volume** | ✅ **Yes** | Highlighted volume bars | <span style="color: #ef4444">Red</span> Weak moves |
 | **MACD Crossovers** | ✅ **Yes** | Dots and labels on MACD | <span style="color: #22c55e">Green</span> Buy / <span style="color: #ef4444">Red</span> Sell signals |
+
+> Regarding the highlights and labels on candles that are used to denote detected patterns: You can click on the pattern name labels to view more information about the pattern.
 
 ## Visual Indicators Guide
 
