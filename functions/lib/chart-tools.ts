@@ -453,6 +453,65 @@ export const chartTools = {
     {
       type: "function",
       function: {
+        name: "draw_horizontal_line_at_price",
+        description:
+          "Draw a horizontal trend line at a specific price level (current price, recent high/low, or custom price)",
+        parameters: {
+          type: "object",
+          properties: {
+            priceType: {
+              type: "string",
+              enum: ["current", "high", "low", "specific"],
+              description:
+                "Type of price to use: 'current' for latest price, 'high' for recent high, 'low' for recent low, 'specific' for custom price",
+            },
+            price: {
+              type: "number",
+              description:
+                "Specific price value (required only when priceType is 'specific')",
+            },
+            color: {
+              type: "string",
+              description: "Line color in hex format",
+              default: "#2962ff",
+            },
+            lineWidth: {
+              type: "number",
+              description: "Line width in pixels",
+              default: 2,
+            },
+            style: {
+              type: "string",
+              enum: ["solid", "dashed", "dotted"],
+              default: "solid",
+            },
+            extendLeft: {
+              type: "boolean",
+              description: "Extend line to the left",
+              default: true,
+            },
+            extendRight: {
+              type: "boolean",
+              description: "Extend line to the right",
+              default: true,
+            },
+            name: {
+              type: "string",
+              description: "Name/label for the trend line",
+            },
+            opacity: {
+              type: "number",
+              description: "Line opacity (0.0 to 1.0)",
+              default: 0.8,
+            },
+          },
+          required: ["priceType"],
+        },
+      },
+    },
+    {
+      type: "function",
+      function: {
         name: "visualize_divergences",
         description:
           "Visualize detected divergences by drawing trend lines on both the price chart and indicator panels. This tool should be called immediately after detecting divergences to make them visually clear on the chart.",
@@ -467,76 +526,104 @@ export const chartTools = {
                 properties: {
                   type: {
                     type: "string",
-                    enum: ["bullish", "bearish", "hidden_bullish", "hidden_bearish"],
-                    description: "Type of divergence"
+                    enum: [
+                      "bullish",
+                      "bearish",
+                      "hidden_bullish",
+                      "hidden_bearish",
+                    ],
+                    description: "Type of divergence",
                   },
                   indicator: {
                     type: "string",
-                    description: "Indicator name (e.g., RSI, MACD, volume)"
+                    description: "Indicator name (e.g., RSI, MACD, volume)",
                   },
                   startPoint: {
                     type: "object",
                     properties: {
-                      timestamp: { type: "number", description: "Start timestamp in milliseconds" },
-                      price: { type: "number", description: "Price at start point" },
-                      indicatorValue: { type: "number", description: "Indicator value at start point" }
+                      timestamp: {
+                        type: "number",
+                        description: "Start timestamp in milliseconds",
+                      },
+                      price: {
+                        type: "number",
+                        description: "Price at start point",
+                      },
+                      indicatorValue: {
+                        type: "number",
+                        description: "Indicator value at start point",
+                      },
                     },
-                    required: ["timestamp", "price", "indicatorValue"]
+                    required: ["timestamp", "price", "indicatorValue"],
                   },
                   endPoint: {
                     type: "object",
                     properties: {
-                      timestamp: { type: "number", description: "End timestamp in milliseconds" },
-                      price: { type: "number", description: "Price at end point" },
-                      indicatorValue: { type: "number", description: "Indicator value at end point" }
+                      timestamp: {
+                        type: "number",
+                        description: "End timestamp in milliseconds",
+                      },
+                      price: {
+                        type: "number",
+                        description: "Price at end point",
+                      },
+                      indicatorValue: {
+                        type: "number",
+                        description: "Indicator value at end point",
+                      },
                     },
-                    required: ["timestamp", "price", "indicatorValue"]
+                    required: ["timestamp", "price", "indicatorValue"],
                   },
                   strength: {
                     type: "number",
-                    description: "Divergence strength (0-100)"
+                    description: "Divergence strength (0-100)",
                   },
                   confidence: {
                     type: "number",
-                    description: "Confidence level (0-100)"
+                    description: "Confidence level (0-100)",
                   },
                   description: {
                     type: "string",
-                    description: "Text description of the divergence"
-                  }
+                    description: "Text description of the divergence",
+                  },
                 },
-                required: ["type", "indicator", "startPoint", "endPoint"]
-              }
+                required: ["type", "indicator", "startPoint", "endPoint"],
+              },
             },
             drawOnPrice: {
               type: "boolean",
-              description: "Whether to draw trend lines on the price chart (default: true)",
-              default: true
+              description:
+                "Whether to draw trend lines on the price chart (default: true)",
+              default: true,
             },
             drawOnIndicator: {
               type: "boolean",
-              description: "Whether to draw trend lines on indicator panels (default: true)",
-              default: true
+              description:
+                "Whether to draw trend lines on indicator panels (default: true)",
+              default: true,
             },
             bullishColor: {
               type: "string",
-              description: "Color for bullish divergence lines (default: #10b981)",
-              default: "#10b981"
+              description:
+                "Color for bullish divergence lines (default: #10b981)",
+              default: "#10b981",
             },
             bearishColor: {
               type: "string",
-              description: "Color for bearish divergence lines (default: #ef4444)",
-              default: "#ef4444"
+              description:
+                "Color for bearish divergence lines (default: #ef4444)",
+              default: "#ef4444",
             },
             showLabels: {
               type: "boolean",
-              description: "Whether to add labels to the trend lines (default: true)",
-              default: true
-            }
+              description:
+                "Whether to add labels to the trend lines (default: true)",
+              default: true,
+            },
           },
-          required: ["divergences"]
-        }
-      }
+          required: ["divergences"],
+        },
+      },
     },
     {
       type: "function",
@@ -768,11 +855,23 @@ export const chartTools = {
         return `✓ Removed ${args.id.replace(/-/g, " ")} indicator`;
       case "add_trend_line":
         return `✓ Drew trend line`;
+      case "draw_horizontal_line_at_price":
+        const priceTypeLabel =
+          args.priceType === "current"
+            ? "current price"
+            : args.priceType === "high"
+            ? "recent high"
+            : args.priceType === "low"
+            ? "recent low"
+            : `$${args.price}`;
+        return `✓ Drew horizontal line at ${priceTypeLabel}`;
       case "draw_trend_line_from_analysis":
         return `✓ Analyzed price data using AI and drew ${args.type} trend line`;
       case "visualize_divergences":
         const divCount = args.divergences?.length || 0;
-        return `✓ Visualized ${divCount} divergence${divCount !== 1 ? "s" : ""} with trend lines`;
+        return `✓ Visualized ${divCount} divergence${
+          divCount !== 1 ? "s" : ""
+        } with trend lines`;
       case "fetch_support_resistance_levels":
         return `✓ Fetched and drew support/resistance levels from market data`;
       case "remove_trend_line":

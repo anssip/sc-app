@@ -1,12 +1,12 @@
 ---
 title: "Spotlight AI Assistant Guide"
 excerpt: "Master the Spotlight AI assistant for intelligent chart analysis. Learn how to use example prompts, understand visual indicators, and leverage AI-powered pattern detection and divergence analysis."
-publishDate: "2025-01-03"
+publishDate: "2025-09-25"
 author: "Spot Canvas Team"
 category: "AI & Analysis"
 published: true
 featured: false
-order: 2
+order: 1
 ---
 
 <style>
@@ -73,8 +73,16 @@ These step-by-step workflows demonstrate the power of the Spotlight AI assistant
   <div class="workflow-desc">Identifies candlestick formations that signal potential reversals or continuations. Patterns near the support/resistance levels from step 1 carry extra significance.</div>
 </li>
 <li>
+  <span class="ai-prompt">"Show the RSI indicator"</span>
+  <div class="workflow-desc">We are interested in RSI (Relative Strength Index) next and we'll show the indicator in the chart..</div>
+</li>
+<li>
   <span class="ai-prompt">"Check for RSI divergences"</span>
   <div class="workflow-desc">Reveals when momentum diverges from price action, often preceding major moves. Bullish divergences at support or bearish divergences at resistance are particularly powerful signals.</div>
+</li>
+<li>
+  <span class="ai-prompt">"Show the MACD indicator"</span>
+  <div class="workflow-desc">Next, we'll show the Moving Average Convergence Divergence (MACD) indicator and analyze divergencies.</div>
 </li>
 <li>
   <span class="ai-prompt">"Are there any MACD crossovers?"</span>
@@ -87,6 +95,10 @@ These step-by-step workflows demonstrate the power of the Spotlight AI assistant
 <li>
   <span class="ai-prompt">"Propose two different trading scenarios with this chart and analysis"</span>
   <div class="workflow-desc">This should give you some trading ideas.</div>
+</li>
+<li>
+  <span class="ai-prompt">"Clear all candle highlights"</span>
+  <div class="workflow-desc">Clearing the highlighed candles (that indicatge candle patterns) will improve the panning and zooming performance of the chart. (We are working to fix this issue)</div>
 </li>
 </ol>
 

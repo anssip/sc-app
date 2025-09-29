@@ -437,6 +437,18 @@ async function processWithLLM({
     - draw_trend_line_from_analysis draws diagonal trend lines connecting points
     - NEVER use analyze_price_points + add_trend_line separately
 
+    DRAWING HORIZONTAL LINES - USE THE DEDICATED TOOL:
+    When user asks for horizontal lines, ALWAYS use draw_horizontal_line_at_price:
+    - "draw horizontal line at current price" → use draw_horizontal_line_at_price with priceType="current"
+    - "horizontal trend line at current price" → use draw_horizontal_line_at_price with priceType="current"
+    - "draw line at current price" → use draw_horizontal_line_at_price with priceType="current"
+    - "horizontal line at recent high" → use draw_horizontal_line_at_price with priceType="high"
+    - "horizontal line at recent low" → use draw_horizontal_line_at_price with priceType="low"
+    - "horizontal line at [specific price]" → use draw_horizontal_line_at_price with priceType="specific" and price=[value]
+
+    NEVER use get_latest_price + add_trend_line for horizontal lines.
+    ALWAYS use the draw_horizontal_line_at_price tool instead.
+
     ${getTimeframeExtractionPrompt()}`;
 
   // Build messages array
@@ -531,8 +543,160 @@ async function processWithLLM({
 
         // Check if it's a chart command or data fetch
         if (chartTools.isChartTool(toolCall.function.name)) {
-          // Special handling for API-based support/resistance levels
-          if (toolCall.function.name === "fetch_support_resistance_levels") {
+          // Special handling for drawing horizontal line at price
+          if (toolCall.function.name === "draw_horizontal_line_at_price") {
+            try {
+              console.log("Drawing horizontal line at price:", args);
+
+              let targetPrice: number;
+              let lineName: string;
+
+              // Determine the price based on priceType
+              if (args.priceType === "current") {
+                // Fetch the current price
+                const API_BASE_URL = "https://market.spotcanvas.com";
+                const now = Date.now();
+                const oneHourAgo = now - 60 * 60 * 1000;
+
+                const params = new URLSearchParams({
+                  symbol: chartContext.symbol,
+                  granularity: "ONE_MINUTE",
+                  start_time: Math.floor(oneHourAgo).toString(),
+                  end_time: Math.floor(now).toString(),
+                  exchange: "coinbase",
+                });
+
+                const response = await fetch(
+                  `${API_BASE_URL}/history?${params}`
+                );
+
+                if (!response.ok) {
+                  throw new Error(
+                    `Failed to fetch current price: ${response.statusText}`
+                  );
+                }
+
+                const data: any = await response.json();
+                const candles = data.candles || data || [];
+
+                if (candles.length === 0) {
+                  throw new Error("No price data available");
+                }
+
+                const latestCandle = candles[candles.length - 1];
+                targetPrice = latestCandle.close || latestCandle.c;
+                lineName =
+                  args.name || `Current Price: $${targetPrice.toFixed(2)}`;
+
+                onStream(
+                  `\n\n📍 Drawing horizontal line at current price: $${targetPrice.toFixed(
+                    2
+                  )}`
+                );
+              } else if (args.priceType === "high") {
+                // Get the high from visible candles
+                const visibleCandles = chartContext.candles || [];
+                if (visibleCandles.length === 0) {
+                  throw new Error("No visible candles to determine high");
+                }
+                targetPrice = Math.max(
+                  ...visibleCandles.map((c: any) => c.high || c.h || 0)
+                );
+                lineName =
+                  args.name || `Recent High: $${targetPrice.toFixed(2)}`;
+
+                onStream(
+                  `\n\n📈 Drawing horizontal line at recent high: $${targetPrice.toFixed(
+                    2
+                  )}`
+                );
+              } else if (args.priceType === "low") {
+                // Get the low from visible candles
+                const visibleCandles = chartContext.candles || [];
+                if (visibleCandles.length === 0) {
+                  throw new Error("No visible candles to determine low");
+                }
+                targetPrice = Math.min(
+                  ...visibleCandles.map(
+                    (c: any) => c.low || c.l || Number.MAX_VALUE
+                  )
+                );
+                lineName =
+                  args.name || `Recent Low: $${targetPrice.toFixed(2)}`;
+
+                onStream(
+                  `\n\n📉 Drawing horizontal line at recent low: $${targetPrice.toFixed(
+                    2
+                  )}`
+                );
+              } else if (args.priceType === "specific") {
+                if (args.price === undefined || args.price === null) {
+                  throw new Error(
+                    "Price is required when priceType is 'specific'"
+                  );
+                }
+                targetPrice = args.price;
+                lineName =
+                  args.name || `Price Level: $${targetPrice.toFixed(2)}`;
+
+                onStream(
+                  `\n\n📊 Drawing horizontal line at $${targetPrice.toFixed(2)}`
+                );
+              } else {
+                throw new Error(`Invalid priceType: ${args.priceType}`);
+              }
+
+              // Create the horizontal line arguments
+              const horizontalLineArgs = {
+                start: {
+                  timestamp: chartContext.timeRange.start,
+                  price: targetPrice,
+                },
+                end: {
+                  timestamp: chartContext.timeRange.end,
+                  price: targetPrice,
+                },
+                color: args.color || "#2962ff",
+                lineWidth: args.lineWidth || 2,
+                style: args.style || "solid",
+                extendLeft:
+                  args.extendLeft !== undefined ? args.extendLeft : true,
+                extendRight:
+                  args.extendRight !== undefined ? args.extendRight : true,
+                name: lineName,
+                levelType: "horizontal",
+                opacity: args.opacity || 0.8,
+              };
+
+              // Create the add_trend_line command
+              const trendLineToolCall = {
+                ...toolCall,
+                function: {
+                  name: "add_trend_line",
+                  arguments: JSON.stringify(horizontalLineArgs),
+                },
+              };
+
+              // Execute the trend line command
+              await onToolCall(trendLineToolCall);
+
+              // Send confirmation
+              const confirmationMessage = chartTools.getConfirmationMessage(
+                toolCall.function.name,
+                args
+              );
+              onStream("\n\n" + confirmationMessage);
+              assistantMessage += "\n\n" + confirmationMessage;
+            } catch (error: any) {
+              console.error("Error drawing horizontal line:", error);
+              onStream(
+                `\n\n❌ Failed to draw horizontal line: ${error.message}`
+              );
+              assistantMessage += `\n\n❌ Failed to draw horizontal line: ${error.message}`;
+            }
+          } else if (
+            toolCall.function.name === "fetch_support_resistance_levels"
+          ) {
             try {
               console.log("Fetching support/resistance levels from API...");
 
