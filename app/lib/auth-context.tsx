@@ -1,9 +1,9 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, onAuthStateChanged, reload } from 'firebase/auth';
-import { auth, db } from './firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { updateEmailVerificationStatus } from './auth';
-import { accountRepository } from '~/services/accountRepository';
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { User, onAuthStateChanged, reload } from "firebase/auth";
+import { auth, db } from "./firebase";
+import { doc, onSnapshot } from "firebase/firestore";
+import { updateEmailVerificationStatus } from "./auth";
+import { accountRepository } from "~/services/accountRepository";
 
 interface AuthContextType {
   user: User | null;
@@ -21,8 +21,14 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
+  // Return a default value instead of throwing to maintain hook order
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    return {
+      user: null,
+      loading: true,
+      emailVerified: false,
+      refreshUser: async () => {},
+    };
   }
   return context;
 };
@@ -42,41 +48,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Function to refresh user data and check email verification
   const refreshUser = async () => {
     if (!user) return;
-    
+
     try {
       await reload(user);
       setEmailVerified(user.emailVerified);
-      
+
       // Update Firestore if verification status changed
       if (user.emailVerified) {
         await updateEmailVerificationStatus(user.uid, true);
       }
-      
-      } catch (error) {
-      }
+    } catch (error) {}
   };
 
   useEffect(() => {
     // Only run on client side
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       return;
     }
-    
+
     // Component has mounted, we're on the client
     setMounted(true);
-    
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
-      
+
       if (user) {
         setEmailVerified(user.emailVerified);
-        
+
         // Warm the cache with user data when they sign in
         accountRepository.setCurrentUser(user);
-        accountRepository.warmCache(user).then(() => {
-          }).catch((error) => {
-          });
-        
+        accountRepository
+          .warmCache(user)
+          .then(() => {})
+          .catch((error) => {});
+
         // Set up a periodic check for email verification
         if (!user.emailVerified) {
           const intervalId = setInterval(async () => {
@@ -85,9 +90,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               setEmailVerified(true);
               await updateEmailVerificationStatus(user.uid, true);
               clearInterval(intervalId);
-              }
+            }
           }, 30000); // Check every 30 seconds
-          
+
           // Clean up interval on unmount
           return () => clearInterval(intervalId);
         }
@@ -96,11 +101,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Clear cache when user signs out
         accountRepository.setCurrentUser(null);
         // Clear all cached data for clean state
-        accountRepository.clearCache().then(() => {
-          }).catch((error) => {
-          });
+        accountRepository
+          .clearCache()
+          .then(() => {})
+          .catch((error) => {});
       }
-      
+
       setLoading(false);
     });
 
@@ -111,14 +117,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     if (!user) return;
 
-    const userDocRef = doc(db, 'users', user.uid);
-    const unsubscribe = onSnapshot(userDocRef, (docSnapshot) => {
-      if (docSnapshot.exists()) {
-        const userData = docSnapshot.data();
-        // You can use this data for additional user preferences
-      }
-    }, (error) => {
-      });
+    const userDocRef = doc(db, "users", user.uid);
+    const unsubscribe = onSnapshot(
+      userDocRef,
+      (docSnapshot) => {
+        if (docSnapshot.exists()) {
+          const userData = docSnapshot.data();
+          // You can use this data for additional user preferences
+        }
+      },
+      (error) => {}
+    );
 
     return () => unsubscribe();
   }, [user]);
@@ -131,9 +140,5 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   // Debug logging
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

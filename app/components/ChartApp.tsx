@@ -72,8 +72,13 @@ export const ChartApp: React.FC<ChartAppProps> = ({
     isLoading: settingsLoading,
   } = useUserSettings();
   const { user } = useAuth();
-  const { status: subscriptionStatus, isLoading: subscriptionLoading } =
-    useSubscription();
+  const {
+    status: subscriptionStatus,
+    isLoading: subscriptionLoading,
+    trialEndsAt,
+    isPreviewExpired,
+    previewStartTime,
+  } = useSubscription();
   const [currentLayout, setCurrentLayout] = useState<PanelLayout | null>(
     initialLayout || null
   );
@@ -417,7 +422,6 @@ export const ChartApp: React.FC<ChartAppProps> = ({
   }
 
   // Calculate if trial has expired
-  const { trialEndsAt, isPreviewExpired, previewStartTime } = useSubscription();
   const isTrialExpired =
     subscriptionStatus === "trialing" &&
     trialEndsAt &&
