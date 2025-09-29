@@ -43,8 +43,7 @@ async function loadChartsForLayout(
         if (chartConfig) {
           charts.set(chartId, chartConfig);
         }
-      } catch (error) {
-        }
+      } catch (error) {}
     }
   } else if (layoutNode.children && Array.isArray(layoutNode.children)) {
     // Recursively load charts from children
@@ -105,32 +104,33 @@ export const ChartApp: React.FC<ChartAppProps> = ({
   // Keyboard shortcut for AI Chat (Cmd/Ctrl + Shift + A)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'A') {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "A") {
         e.preventDefault();
         handleToggleAIChat();
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   // Single effect to handle all layout initialization logic
   useEffect(() => {
     // Check if user is in anonymous preview mode (no user)
-    const isAnonymousPreview = !user && subscriptionStatus === "none" && !subscriptionLoading;
-    
+    const isAnonymousPreview =
+      !user && subscriptionStatus === "none" && !subscriptionLoading;
+
     // For anonymous preview, immediately use default layout without waiting for repository
     if (isAnonymousPreview && !isInitialized) {
       const defaultLayout = createDefaultLayout();
       setCurrentLayout(defaultLayout);
       setCurrentLayoutId(null);
       // Default: show AI assistant for single-chart layouts
-      setShowAIChat(defaultLayout.type === 'chart');
+      setShowAIChat(defaultLayout.type === "chart");
       setIsInitialized(true);
       return;
     }
-    
+
     const isLoading = repoLoading || layoutsLoading || settingsLoading;
 
     // Don't initialize if still loading or already initialized
@@ -174,7 +174,7 @@ export const ChartApp: React.FC<ChartAppProps> = ({
               setShowAIChat(activeLayout.showAIAssistant);
             } else {
               // Default: show for single-chart layouts, hide for multi-chart
-              setShowAIChat(activeLayout.layout.type === 'chart');
+              setShowAIChat(activeLayout.layout.type === "chart");
             }
 
             setIsInitialized(true);
@@ -203,7 +203,7 @@ export const ChartApp: React.FC<ChartAppProps> = ({
     setCurrentLayout(defaultLayout);
     setCurrentLayoutId(null);
     // Default: show AI assistant for single-chart layouts
-    setShowAIChat(defaultLayout.type === 'chart');
+    setShowAIChat(defaultLayout.type === "chart");
     setIsInitialized(true);
   }, [
     repoLoading,
@@ -236,8 +236,7 @@ export const ChartApp: React.FC<ChartAppProps> = ({
       await updateLayout(currentLayoutId, {
         layout: repositoryLayout,
       });
-    } catch (error) {
-      }
+    } catch (error) {}
   }, [currentLayout, currentLayoutId, repository, updateLayout, user]);
 
   // Handle layout changes from ChartPanel with auto-save
@@ -248,7 +247,7 @@ export const ChartApp: React.FC<ChartAppProps> = ({
       // Clear existing timeout
       if (autoSaveTimeoutRef.current) {
         clearTimeout(autoSaveTimeoutRef.current);
-        }
+      }
 
       // Only auto-save for structural changes (panel resizes, splits) and only for authenticated users
       // Chart data changes are handled by ChartContainer
@@ -257,7 +256,7 @@ export const ChartApp: React.FC<ChartAppProps> = ({
           autoSaveLayout();
         }, 1000); // Auto-save 1 second after resize stops
       } else {
-        }
+      }
     },
     [currentLayoutId, autoSaveLayout, user]
   );
@@ -271,12 +270,11 @@ export const ChartApp: React.FC<ChartAppProps> = ({
     if (currentLayoutId && user) {
       try {
         await updateLayout(currentLayoutId, {
-          showAIAssistant: newState
+          showAIAssistant: newState,
         });
-        } catch (error) {
-        }
+      } catch (error) {}
     } else {
-      }
+    }
   }, [showAIChat, currentLayoutId, user, updateLayout]);
 
   // Handle layout selection from LayoutSelector
@@ -287,19 +285,19 @@ export const ChartApp: React.FC<ChartAppProps> = ({
 
       // If switching to a saved layout, load AI assistant state
       if (layoutId && layouts) {
-        const savedLayout = layouts.find(l => l.id === layoutId);
+        const savedLayout = layouts.find((l) => l.id === layoutId);
         if (savedLayout) {
           // Set AI assistant visibility from saved state or use defaults
           if (savedLayout.showAIAssistant !== undefined) {
             setShowAIChat(savedLayout.showAIAssistant);
           } else {
             // Default: show for single-chart layouts, hide for multi-chart
-            setShowAIChat(savedLayout.layout.type === 'chart');
+            setShowAIChat(savedLayout.layout.type === "chart");
           }
         }
       } else if (!layoutId) {
         // For unsaved layouts, use default based on layout type
-        setShowAIChat(layout.type === 'chart');
+        setShowAIChat(layout.type === "chart");
 
         // Clear active layout
         try {
@@ -322,13 +320,17 @@ export const ChartApp: React.FC<ChartAppProps> = ({
 
   // Detect if iOS
   const isIOS = useCallback(() => {
-    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    return (
+      /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream
+    );
   }, []);
 
   // Detect if running as PWA (standalone mode)
   const isPWA = useCallback(() => {
-    return window.matchMedia('(display-mode: standalone)').matches || 
-           (window.navigator as any).standalone === true;
+    return (
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as any).standalone === true
+    );
   }, []);
 
   // Detect if iPhone specifically (not iPad)
@@ -336,11 +338,25 @@ export const ChartApp: React.FC<ChartAppProps> = ({
     return /iPhone/.test(navigator.userAgent) && !(window as any).MSStream;
   }, []);
 
-  // Detect if mobile device
-  const isMobile = useCallback(() => {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-           window.innerWidth < 768;
+  // Detect if mobile device - using state for reactivity
+  const [isMobileView, setIsMobileView] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile =
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent
+        ) || window.innerWidth < 640; // Match Tailwind's sm breakpoint
+      setIsMobileView(mobile);
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
+
+  // Legacy function for compatibility
+  const isMobile = useCallback(() => isMobileView, [isMobileView]);
 
   if (repoLoading) {
     return (
@@ -411,18 +427,19 @@ export const ChartApp: React.FC<ChartAppProps> = ({
   const hasActiveSubscription =
     subscriptionStatus === "active" ||
     (subscriptionStatus === "trialing" && !isTrialExpired);
-  
+
   // New users (status === 'none') get 5-minute preview access
   const hasPreviewAccess = subscriptionStatus === "none" && !isPreviewExpired;
-  
+
   // Show subscription overlay if no active subscription and preview has expired (or for canceled/expired trials)
-  const shouldShowSubscriptionOverlay = !subscriptionLoading && !hasActiveSubscription && !hasPreviewAccess;
-  
+  const shouldShowSubscriptionOverlay =
+    !subscriptionLoading && !hasActiveSubscription && !hasPreviewAccess;
+
   // Calculate time remaining for preview users
   const getPreviewTimeRemaining = () => {
     if (!previewStartTime || subscriptionStatus !== "none") return null;
     const elapsedMs = Date.now() - previewStartTime;
-    const remainingMs = Math.max(0, (5 * 60 * 1000) - elapsedMs);
+    const remainingMs = Math.max(0, 5 * 60 * 1000 - elapsedMs);
     const minutes = Math.floor(remainingMs / 60000);
     const seconds = Math.floor((remainingMs % 60000) / 1000);
     return { minutes, seconds, remainingMs };
@@ -430,9 +447,11 @@ export const ChartApp: React.FC<ChartAppProps> = ({
 
   return (
     <ActiveChartProvider>
-      <div className={`flex flex-col h-full bg-black overflow-hidden ${className}`}>
-          {/* PWA Header Spacer for iPhone - pushes content below the notch */}
-          {isIPhone() && isPWA() && (
+      <div
+        className={`flex flex-col h-full bg-black overflow-hidden ${className}`}
+      >
+        {/* PWA Header Spacer for iPhone - pushes content below the notch */}
+        {isIPhone() && isPWA() && (
           <div className="flex-shrink-0 h-11 bg-gray-900" />
         )}
 
@@ -452,77 +471,91 @@ export const ChartApp: React.FC<ChartAppProps> = ({
         />
 
         {/* Chart Panel with AI Chat */}
-        <div className={`flex-1 min-h-0 relative bg-black ${isMobile() ? 'pb-5' : ''}`}>
+        <div
+          className={`flex-1 min-h-0 relative bg-black ${
+            isMobileView ? "pb-5" : ""
+          }`}
+        >
+          {/* Mobile: Show either chart or AI chat (full width) */}
+          {/* Desktop: Show chart with optional side panel for AI chat */}
           <PanelGroup direction="horizontal" className="h-full">
-            {/* Main Chart Panel */}
-            <Panel>
-              <ChartPanel
-                layout={currentLayout}
-                layoutId={currentLayoutId || undefined}
-                onLayoutChange={handleLayoutChange}
-                className="h-full"
-                onChartApiReady={setChartApi}
-              />
-            </Panel>
+            {/* Main Chart Panel - Hidden on mobile when AI chat is active */}
+            {(!isMobileView || !showAIChat) && (
+              <Panel>
+                <ChartPanel
+                  layout={currentLayout}
+                  layoutId={currentLayoutId || undefined}
+                  onLayoutChange={handleLayoutChange}
+                  className="h-full"
+                  onChartApiReady={setChartApi}
+                />
+              </Panel>
+            )}
 
-            {/* AI Chat Panel */}
+            {/* Resize handle - Only on desktop when AI chat is open */}
+            {showAIChat && !isMobileView && (
+              <PanelResizeHandle className="w-1 bg-gray-800 hover:bg-gray-700 transition-colors" />
+            )}
+
+            {/* AI Chat Panel - Full width on mobile, side panel on desktop */}
             {showAIChat && (
-              <>
-                <PanelResizeHandle className="w-1 bg-gray-800 hover:bg-gray-700 transition-colors" />
-                <Panel defaultSize={25} minSize={15} maxSize={40}>
-                  <div className="h-full overflow-hidden">
-                    <AIChatPanel
-                      onClose={handleToggleAIChat}
-                      chartApi={chartApi}
-                    />
-                  </div>
-                </Panel>
-              </>
+              <Panel
+                defaultSize={isMobileView ? 100 : 25}
+                minSize={isMobileView ? 100 : 15}
+                maxSize={isMobileView ? 100 : 40}
+              >
+                <div className="h-full overflow-hidden">
+                  <AIChatPanel
+                    onClose={handleToggleAIChat}
+                    chartApi={chartApi}
+                  />
+                </div>
+              </Panel>
             )}
           </PanelGroup>
 
-        {/* Subscription Overlay - dims charts and blocks interaction when no subscription */}
-        {shouldShowSubscriptionOverlay && (
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="text-center p-8 bg-gray-900/90 rounded-lg border border-gray-700 max-w-md">
-              <svg
-                className="w-16 h-16 mx-auto mb-4 text-yellow-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                />
-              </svg>
-              <h2 className="text-xl font-semibold text-white mb-3">
-                Subscription Required
-              </h2>
-              <p className="text-gray-400 mb-6">
-                {subscriptionStatus === "none" && isPreviewExpired
-                  ? "Your 5-minute preview has ended. Subscribe to continue using Spot Canvas with unlimited access."
-                  : subscriptionStatus === "canceled"
-                  ? "Your subscription has been canceled. Please resubscribe to continue using Spot Canvas."
-                  : isTrialExpired
-                  ? "Your trial has ended. Choose a plan to continue using Spot Canvas."
-                  : "To access live charts and trading features, please subscribe to one of our plans."}
-              </p>
-              <a
-                href="/pricing"
-                className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-              >
-                {subscriptionStatus === "none" && isPreviewExpired
-                  ? "Start Free Trial"
-                  : "View Pricing Plans"}
-              </a>
+          {/* Subscription Overlay - dims charts and blocks interaction when no subscription */}
+          {shouldShowSubscriptionOverlay && (
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+              <div className="text-center p-8 bg-gray-900/90 rounded-lg border border-gray-700 max-w-md">
+                <svg
+                  className="w-16 h-16 mx-auto mb-4 text-yellow-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                  />
+                </svg>
+                <h2 className="text-xl font-semibold text-white mb-3">
+                  Subscription Required
+                </h2>
+                <p className="text-gray-400 mb-6">
+                  {subscriptionStatus === "none" && isPreviewExpired
+                    ? "Your 5-minute preview has ended. Subscribe to continue using Spot Canvas with unlimited access."
+                    : subscriptionStatus === "canceled"
+                    ? "Your subscription has been canceled. Please resubscribe to continue using Spot Canvas."
+                    : isTrialExpired
+                    ? "Your trial has ended. Choose a plan to continue using Spot Canvas."
+                    : "To access live charts and trading features, please subscribe to one of our plans."}
+                </p>
+                <a
+                  href="/pricing"
+                  className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                >
+                  {subscriptionStatus === "none" && isPreviewExpired
+                    ? "Start Free Trial"
+                    : "View Pricing Plans"}
+                </a>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
     </ActiveChartProvider>
   );
 };

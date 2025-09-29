@@ -14,6 +14,7 @@ interface LayoutSelectorProps {
   currentLayoutId: string | null;
   onLayoutChange: (layout: PanelLayout, layoutId?: string) => void;
   className?: string;
+  hideLabel?: boolean;
 }
 
 // Helper function to find the first chart in a layout
@@ -91,10 +92,17 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
   currentLayoutId,
   onLayoutChange,
   className = "",
+  hideLabel = false,
 }) => {
   const { layouts, saveLayout, deleteLayout, isLoading } = useLayouts();
   const { setActiveLayout } = useUserSettings();
-  const { status, plan, canAddMoreLayouts, getLayoutLimit, isLoading: subscriptionLoading } = useSubscription();
+  const {
+    status,
+    plan,
+    canAddMoreLayouts,
+    getLayoutLimit,
+    isLoading: subscriptionLoading,
+  } = useSubscription();
   const [modalOpen, setModalOpen] = useState(false);
 
   const handleSaveLayout = async (name: string, presetLayout: PanelLayout) => {
@@ -137,7 +145,7 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
         onLayoutChange(finalLayout, savedLayout.id);
         setModalOpen(false);
       }, 100);
-      
+
       return true; // Success
     } catch (error) {
       // Don't close modal on error so user can retry
@@ -157,8 +165,7 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
     // Set as active layout in user settings
     try {
       await setActiveLayout(savedLayout.id);
-    } catch (error) {
-      }
+    } catch (error) {}
 
     // Small delay to ensure React has time to unmount old components
     setTimeout(() => {
@@ -178,12 +185,32 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
           className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium bg-gray-800 text-gray-300 rounded hover:bg-gray-700 transition-colors border border-gray-700"
           title="Open layout manager"
         >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+          <svg
+            className="w-3.5 h-3.5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"
+            />
           </svg>
-          <span>{activeLayoutName}</span>
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          {!hideLabel && <span>{activeLayoutName}</span>}
+          <svg
+            className="w-3 h-3"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 9l-7 7-7-7"
+            />
           </svg>
         </button>
       </div>
