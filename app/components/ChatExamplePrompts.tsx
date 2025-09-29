@@ -314,6 +314,12 @@ export function ChatExamplePrompts({
   const [expandedCategories, setExpandedCategories] = useState<
     Set<PromptCategory>
   >(() => {
+    // Check if we're on the server
+    if (typeof window === "undefined") {
+      // Default state for SSR - all collapsed
+      return new Set<PromptCategory>();
+    }
+
     // Try to load saved state from localStorage
     const savedState = localStorage.getItem("chatExamplePromptsExpanded");
     if (savedState) {
@@ -325,13 +331,22 @@ export function ChatExamplePrompts({
       }
     }
 
-    // Default state: TrendLines, PatternDetection, and Divergence expanded
-    const defaultExpanded: PromptCategory[] = [
-      "TrendLines",
-      "PatternDetection",
-      "Divergence",
-    ];
-    return new Set<PromptCategory>(defaultExpanded);
+    // Check if mobile (small screen) using matchMedia for more reliable detection
+    const isMobile = window.matchMedia("(max-width: 639px)").matches; // Tailwind's 'sm' breakpoint is 640px
+
+    // Default state:
+    // - Mobile: all collapsed
+    // - Desktop: TrendLines, PatternDetection, and Divergence expanded
+    if (isMobile) {
+      return new Set<PromptCategory>();
+    } else {
+      const defaultExpanded: PromptCategory[] = [
+        "TrendLines",
+        "PatternDetection",
+        "Divergence",
+      ];
+      return new Set<PromptCategory>(defaultExpanded);
+    }
   });
 
   const toggleCategory = (category: PromptCategory) => {
@@ -353,6 +368,36 @@ export function ChatExamplePrompts({
       JSON.stringify(Array.from(expandedCategories))
     );
   }, [expandedCategories]);
+
+  // Handle window resize to adjust accordion states for first-time visitors
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleResize = () => {
+      const savedState = localStorage.getItem("chatExamplePromptsExpanded");
+      // Only adjust if there's no saved state (first time visitor)
+      if (!savedState) {
+        const isMobile = window.matchMedia("(max-width: 639px)").matches;
+
+        if (isMobile) {
+          setExpandedCategories(new Set<PromptCategory>());
+        } else {
+          const defaultExpanded: PromptCategory[] = [
+            "TrendLines",
+            "PatternDetection",
+            "Divergence",
+          ];
+          setExpandedCategories(new Set<PromptCategory>(defaultExpanded));
+        }
+      }
+    };
+
+    // Add resize listener
+    window.addEventListener("resize", handleResize);
+
+    // Cleanup
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Group prompts by category
   const promptsByCategory = Object.keys(categoryConfig).reduce(
