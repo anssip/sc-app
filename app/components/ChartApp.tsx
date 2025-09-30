@@ -480,11 +480,32 @@ export const ChartApp: React.FC<ChartAppProps> = ({
             isMobileView ? "pb-5" : ""
           }`}
         >
-          {/* Mobile: Show either chart or AI chat (full width) */}
+          {/* Mobile: Show chart with overlay chat (both rendered) */}
           {/* Desktop: Show chart with optional side panel for AI chat */}
-          <PanelGroup direction="horizontal" className="h-full">
-            {/* Main Chart Panel - Hidden on mobile when AI chat is active */}
-            {(isMobileView ? !showAIChat : true) && (
+          {isMobileView ? (
+            // Mobile layout: Chart always rendered, chat as overlay
+            <div className="h-full relative">
+              <ChartPanel
+                layout={currentLayout}
+                layoutId={currentLayoutId || undefined}
+                onLayoutChange={handleLayoutChange}
+                className="h-full"
+                onChartApiReady={setChartApi}
+              />
+              {/* AI Chat Overlay on mobile */}
+              {showAIChat && (
+                <div className="absolute inset-0 z-10">
+                  <AIChatPanel
+                    onClose={handleToggleAIChat}
+                    chartApi={chartApi}
+                    isMobileView={true}
+                  />
+                </div>
+              )}
+            </div>
+          ) : (
+            // Desktop layout: Resizable panels
+            <PanelGroup direction="horizontal" className="h-full">
               <Panel>
                 <ChartPanel
                   layout={currentLayout}
@@ -494,29 +515,24 @@ export const ChartApp: React.FC<ChartAppProps> = ({
                   onChartApiReady={setChartApi}
                 />
               </Panel>
-            )}
 
-            {/* Resize handle - Only on desktop when AI chat is open */}
-            {showAIChat && !isMobileView && (
-              <PanelResizeHandle className="w-1 bg-gray-800 hover:bg-gray-700 transition-colors" />
-            )}
-
-            {/* AI Chat Panel - Full width on mobile, side panel on desktop */}
-            {showAIChat && (
-              <Panel
-                defaultSize={isMobileView ? 100 : 25}
-                minSize={isMobileView ? 100 : 15}
-                maxSize={isMobileView ? 100 : 40}
-              >
-                <div className="h-full overflow-hidden">
-                  <AIChatPanel
-                    onClose={handleToggleAIChat}
-                    chartApi={chartApi}
-                  />
-                </div>
-              </Panel>
-            )}
-          </PanelGroup>
+              {/* Resize handle - Only on desktop when AI chat is open */}
+              {showAIChat && (
+                <>
+                  <PanelResizeHandle className="w-1 bg-gray-800 hover:bg-gray-700 transition-colors" />
+                  <Panel defaultSize={25} minSize={15} maxSize={40}>
+                    <div className="h-full overflow-hidden">
+                      <AIChatPanel
+                        onClose={handleToggleAIChat}
+                        chartApi={chartApi}
+                        isMobileView={false}
+                      />
+                    </div>
+                  </Panel>
+                </>
+              )}
+            </PanelGroup>
+          )}
 
           {/* Subscription Overlay - dims charts and blocks interaction when no subscription */}
           {shouldShowSubscriptionOverlay && (

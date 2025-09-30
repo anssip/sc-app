@@ -211,9 +211,11 @@ function preprocessContent(text: string): string {
 export function AIChatPanel({
   onClose,
   chartApi,
+  isMobileView = false,
 }: {
   onClose: () => void;
   chartApi: any; // ChartApi instance
+  isMobileView?: boolean;
 }) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -431,7 +433,11 @@ export function AIChatPanel({
   }, [inputValue]);
 
   return (
-    <div className="h-full max-h-full flex bg-gray-900 text-white overflow-hidden">
+    <div
+      className={`h-full max-h-full flex text-white overflow-hidden ${
+        isMobileView ? "bg-gray-900/10 backdrop-blur-md" : "bg-gray-900"
+      }`}
+    >
       {/* Left Sidebar - Example Prompts */}
       {showPromptsSidebar && messages.length > 0 && (
         <div className="w-64 border-r border-gray-700 flex-shrink-0 overflow-y-auto">
@@ -448,7 +454,11 @@ export function AIChatPanel({
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-gray-700">
+        <div
+          className={`flex-shrink-0 flex items-center justify-between p-4 border-b border-gray-700 ${
+            isMobileView ? "bg-gray-900/10" : ""
+          }`}
+        >
           <div className="flex items-center gap-2">
             <Bot className="w-5 h-5 text-blue-400" />
             {activeChart && (
@@ -627,7 +637,11 @@ export function AIChatPanel({
                   <div
                     className={`max-w-[80%] rounded-lg px-3 py-1 ${
                       message.role === "user"
-                        ? "bg-blue-600 text-gray-100"
+                        ? isMobileView
+                          ? "bg-blue-600/80 text-gray-100"
+                          : "bg-blue-600 text-gray-100"
+                        : isMobileView
+                        ? "bg-gray-800/70 text-gray-200"
                         : "bg-gray-800 text-gray-200"
                     }`}
                   >
@@ -691,7 +705,11 @@ export function AIChatPanel({
         </div>
 
         {/* Input */}
-        <div className="flex-shrink-0 border-t border-gray-700 p-4">
+        <div
+          className={`flex-shrink-0 border-t border-gray-700 p-4 ${
+            isMobileView ? "bg-gray-900/40" : ""
+          }`}
+        >
           <div className="relative">
             <textarea
               ref={inputRef}
@@ -709,7 +727,9 @@ export function AIChatPanel({
               placeholder={
                 user ? "Ask about the chart... (Shift+Enter for new line)" : ""
               }
-              className="w-full bg-gray-800 text-white rounded-lg pl-4 pr-20 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[40px] max-h-[120px] overflow-y-auto"
+              className={`w-full text-white rounded-lg pl-4 pr-20 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[40px] max-h-[120px] overflow-y-auto ${
+                isMobileView ? "bg-gray-800/70" : "bg-gray-800"
+              }`}
               rows={2}
               style={{ height: "auto" }}
               disabled={isLoading || !user}
