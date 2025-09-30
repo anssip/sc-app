@@ -257,8 +257,8 @@ export default function Index() {
           <div className="max-w-7xl mx-auto px-6">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
               <div className="lg:col-span-6">
-                <h1 className="text-5xl lg:text-7xl text-white mb-8 font-primary whitespace-nowrap">
-                  Charts that{" "}
+                <h1 className="text-5xl lg:text-7xl text-white mb-8 font-primary">
+                  Charts that<br />
                   <span className="text-accent-1 relative mt-4">Think.</span>
                 </h1>
                 <p className="text-xl text-gray-200 my-8 leading-relaxed">

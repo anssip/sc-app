@@ -5,7 +5,7 @@ author: "Anssi"
 publishDate: "2025-08-27"
 category: "Product Updates"
 published: true
-featured: true
+featured: false
 ---
 
 We're opening soon. If you wish, you can already now sign up for a free 7-day trial and start kicking the tyres.

@@ -8,6 +8,7 @@ export default function SubscriptionNotification() {
   const { status, plan, trialEndsAt, isLoading, isPreviewExpired, previewStartTime } = useSubscription();
   const [isDismissed, setIsDismissed] = useState(false);
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     if (status === "trialing" && trialEndsAt) {
@@ -18,6 +19,24 @@ export default function SubscriptionNotification() {
       setDaysRemaining(diffDays);
     }
   }, [status, trialEndsAt]);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+    };
+  }, []);
+
+  // Don't show on mobile devices
+  if (isMobile) {
+    return null;
+  }
 
   // Don't show anything while loading
   if (isLoading) {

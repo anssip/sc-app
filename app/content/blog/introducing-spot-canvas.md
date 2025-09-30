@@ -1,14 +1,14 @@
 ---
 title: "Introducing Spot Canvas: AI-Powered Crypto Charting is Here"
 excerpt: "Meet Spot Canvas - the first crypto charting platform with an AI Assistant that understands your charts, performs automated technical analysis, and responds to natural language commands. Professional trading just got intelligent."
-date: "2025-01-19"
+date: "2025-30-01"
 author: "Spot Canvas Team"
 description: "We are excited to announce Spot Canvas - the industry's first AI-powered cryptocurrency charting platform. Control charts with natural language, get automated support/resistance detection, and receive professional analysis from our GPT-5 powered assistant."
 tags:
   ["announcement", "product launch", "crypto", "charting", "technical analysis"]
 featured: true
 category: "Product Updates"
-published: false
+published: true
 ---
 
 <img src="/icon-logo-accent-1.svg" alt="Spot Canvas Logo" style="width: 70%; height: auto;" class="mb-8" />

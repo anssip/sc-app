@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ChartPanel } from "./ChartPanel";
 import { AppToolbar } from "./AppToolbar";
-import PWAInstallBanner from "./PWAInstallBanner";
 import { AIChatPanel } from "./AIChatPanel";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import {
@@ -458,9 +457,6 @@ export const ChartApp: React.FC<ChartAppProps> = ({
         {isIPhone() && isPWA() && (
           <div className="flex-shrink-0 h-11 bg-gray-900" />
         )}
-
-        {/* PWA Install Banner - shows only once for mobile users */}
-        <PWAInstallBanner />
         <AppToolbar
           repository={repository}
           currentLayout={currentLayout}
