@@ -61,6 +61,7 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pendingSettingsRef = useRef<ChartSettings | null>(null);
 
+  // Memoize the settings change handler to prevent recreation on every render
   const handleSettingsChange = useCallback(
     async (settings: ChartSettings, chartId?: string) => {
       // Clear existing timeout
@@ -122,8 +123,7 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
               throw updateError;
             }
           }
-        } catch (error) {
-        }
+        } catch (error) {}
       }, 500); // Wait 500ms before persisting
     },
     [config, onConfigUpdate, chartsLoading, updateChart, saveChart, layoutId]
@@ -147,6 +147,7 @@ export const ChartContainer: React.FC<ChartContainerProps> = ({
     }
   }, [chartsLoading, config.id, handleSettingsChange]);
 
+  // Memoize initial settings to prevent recreation on every render
   const initialSettings = useMemo(() => {
     // Don't process indicators while still loading - wait for them to be available
     if (indicatorsLoading || availableIndicators.length === 0) {
@@ -283,8 +284,7 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
           config.id
         );
         // Log detailed structure of each loaded trend line
-        loadedTrendLines.forEach((line, index) => {
-          });
+        loadedTrendLines.forEach((line, index) => {});
 
         setTrendLines(loadedTrendLines);
         setTrendLinesLoaded(true);
@@ -295,14 +295,13 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
           loadedTrendLines.forEach((trendLine) => {
             try {
               const result = api.addTrendLine?.(trendLine);
-              } catch (error) {
-              }
+            } catch (error) {}
           });
 
           // Verify trend lines were added
           setTimeout(() => {
             const currentTrendLines = api.getTrendLines?.();
-            }, 500);
+          }, 500);
         }
       } catch (error) {
         setTrendLinesLoaded(true); // Mark as loaded even on error to prevent infinite retries
@@ -326,15 +325,15 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
   // Dummy handlers for split functionality (to be implemented later)
   const handleSplitHorizontal = () => {
     // TODO: Implement split functionality
-    };
+  };
 
   const handleSplitVertical = () => {
     // TODO: Implement split functionality
-    };
+  };
 
   const handleAddChart = () => {
     // TODO: Implement add chart functionality
-    };
+  };
 
   // Detect if iOS
   const isIOS = useMemo(() => {
@@ -563,7 +562,7 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
     };
   }, [config.id]);
 
-  // Handle click to activate chart
+  // Handle click to activate chart - memoized to prevent recreation
   const handleChartActivation = useCallback(
     (e: React.MouseEvent) => {
       // Activate chart when clicking anywhere on it (if inactive)
@@ -574,6 +573,36 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
       }
     },
     [isActive, config.id, setActiveChart]
+  );
+
+  // Memoize the onApiReady handler to prevent SCChart re-renders
+  const handleApiReady = useCallback(
+    (api: any) => {
+      // Register the SCChart ref (which has wrapper methods) with the ActiveChartContext
+      // We need to wait a tick for the ref to be fully set up
+      setTimeout(() => {
+        if (chartRef.current) {
+          registerChartApi(
+            config.id,
+            chartRef.current,
+            settings.symbol,
+            settings.granularity
+          );
+        }
+      }, 0);
+
+      // Also call the original onApiReady if provided
+      if (onApiReady) {
+        onApiReady(api);
+      }
+    },
+    [
+      config.id,
+      settings.symbol,
+      settings.granularity,
+      registerChartApi,
+      onApiReady,
+    ]
   );
 
   return (
@@ -660,25 +689,7 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
             initialState={initialState}
             style={{ width: "100%", height: "100%" }}
             className="trading-chart"
-            onApiReady={(api) => {
-              // Register the SCChart ref (which has wrapper methods) with the ActiveChartContext
-              // We need to wait a tick for the ref to be fully set up
-              setTimeout(() => {
-                if (chartRef.current) {
-                  registerChartApi(
-                    config.id,
-                    chartRef.current,  // Pass the ref instead of raw API
-                    settings.symbol,
-                    settings.granularity
-                  );
-                }
-              }, 0);
-
-              // Also call the original onApiReady if provided
-              if (onApiReady) {
-                onApiReady(api);
-              }
-            }}
+            onApiReady={handleApiReady}
             chartId={config.id}
             onReady={() => {
               // Set up trend line event listeners when chart is ready
@@ -706,19 +717,18 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
                         try {
                           const { id, ...trendLineWithoutId } = trendLine;
                           const newId = api.addTrendLine(trendLineWithoutId);
-                          } catch (error2) {
-                          }
+                        } catch (error2) {}
                       }
                     });
 
                     // Verify trend lines were added
                     setTimeout(() => {
                       const currentTrendLines = api.getTrendLines?.();
-                      }, 1000);
+                    }, 1000);
                   } else {
-                    }
-                } else {
                   }
+                } else {
+                }
 
                 // Set up trend line selection event listeners
                 if (api.on) {
@@ -791,8 +801,7 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
                               };
                             }
                           }
-                        } catch (e) {
-                          }
+                        } catch (e) {}
 
                         // Safely extract endPoint
                         try {
@@ -816,8 +825,7 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
                               };
                             }
                           }
-                        } catch (e) {
-                          }
+                        } catch (e) {}
 
                         // Safely extract style (line style like solid/dashed/dotted)
                         try {
@@ -850,24 +858,21 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
                               right: Boolean(line.extend.right),
                             };
                           }
-                        } catch (e) {
-                          }
+                        } catch (e) {}
 
                         // Safely extract text
                         try {
                           if (line.text !== undefined && line.text !== null) {
                             cleanLine.text = String(line.text);
                           }
-                        } catch (e) {
-                          }
+                        } catch (e) {}
 
                         // Safely extract name
                         try {
                           if (line.name !== undefined && line.name !== null) {
                             cleanLine.name = String(line.name);
                           }
-                        } catch (e) {
-                          }
+                        } catch (e) {}
 
                         // Safely extract description
                         try {
@@ -877,8 +882,7 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
                           ) {
                             cleanLine.description = String(line.description);
                           }
-                        } catch (e) {
-                          }
+                        } catch (e) {}
 
                         // Safely extract color (separate from style)
                         try {
@@ -887,8 +891,7 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
                           } else if (line.style?.color) {
                             cleanLine.color = String(line.style.color);
                           }
-                        } catch (e) {
-                          }
+                        } catch (e) {}
 
                         // Safely extract lineWidth (separate from style)
                         try {
@@ -900,8 +903,7 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
                           } else if (line.style?.width !== undefined) {
                             cleanLine.lineWidth = Number(line.style.width);
                           }
-                        } catch (e) {
-                          }
+                        } catch (e) {}
 
                         // Safely extract extendLeft and extendRight (from extend or direct properties)
                         try {
@@ -910,8 +912,7 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
                           } else if (line.extend?.left !== undefined) {
                             cleanLine.extendLeft = Boolean(line.extend.left);
                           }
-                        } catch (e) {
-                          }
+                        } catch (e) {}
 
                         try {
                           if (line.extendRight !== undefined) {
@@ -919,12 +920,10 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
                           } else if (line.extend?.right !== undefined) {
                             cleanLine.extendRight = Boolean(line.extend.right);
                           }
-                        } catch (e) {
-                          }
+                        } catch (e) {}
 
                         currentTrendLines.push(cleanLine);
-                      } catch (lineError) {
-                        }
+                      } catch (lineError) {}
                     }
 
                     // Check if trend lines have changed
@@ -965,9 +964,8 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
                       }
 
                       previousTrendLines = [...currentTrendLines];
-                      }
-                  } catch (error) {
                     }
+                  } catch (error) {}
                 };
 
                 // Check for changes every 2 seconds
@@ -993,8 +991,7 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
                       previousTrendLines = previousTrendLines.filter(
                         (line) => line.id !== event.trendLineId
                       );
-                    } catch (error) {
-                      }
+                    } catch (error) {}
                   }
                 });
 

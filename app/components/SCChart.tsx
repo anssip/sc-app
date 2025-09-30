@@ -42,7 +42,8 @@ export interface SCChartRef {
   deactivateTrendLineTool: () => void;
 }
 
-export const SCChart = forwardRef<SCChartRef, SCChartProps>(
+// Memoized chart component to prevent unnecessary re-renders during parent updates
+const SCChartInner = forwardRef<SCChartRef, SCChartProps>(
   (
     {
       firestore,
@@ -275,7 +276,7 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
       []
     );
 
-    // Function to set up event handlers
+    // Function to set up event handlers - memoized with stable dependencies
     const setupEventHandlers = useCallback(
       (api: any, currentInitialState: any) => {
         if (!api.on) return;
@@ -299,18 +300,19 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
           }
 
           // Update context when chart symbol changes internally, but only if different
-          if (
+          // Use batched updates to prevent multiple re-renders
+          const symbolChanged =
             event.newSymbol &&
-            event.newSymbol !== chartSettings.settings.symbol
-          ) {
+            event.newSymbol !== chartSettings.settings.symbol;
+          const granularityChanged =
+            event.newGranularity &&
+            event.newGranularity !== chartSettings.settings.granularity;
+
+          if (symbolChanged) {
             chartSettings.setSymbol(event.newSymbol, uniqueChartId.current);
           }
 
-          // Also check for granularity changes in the same event, but only if different
-          if (
-            event.newGranularity &&
-            event.newGranularity !== chartSettings.settings.granularity
-          ) {
+          if (granularityChanged) {
             chartSettings.setGranularity(
               event.newGranularity,
               uniqueChartId.current
@@ -322,6 +324,14 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
         indicatorChangeHandlerRef.current = (event: any) => {
           // Only handle changes after initial setup is complete
           if (!isInitializedRef.current) {
+            return;
+          }
+
+          // Prevent updates during panning/zooming - only handle explicit indicator changes
+          if (
+            !event ||
+            (!event.action && !event.indicatorId && !event.indicator)
+          ) {
             return;
           }
 
@@ -426,10 +436,10 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
         api.on("symbolChange", symbolChangeHandlerRef.current);
         api.on("indicatorChange", indicatorChangeHandlerRef.current);
       },
-      [onReady, chartId]
+      [onReady, chartId, chartSettings]
     );
 
-    // Function to reinitialize the chart with new parameters
+    // Function to reinitialize the chart with new parameters - memoized
     const reinitializeChart = useCallback(
       async (newSymbol: string, newGranularity: string) => {
         try {
@@ -537,7 +547,7 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
           );
         }
       },
-      [firebaseConfig, setupEventHandlers]
+      [firebaseConfig, setupEventHandlers, onApiReady]
     );
 
     useEffect(() => {
@@ -801,4 +811,24 @@ export const SCChart = forwardRef<SCChartRef, SCChartProps>(
   }
 );
 
-SCChart.displayName = "SCChart";
+SCChartInner.displayName = "SCChartInner";
+
+// Export memoized version with custom comparison
+export const SCChart = React.memo(SCChartInner, (prevProps, nextProps) => {
+  // Only re-render if these specific props change
+  // Ignore callback reference changes as they're memoized in parent
+  return (
+    prevProps.firestore === nextProps.firestore &&
+    prevProps.className === nextProps.className &&
+    JSON.stringify(prevProps.style) === JSON.stringify(nextProps.style) &&
+    prevProps.chartId === nextProps.chartId &&
+    // Deep compare initial state to prevent re-renders from reference changes
+    prevProps.initialState?.symbol === nextProps.initialState?.symbol &&
+    prevProps.initialState?.granularity ===
+      nextProps.initialState?.granularity &&
+    JSON.stringify(prevProps.initialState?.indicators) ===
+      JSON.stringify(nextProps.initialState?.indicators) &&
+    JSON.stringify(prevProps.initialState?.trendLines) ===
+      JSON.stringify(nextProps.initialState?.trendLines)
+  );
+});
