@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { Link, useLocation } from "@remix-run/react";
 import { User, ChevronDown, Crown, Zap } from "lucide-react";
 import { useAuth } from "~/lib/auth-context";
@@ -13,24 +13,9 @@ export default function AccountMenu() {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
 
   // Check if we're on the chart page
   const isOnChartPage = location.pathname === "/chart";
-
-  // Close menu when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
 
   const handleSignOut = async () => {
     try {
@@ -41,7 +26,7 @@ export default function AccountMenu() {
 
   return (
     <>
-      <div className="relative" ref={menuRef}>
+      <div className="relative">
         {/* Menu trigger */}
         <button
           onClick={() => setIsOpen(!isOpen)}
@@ -162,7 +147,6 @@ export default function AccountMenu() {
                     to="/signin"
                     variant="secondary"
                     fullWidth
-                    onClick={() => setIsOpen(false)}
                   >
                     Sign In
                   </Button>
@@ -171,7 +155,6 @@ export default function AccountMenu() {
                     to="/signup"
                     variant="primary"
                     fullWidth
-                    onClick={() => setIsOpen(false)}
                   >
                     Create Account
                   </Button>
@@ -279,7 +262,6 @@ export default function AccountMenu() {
                   to="/signin"
                   variant="secondary"
                   fullWidth
-                  onClick={() => setIsOpen(false)}
                 >
                   Sign In
                 </Button>
@@ -288,7 +270,6 @@ export default function AccountMenu() {
                   to="/signup"
                   variant="primary"
                   fullWidth
-                  onClick={() => setIsOpen(false)}
                 >
                   Create Account
                 </Button>
