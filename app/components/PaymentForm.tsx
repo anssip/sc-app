@@ -1,81 +1,95 @@
-import { useState, FormEvent } from 'react'
-import { useStripe, useElements, PaymentElement } from '@stripe/react-stripe-js'
-import { useNavigate } from '@remix-run/react'
-import Button from './Button'
-import { getAuth } from 'firebase/auth'
+import { useState, FormEvent } from "react";
+import {
+  useStripe,
+  useElements,
+  PaymentElement,
+} from "@stripe/react-stripe-js";
+import { useNavigate } from "@remix-run/react";
+import Button from "./Button";
+import { getAuth } from "firebase/auth";
+import { customerIO } from "~/lib/customerio";
 
 interface PaymentFormProps {
-  priceId: string
-  selectedPlan: string
-  onSuccess?: () => void
+  priceId: string;
+  selectedPlan: string;
+  onSuccess?: () => void;
 }
 
-export default function PaymentForm({ priceId, selectedPlan, onSuccess }: PaymentFormProps) {
-  const stripe = useStripe()
-  const elements = useElements()
-  const navigate = useNavigate()
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [processingMessage, setProcessingMessage] = useState<string>('')
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+export default function PaymentForm({
+  priceId,
+  selectedPlan,
+  onSuccess,
+}: PaymentFormProps) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const navigate = useNavigate();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingMessage, setProcessingMessage] = useState<string>("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSubmit = async (event: FormEvent) => {
-    event.preventDefault()
+    event.preventDefault();
 
     if (!stripe || !elements) {
-      return
+      return;
     }
 
-    setIsProcessing(true)
-    setErrorMessage(null)
-    setProcessingMessage('Processing payment...')
+    setIsProcessing(true);
+    setErrorMessage(null);
+    setProcessingMessage("Processing payment...");
 
     try {
       // Submit form to Stripe
-      const { error: submitError } = await elements.submit()
+      const { error: submitError } = await elements.submit();
       if (submitError) {
-        setErrorMessage(submitError.message || 'Failed to submit payment details')
-        setIsProcessing(false)
-        return
+        setErrorMessage(
+          submitError.message || "Failed to submit payment details"
+        );
+        setIsProcessing(false);
+        return;
       }
 
       // Get the Firebase auth token
-      const auth = getAuth()
-      const user = auth.currentUser
+      const auth = getAuth();
+      const user = auth.currentUser;
       if (!user) {
-        setErrorMessage('You must be logged in to subscribe')
-        setIsProcessing(false)
-        return
+        setErrorMessage("You must be logged in to subscribe");
+        setIsProcessing(false);
+        return;
       }
 
-      const idToken = await user.getIdToken()
+      const idToken = await user.getIdToken();
 
       // Step 1: Create subscription with our backend API
       // The backend will create a SetupIntent or PaymentIntent for 3D Secure
-      const response = await fetch('https://billing-server-346028322665.europe-west1.run.app/api/subscriptions/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({
-          price_id: priceId,
-        }),
-      })
+      const response = await fetch(
+        "https://billing-server-346028322665.europe-west1.run.app/api/subscriptions/signup",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({
+            price_id: priceId,
+          }),
+        }
+      );
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create subscription')
+        throw new Error(data.error || "Failed to create subscription");
       }
 
       // Step 2: Confirm the payment with Stripe
       // This will handle 3D Secure authentication if required
-      const { client_secret, type } = data
+      const { client_secret, type } = data;
 
-      setProcessingMessage('Authenticating payment...')
+      setProcessingMessage("Authenticating payment...");
 
-      let result
-      if (type === 'setup_intent') {
+      let result;
+      if (type === "setup_intent") {
         // For subscriptions with trial or $0 first payment
         result = await stripe.confirmSetup({
           elements,
@@ -83,8 +97,8 @@ export default function PaymentForm({ priceId, selectedPlan, onSuccess }: Paymen
           confirmParams: {
             return_url: `${window.location.origin}/thank-you`,
           },
-          redirect: 'if_required',
-        })
+          redirect: "if_required",
+        });
       } else {
         // For immediate payment
         result = await stripe.confirmPayment({
@@ -93,67 +107,82 @@ export default function PaymentForm({ priceId, selectedPlan, onSuccess }: Paymen
           confirmParams: {
             return_url: `${window.location.origin}/thank-you`,
           },
-          redirect: 'if_required',
-        })
+          redirect: "if_required",
+        });
       }
 
       if (result.error) {
         // Show error to customer (e.g., insufficient funds, 3D Secure authentication failed)
-        throw new Error(result.error.message || 'Payment confirmation failed')
+        throw new Error(result.error.message || "Payment confirmation failed");
       }
 
       // Step 3: Confirm subscription activation with backend
-      setProcessingMessage('Activating subscription...')
-      
-      const confirmResponse = await fetch('https://billing-server-346028322665.europe-west1.run.app/api/subscriptions/confirm', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({
-          subscription_id: data.subscription_id,
-          payment_intent_id: result.paymentIntent?.id,
-          setup_intent_id: result.setupIntent?.id,
-        }),
-      })
+      setProcessingMessage("Activating subscription...");
 
-      const confirmData = await confirmResponse.json()
+      const confirmResponse = await fetch(
+        "https://billing-server-346028322665.europe-west1.run.app/api/subscriptions/confirm",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({
+            subscription_id: data.subscription_id,
+            payment_intent_id: result.paymentIntent?.id,
+            setup_intent_id: result.setupIntent?.id,
+          }),
+        }
+      );
+
+      const confirmData = await confirmResponse.json();
 
       if (!confirmResponse.ok) {
-        throw new Error(confirmData.error || 'Failed to confirm subscription')
+        throw new Error(confirmData.error || "Failed to confirm subscription");
       }
+
+      // Track subscription in Customer.io
+      await customerIO.trackSubscriptionStarted(user.uid, {
+        plan: selectedPlan,
+        price_id: priceId,
+        subscription_id: data.subscription_id,
+      });
 
       // Success! Redirect to thank you page
       if (onSuccess) {
-        onSuccess()
+        onSuccess();
       } else {
-        navigate('/thank-you')
+        navigate("/thank-you");
       }
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'An unexpected error occurred')
+      setErrorMessage(
+        error instanceof Error ? error.message : "An unexpected error occurred"
+      );
     } finally {
-      setIsProcessing(false)
-      setProcessingMessage('')
+      setIsProcessing(false);
+      setProcessingMessage("");
     }
-  }
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="bg-black/40 rounded-lg p-6 border border-gray-800">
-        <h3 className="text-lg font-semibold text-white mb-4">Payment Details</h3>
+        <h3 className="text-lg font-semibold text-white mb-4">
+          Payment Details
+        </h3>
         <p className="text-gray-400 text-sm mb-6">
-          Start your 7-day free trial of the {selectedPlan} plan. You won't be charged until the trial ends.
+          Start your 7-day free trial of the {selectedPlan} plan. You won't be
+          charged until the trial ends.
         </p>
-        
-        <PaymentElement 
+
+        <PaymentElement
           options={{
-            layout: 'tabs',
+            layout: "tabs",
             defaultValues: {
               billingDetails: {
                 // Pre-fill if you have user data
-              }
-            }
+              },
+            },
           }}
         />
       </div>
@@ -167,7 +196,7 @@ export default function PaymentForm({ priceId, selectedPlan, onSuccess }: Paymen
       <div className="flex gap-4">
         <Button
           type="button"
-          onClick={() => navigate('/pricing')}
+          onClick={() => navigate("/pricing")}
           variant="secondary"
           fullWidth
           disabled={isProcessing}
@@ -180,13 +209,17 @@ export default function PaymentForm({ priceId, selectedPlan, onSuccess }: Paymen
           fullWidth
           disabled={!stripe || isProcessing}
         >
-          {isProcessing ? (processingMessage || 'Processing...') : 'Start Free Trial'}
+          {isProcessing
+            ? processingMessage || "Processing..."
+            : "Start Free Trial"}
         </Button>
       </div>
 
       <p className="text-gray-500 text-xs text-center">
-        By confirming your subscription, you allow Spot Canvas to charge your payment method for this subscription and future renewals on a recurring basis.
+        By confirming your subscription, you allow Spot Canvas to charge your
+        payment method for this subscription and future renewals on a recurring
+        basis.
       </p>
     </form>
-  )
+  );
 }
