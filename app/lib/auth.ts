@@ -1,10 +1,11 @@
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  signOut, 
-  User, 
-  GoogleAuthProvider, 
-  signInWithPopup,
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  User,
+  GoogleAuthProvider,
+  signInWithRedirect,
+  getRedirectResult,
   sendEmailVerification,
   reload
 } from 'firebase/auth';
@@ -42,11 +43,25 @@ export const signIn = async ({ email, password }: SignInData): Promise<User> => 
   }
 };
 
-export const signInWithGoogle = async (): Promise<User> => {
+export const signInWithGoogle = async (): Promise<void> => {
   try {
     const provider = new GoogleAuthProvider();
-    const userCredential = await signInWithPopup(auth, provider);
-    return userCredential.user;
+    // Use redirect flow for all devices (more reliable, works everywhere)
+    await signInWithRedirect(auth, provider);
+    // User will be redirected to Google, then back to our app
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Handle redirect result after Google sign-in
+export const handleGoogleRedirectResult = async (): Promise<User | null> => {
+  try {
+    const result = await getRedirectResult(auth);
+    if (result?.user) {
+      return result.user;
+    }
+    return null;
   } catch (error) {
     throw error;
   }

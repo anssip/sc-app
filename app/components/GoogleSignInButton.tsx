@@ -7,20 +7,19 @@ interface GoogleSignInButtonProps {
   className?: string;
 }
 
-export default function GoogleSignInButton({ 
-  onSignIn, 
-  onError, 
+export default function GoogleSignInButton({
+  onSignIn,
+  onError,
   disabled = false,
   className = ""
 }: GoogleSignInButtonProps) {
   const handleGoogleSignIn = async () => {
     try {
       await signInWithGoogle();
-      onSignIn?.();
+      // User will be redirected to Google, then back to our app
+      // onSignIn callback will be handled after redirect via handleGoogleRedirectResult
     } catch (error: any) {
-      const errorMessage = error.code === 'auth/popup-closed-by-user' 
-        ? 'Sign-in cancelled' 
-        : error.message || 'Failed to sign in with Google';
+      const errorMessage = error.message || 'Failed to sign in with Google';
       onError?.(errorMessage);
     }
   };

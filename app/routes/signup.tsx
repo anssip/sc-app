@@ -2,7 +2,7 @@ import type { MetaFunction } from "@remix-run/node";
 import { useNavigate, useSearchParams } from "@remix-run/react";
 import React, { useState, useEffect } from "react";
 import { getAuth } from "firebase/auth";
-import { signUp, signInWithGoogle, getErrorMessage, saveUserPreferences } from "~/lib/auth";
+import { signUp, signInWithGoogle, getErrorMessage, saveUserPreferences, handleGoogleRedirectResult } from "~/lib/auth";
 import { useAuth } from "~/lib/auth-context";
 import Button from "~/components/Button";
 import Navigation from "~/components/Navigation";
@@ -33,6 +33,41 @@ export default function SignUp() {
   // Check if user came from pricing/payment flow
   const fromPricing = searchParams.get('from') === 'pricing';
   const redirectTo = searchParams.get('redirect') || '/';
+
+  // Handle Google redirect result after returning from Google authentication
+  useEffect(() => {
+    const handleRedirect = async () => {
+      try {
+        const redirectUser = await handleGoogleRedirectResult();
+        if (redirectUser) {
+          console.log("Google redirect sign-in successful for user:", redirectUser.uid);
+
+          // Save user preferences after successful Google sign-in via redirect
+          try {
+            // Get marketing consent from localStorage if it was saved before redirect
+            const savedConsent = localStorage.getItem('pendingMarketingConsent');
+            const marketingConsent = savedConsent === 'true';
+
+            await saveUserPreferences(redirectUser.uid, redirectUser.email || '', marketingConsent);
+            console.log("User preferences saved after Google redirect sign-in - Customer.io will be synced automatically via Cloud Function");
+
+            // Clean up localStorage
+            localStorage.removeItem('pendingMarketingConsent');
+          } catch (error) {
+            console.error("Failed to save user preferences after redirect:", error);
+          }
+
+          // Redirect to verify-email page
+          navigate(`/verify-email?email=${encodeURIComponent(redirectUser.email || '')}&marketing=${marketingConsent}`);
+        }
+      } catch (error: any) {
+        console.error("Error handling Google redirect:", error);
+        setError(getErrorMessage(error));
+      }
+    };
+
+    handleRedirect();
+  }, []);
 
   // Don't auto-redirect on signup - we want to show verify-email page
   // Only redirect if user is already signed in when they visit this page
@@ -105,31 +140,23 @@ export default function SignUp() {
       setError("Please accept the Terms of Service and Privacy Policy to continue.");
       return;
     }
-    
+
     // Clear any previous errors
     setError(null);
-    
+
     try {
+      // Save marketing consent to localStorage before redirect
+      localStorage.setItem('pendingMarketingConsent', formData.marketingConsent.toString());
+
+      // Initiate Google sign-in redirect (works for all devices)
       await signInWithGoogle();
-      
-      // Save user preferences after successful Google sign-in
-      const auth = getAuth();
-      const user = auth.currentUser;
-      if (user) {
-        try {
-          await saveUserPreferences(user.uid, user.email || '', formData.marketingConsent);
-          console.log("User preferences saved after Google sign-in - Customer.io will be synced automatically via Cloud Function");
-        } catch (error) {
-          console.error("Failed to save user preferences:", error);
-        }
-        // Redirect to verify-email page (Google users may already be verified)
-        navigate(`/verify-email?email=${encodeURIComponent(user.email || '')}&marketing=${formData.marketingConsent}`);
-      }
+      // User will be redirected to Google, then back to this page
     } catch (error: any) {
-      const errorMessage = error.code === 'auth/popup-closed-by-user' 
-        ? 'Sign-in cancelled' 
-        : error.message || 'Failed to sign in with Google';
+      const errorMessage = error.message || 'Failed to sign in with Google';
       setError(errorMessage);
+
+      // Clean up localStorage on error
+      localStorage.removeItem('pendingMarketingConsent');
     }
   };
 
