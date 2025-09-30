@@ -15,6 +15,7 @@
     "test:firestore:noauth": "bun run scripts/test-firestore-noauth.ts",
     "deploy": "NODE_ENV=production bash scripts/prepare-functions.sh && NODE_ENV=production firebase deploy",
     "deploy:hosting": "NODE_ENV=production bun run build && NODE_ENV=production firebase deploy --only hosting",
+    "prep-functions": "NODE_ENV=production bash scripts/prepare-functions.sh",
     "deploy:functions": "NODE_ENV=production bash scripts/prepare-functions.sh && NODE_ENV=production firebase deploy --only functions",
     "firebase:emulators": "firebase emulators:start --only functions,firestore",
     "firebase:emulators:all": "firebase emulators:start",

@@ -42,3 +42,6 @@ export { mcpServer } from "./dist/mcp-server.js";
 
 // Export scheduled functions for usage billing
 export { processUsageBilling, triggerUsageBilling } from "./dist/scheduled-usage-billing.js";
+
+// Export Customer.io sync functions
+export { syncUserToCustomerIO, syncSubscriptionToCustomerIO } from "./dist/customerio-sync.js";

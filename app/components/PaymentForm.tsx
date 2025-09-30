@@ -7,7 +7,6 @@ import {
 import { useNavigate } from "@remix-run/react";
 import Button from "./Button";
 import { getAuth } from "firebase/auth";
-import { customerIO } from "~/lib/customerio";
 
 interface PaymentFormProps {
   priceId: string;
@@ -141,12 +140,8 @@ export default function PaymentForm({
         throw new Error(confirmData.error || "Failed to confirm subscription");
       }
 
-      // Track subscription in Customer.io
-      await customerIO.trackSubscriptionStarted(user.uid, {
-        plan: selectedPlan,
-        price_id: priceId,
-        subscription_id: data.subscription_id,
-      });
+      // Subscription tracking now handled automatically via Cloud Function
+      // when subscription data is written to Firestore
 
       // Success! Redirect to thank you page
       if (onSuccess) {

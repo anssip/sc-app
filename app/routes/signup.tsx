@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import { getAuth } from "firebase/auth";
 import { signUp, signInWithGoogle, getErrorMessage, saveUserPreferences } from "~/lib/auth";
 import { useAuth } from "~/lib/auth-context";
-import { customerIO } from "~/lib/customerio";
 import Button from "~/components/Button";
 import Navigation from "~/components/Navigation";
 
@@ -77,30 +76,7 @@ export default function SignUp() {
       // Store user preferences in Firestore
       try {
         await saveUserPreferences(newUser.uid, formData.email, formData.marketingConsent);
-        console.log("User preferences saved");
-        
-        // Send identity to Customer.io if marketing consent is given
-        if (formData.marketingConsent) {
-          try {
-            await customerIO.identify({
-              userId: newUser.uid,
-              email: formData.email,
-              marketingConsent: true,
-              emailVerified: false,
-              createdAt: Math.floor(Date.now() / 1000),
-            });
-            await customerIO.track('user_signed_up', {
-              email: formData.email,
-              marketing_consent: true,
-              signup_method: 'email',
-              email_verified: false,
-            });
-            console.log("User identified in Customer.io with marketing consent");
-          } catch (cioError) {
-            console.error("Failed to identify user in Customer.io:", cioError);
-            // Don't block signup if Customer.io fails
-          }
-        }
+        console.log("User preferences saved - Customer.io will be synced automatically via Cloud Function");
       } catch (prefError) {
         console.error("Failed to save user preferences:", prefError);
         // Continue anyway - don't block the user
@@ -142,29 +118,7 @@ export default function SignUp() {
       if (user) {
         try {
           await saveUserPreferences(user.uid, user.email || '', formData.marketingConsent);
-          console.log("User preferences saved after Google sign-in");
-          
-          // Send identity to Customer.io if marketing consent is given
-          if (formData.marketingConsent) {
-            try {
-              await customerIO.identify({
-                userId: user.uid,
-                email: user.email || '',
-                marketingConsent: true,
-                emailVerified: user.emailVerified, // Google users might be pre-verified
-                createdAt: Math.floor(Date.now() / 1000),
-              });
-              await customerIO.track('user_signed_up', {
-                email: user.email || '',
-                marketing_consent: true,
-                signup_method: 'google',
-                email_verified: user.emailVerified,
-              });
-              console.log("User identified in Customer.io with marketing consent (Google)");
-            } catch (cioError) {
-              console.error("Failed to identify user in Customer.io:", cioError);
-            }
-          }
+          console.log("User preferences saved after Google sign-in - Customer.io will be synced automatically via Cloud Function");
         } catch (error) {
           console.error("Failed to save user preferences:", error);
         }

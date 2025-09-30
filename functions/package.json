@@ -7,11 +7,13 @@
     "build:remix": "echo 'Build files copied'",
     "clean": "rm -rf dist",
     "build": "bun run clean && bun run tsc",
+    "build:ts": "rm -rf dist && bun run tsc",
     "watch": "bun run tsc --watch",
     "serve": "bun run build && firebase emulators:start --only functions",
     "shell": "firebase functions:shell",
     "start": "npm run shell",
     "deploy": "bun run build && firebase deploy --only functions",
+    "deploy:customerio": "bun run build:ts && firebase deploy --only functions:syncUserToCustomerIO,functions:syncSubscriptionToCustomerIO",
     "logs": "firebase functions:log"
   },
   "engines": {
@@ -20,6 +22,7 @@
   "main": "index.js",
   "dependencies": {
     "@anssip/rs-charts": "file:./rs-charts",
+    "@customerio/cdp-analytics-node": "^0.3.5",
     "@headlessui/react": "^2.2.4",
     "@remix-run/express": "^2.16.8",
     "@remix-run/node": "^2.16.8",

@@ -87,58 +87,36 @@ export default function App() {
 
   useEffect(() => {
     initGA();
-    
-    // Initialize Customer.io
-    if (typeof window !== 'undefined') {
-      (window as any)._cio = (window as any)._cio || [];
-      const siteId = import.meta.env?.VITE_CUSTOMER_IO_SITE_ID || '4d9f36e34ddeda617136';
 
-      if (siteId && !document.getElementById('cio-tracker')) {
-        // Configure cookie settings for proper domain handling
-        (window as any)._cio.push(['config', {
-          cookie_domain: window.location.hostname, // Use current hostname
-          region: 'eu' // Specify EU region
-        }]);
+    // Register service worker for offline support and caching
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then((registration) => {
+          console.log('Service Worker registered with scope:', registration.scope);
 
-        const script = document.createElement('script');
-        script.async = true;
-        script.id = 'cio-tracker';
-        script.setAttribute('data-site-id', siteId);
-        script.setAttribute('data-region', 'eu'); // Add EU region attribute
-        script.src = 'https://assets.customer.io/assets/track-eu.js';
-        document.body.appendChild(script);
-      }
-      
-      // Register service worker for offline support and caching
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js')
-          .then((registration) => {
-            console.log('Service Worker registered with scope:', registration.scope);
-            
-            // Listen for updates
-            registration.addEventListener('updatefound', () => {
-              const newWorker = registration.installing;
-              if (newWorker) {
-                newWorker.addEventListener('statechange', () => {
-                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    console.log('New service worker available, reload for updates');
-                  }
-                });
-              }
-            });
-          })
-          .catch((error) => {
-            console.error('Service Worker registration failed:', error);
+          // Listen for updates
+          registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            if (newWorker) {
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  console.log('New service worker available, reload for updates');
+                }
+              });
+            }
           });
-          
-        // Listen for messages from service worker
-        navigator.serviceWorker.addEventListener('message', (event) => {
-          if (event.data.type === 'SUBSCRIPTION_UPDATED') {
-            console.log('Subscription data updated via service worker');
-            // The subscription context will automatically pick up the new data
-          }
+        })
+        .catch((error) => {
+          console.error('Service Worker registration failed:', error);
         });
-      }
+
+      // Listen for messages from service worker
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data.type === 'SUBSCRIPTION_UPDATED') {
+          console.log('Subscription data updated via service worker');
+          // The subscription context will automatically pick up the new data
+        }
+      });
     }
   }, []);
 
