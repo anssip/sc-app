@@ -1791,7 +1791,7 @@ Return your analysis in this JSON format:
               function: {
                 name: "pulse_wave",
                 arguments: JSON.stringify({
-                  speed: 20,
+                  speed: 15,
                   color: "#60a5fa", // Blue color for scanning
                   numCandles: 25,
                 }),
@@ -1826,29 +1826,29 @@ Return your analysis in this JSON format:
                   let color = "#60a5fa"; // Default blue
                   const patternType = pattern.type.toLowerCase();
 
-                  // Bullish patterns - green
+                  // Bullish patterns - bright green (lighter for better visibility)
                   if (
                     patternType.includes("bullish") ||
                     patternType.includes("hammer") ||
                     patternType.includes("morning")
                   ) {
-                    color = "#4ade80";
+                    color = "#86efac"; // Lighter green
                   }
-                  // Bearish patterns - red
+                  // Bearish patterns - bright red (lighter for better visibility)
                   else if (
                     patternType.includes("bearish") ||
                     patternType.includes("shooting") ||
                     patternType.includes("evening")
                   ) {
-                    color = "#ef4444";
+                    color = "#fca5a5"; // Lighter red
                   }
-                  // Neutral/indecision patterns - yellow
+                  // Neutral/indecision patterns - bright yellow (lighter for better visibility)
                   else if (
                     patternType.includes("doji") ||
                     patternType.includes("spinning") ||
                     patternType.includes("inside")
                   ) {
-                    color = "#fbbf24";
+                    color = "#fde047"; // Lighter yellow
                   }
 
                   // Use the name field from the pattern if available, otherwise format from type
@@ -1881,12 +1881,8 @@ Return your analysis in this JSON format:
                     ],
                     significance: pattern.significance || "medium",
                     color: color,
-                    style:
-                      pattern.significance === "very high"
-                        ? "both"
-                        : pattern.significance === "high"
-                        ? "both"
-                        : "outline",
+                    opacity: 0.9, // High opacity for better visibility
+                    style: "both", // Always use both fill and outline for maximum distinction
                     nearLevel: pattern.nearLevel,
                   };
                 }

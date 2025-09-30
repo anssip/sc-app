@@ -14,6 +14,7 @@ export interface Pattern {
   candleTimestamps: number[];
   price: number;
   volume?: number;
+  sentiment?: "bullish" | "bearish" | "neutral";
   nearLevel?: {
     type: "support" | "resistance";
     price: number;
@@ -103,13 +104,24 @@ export class PatternDetector {
         significance += 0.1 * Math.min(volumeRatio - 1, 1);
       }
 
+      const localTime = new Date(candle.timestamp).toLocaleString(undefined, {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZoneName: "short",
+      });
+
       patterns.push({
         type: "Doji",
         significance,
-        description: `Doji pattern (body ${bodyRatio.toFixed(1)}% of range)`,
+        description: `Doji pattern (neutral) - body ${bodyRatio.toFixed(
+          1
+        )}% of range at ${localTime}`,
         candleTimestamps: [candle.timestamp],
         price: candle.close,
         volume: candle.volume,
+        sentiment: "neutral",
       });
     }
   }
@@ -133,13 +145,24 @@ export class PatternDetector {
         significance += 0.1 * Math.min(volumeRatio - 1, 1);
       }
 
+      const localTime = new Date(candle.timestamp).toLocaleString(undefined, {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZoneName: "short",
+      });
+
       patterns.push({
         type: "Hammer",
         significance,
-        description: `Hammer pattern${inDowntrend ? " in downtrend" : ""}`,
+        description: `Hammer pattern (bullish)${
+          inDowntrend ? " in downtrend" : ""
+        } at ${localTime}`,
         candleTimestamps: [candle.timestamp],
         price: candle.close,
         volume: candle.volume,
+        sentiment: "bullish",
       });
     }
   }
@@ -163,13 +186,24 @@ export class PatternDetector {
         significance += 0.1 * Math.min(volumeRatio - 1, 1);
       }
 
+      const localTime = new Date(candle.timestamp).toLocaleString(undefined, {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZoneName: "short",
+      });
+
       patterns.push({
         type: "ShootingStar",
         significance,
-        description: `Shooting Star pattern${inUptrend ? " in uptrend" : ""}`,
+        description: `Shooting Star pattern (bearish)${
+          inUptrend ? " in uptrend" : ""
+        } at ${localTime}`,
         candleTimestamps: [candle.timestamp],
         price: candle.close,
         volume: candle.volume,
+        sentiment: "bearish",
       });
     }
   }
@@ -196,13 +230,25 @@ export class PatternDetector {
           significance += 0.15 * Math.min(volumeRatio - 1, 1);
         }
 
+        const localTime = new Date(nextCandle.timestamp).toLocaleString(
+          undefined,
+          {
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            timeZoneName: "short",
+          }
+        );
+
         patterns.push({
           type: "BullishEngulfing",
           significance,
-          description: "Bullish Engulfing pattern",
+          description: `Bullish Engulfing pattern (bullish) at ${localTime}`,
           candleTimestamps: [candle.timestamp, nextCandle.timestamp],
           price: nextCandle.close,
           volume: nextCandle.volume,
+          sentiment: "bullish",
         });
       } else if (
         candle.close > candle.open &&
@@ -216,13 +262,25 @@ export class PatternDetector {
           significance += 0.15 * Math.min(volumeRatio - 1, 1);
         }
 
+        const localTime = new Date(nextCandle.timestamp).toLocaleString(
+          undefined,
+          {
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            timeZoneName: "short",
+          }
+        );
+
         patterns.push({
           type: "BearishEngulfing",
           significance,
-          description: "Bearish Engulfing pattern",
+          description: `Bearish Engulfing pattern (bearish) at ${localTime}`,
           candleTimestamps: [candle.timestamp, nextCandle.timestamp],
           price: nextCandle.close,
           volume: nextCandle.volume,
+          sentiment: "bearish",
         });
       }
     }
