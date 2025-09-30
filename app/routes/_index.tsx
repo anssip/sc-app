@@ -404,17 +404,24 @@ const faqItems = [
     question: "What's the development roadmap?",
     answer: (
       <>
-        Our AI-powered roadmap for 2025-2026 includes: Pattern Recognition
-        (head-and-shoulders, triangles, flags), Multi-Timeframe Analysis,
-        Risk/Reward Analysis with stop-loss suggestions, Strategy Backtesting,
-        Interactive Tutor Mode for learning TA, and Script Generator for custom
-        indicators.{" "}
-        <Link
-          to="/features#road-ahead"
-          className="text-pricing-green hover:underline inline-flex items-center"
-        >
-          View the complete roadmap on our features page →
-        </Link>
+        <p>
+          Next up in the development pipeline is: settings for indicators. For
+          example, it needs to be possible to configure the Moving Average
+          indicator with period, type, and colors.
+        </p>
+        <p className="mt-4">
+          Our AI-powered roadmap for 2025-2026 includes: Pattern Recognition
+          (head-and-shoulders, triangles, flags), Multi-Timeframe Analysis,
+          Risk/Reward Analysis with stop-loss suggestions, Strategy Backtesting,
+          Interactive Tutor Mode for learning TA, and Script Generator for
+          custom indicators.{" "}
+          <Link
+            to="/features#road-ahead"
+            className="text-pricing-green hover:underline inline-flex items-center"
+          >
+            View the complete roadmap on our features page →
+          </Link>
+        </p>
       </>
     ),
   },

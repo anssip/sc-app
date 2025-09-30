@@ -5,8 +5,8 @@ publishDate: "2025-01-03"
 author: "Spot Canvas Team"
 category: "Charts & Navigation"
 published: true
-featured: true
-order: 1
+featured: false
+order: 2
 ---
 
 ## Overview
