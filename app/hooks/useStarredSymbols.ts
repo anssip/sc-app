@@ -26,7 +26,15 @@ export function useStarredSymbols(layoutId?: string): UseStarredSymbolsReturn {
       return;
     }
 
-    if (!repository || repoLoading || !layoutId) return;
+    // If no layoutId, set empty starred symbols and loading to false
+    if (!layoutId) {
+      setStarredSymbols([]);
+      setIsLoading(false);
+      setError(null);
+      return;
+    }
+
+    if (!repository || repoLoading) return;
 
     async function loadStarredSymbols() {
       if (!repository || !layoutId) return;
@@ -71,8 +79,8 @@ export function useStarredSymbols(layoutId?: string): UseStarredSymbolsReturn {
 
   return {
     starredSymbols,
-    isLoading: user ? (isLoading || repoLoading || !layoutId) : false,
-    error: user ? (error || repoError) : null,
+    isLoading: user && layoutId ? (isLoading || repoLoading) : false,
+    error: user && layoutId ? (error || repoError) : null,
     updateStarredSymbols,
     isSymbolStarred,
   };
