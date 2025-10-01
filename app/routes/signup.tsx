@@ -1,8 +1,7 @@
 import type { MetaFunction } from "@remix-run/node";
 import { useNavigate, useSearchParams } from "@remix-run/react";
 import React, { useState, useEffect } from "react";
-import { getAuth } from "firebase/auth";
-import { signUp, signInWithGoogle, getErrorMessage, saveUserPreferences, handleGoogleRedirectResult } from "~/lib/auth";
+import { signUp, signInWithGoogle, getErrorMessage, saveUserPreferences } from "~/lib/auth";
 import { useAuth } from "~/lib/auth-context";
 import Button from "~/components/Button";
 import Navigation from "~/components/Navigation";
@@ -24,60 +23,38 @@ export default function SignUp() {
   });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Initialize hooks after state
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user } = useAuth();
-  
+  const { user, loading } = useAuth();
+
   // Check if user came from pricing/payment flow
   const fromPricing = searchParams.get('from') === 'pricing';
   const redirectTo = searchParams.get('redirect') || '/';
 
-  // Handle Google redirect result after returning from Google authentication
+  // Single useEffect to handle redirect logic
   useEffect(() => {
-    const handleRedirect = async () => {
-      try {
-        const redirectUser = await handleGoogleRedirectResult();
-        if (redirectUser) {
-          console.log("Google redirect sign-in successful for user:", redirectUser.uid);
+    // OAuth redirect is now handled at the root level, so we just need regular auth logic
 
-          // Save user preferences after successful Google sign-in via redirect
-          try {
-            // Get marketing consent from localStorage if it was saved before redirect
-            const savedConsent = localStorage.getItem('pendingMarketingConsent');
-            const marketingConsent = savedConsent === 'true';
+    // Don't do anything while auth is loading
+    if (loading) {
+      return;
+    }
 
-            await saveUserPreferences(redirectUser.uid, redirectUser.email || '', marketingConsent);
-            console.log("User preferences saved after Google redirect sign-in - Customer.io will be synced automatically via Cloud Function");
-
-            // Clean up localStorage
-            localStorage.removeItem('pendingMarketingConsent');
-          } catch (error) {
-            console.error("Failed to save user preferences after redirect:", error);
-          }
-
-          // Redirect to verify-email page
-          navigate(`/verify-email?email=${encodeURIComponent(redirectUser.email || '')}&marketing=${marketingConsent}`);
-        }
-      } catch (error: any) {
-        console.error("Error handling Google redirect:", error);
-        setError(getErrorMessage(error));
-      }
-    };
-
-    handleRedirect();
-  }, []);
-
-  // Don't auto-redirect on signup - we want to show verify-email page
-  // Only redirect if user is already signed in when they visit this page
-  useEffect(() => {
+    // If user is already signed in, check if they just completed signup
     if (user && !isSubmitting) {
-      // User is already signed in, redirect them away from signup
-      console.log(`User already signed in, redirecting to ${redirectTo}`);
+      const justCompleted = sessionStorage.getItem('justCompletedSignup');
+
+      if (justCompleted === 'true') {
+        // User just completed signup - do NOT redirect, let them stay on welcome
+        return;
+      }
+
+      // Regular case: user is signed in and didn't just sign up
       navigate(redirectTo);
     }
-  }, []);
+  }, [loading, user, isSubmitting, navigate, redirectTo]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -145,18 +122,16 @@ export default function SignUp() {
     setError(null);
 
     try {
-      // Save marketing consent to localStorage before redirect
-      localStorage.setItem('pendingMarketingConsent', formData.marketingConsent.toString());
-
-      // Initiate Google sign-in redirect (works for all devices)
-      await signInWithGoogle();
-      // User will be redirected to Google, then back to this page
+      // Initiate Google sign-in redirect with signup state
+      await signInWithGoogle({
+        isSignup: true,
+        marketingConsent: formData.marketingConsent,
+        redirectTo: redirectTo,
+      });
+      // User will be redirected to Google, then back to /auth/google/callback
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to sign in with Google';
       setError(errorMessage);
-
-      // Clean up localStorage on error
-      localStorage.removeItem('pendingMarketingConsent');
     }
   };
 
@@ -205,46 +180,6 @@ export default function SignUp() {
               </div>
             </div>
           )}
-
-          <div>
-            <button
-              type="button"
-              onClick={handleGoogleSignIn}
-              disabled={isSubmitting}
-              className="w-full flex justify-center items-center px-4 py-2 border border-gray-500 rounded-md text-sm font-medium text-white bg-transparent hover:bg-gray-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-primary-dark focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-                <path
-                  fill="#4285f4"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                />
-                <path
-                  fill="#34a853"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                />
-                <path
-                  fill="#fbbc05"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                />
-                <path
-                  fill="#ea4335"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                />
-              </svg>
-              {isSubmitting ? "Signing in..." : "Continue with Google"}
-            </button>
-          </div>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-500" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-primary-dark text-gray-300">
-                Or create account with email
-              </span>
-            </div>
-          </div>
 
           <div className="space-y-4">
             <div>
@@ -342,6 +277,46 @@ export default function SignUp() {
             >
               {isSubmitting ? "Creating account..." : "Sign up"}
             </Button>
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-500" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-primary-dark text-gray-300">
+                Or continue with Google
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              disabled={isSubmitting}
+              className="w-full flex justify-center items-center px-4 py-2 border border-gray-500 rounded-md text-sm font-medium text-white bg-transparent hover:bg-gray-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-primary-dark focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                <path
+                  fill="#4285f4"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                />
+                <path
+                  fill="#34a853"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                />
+                <path
+                  fill="#fbbc05"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                />
+                <path
+                  fill="#ea4335"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                />
+              </svg>
+              {isSubmitting ? "Signing in..." : "Continue with Google"}
+            </button>
           </div>
         </form>
       </div>
