@@ -41,6 +41,14 @@ export default function Index() {
 
   // Determine CTA button behavior based on user state (same logic as Navigation)
   const getCtaButtonConfig = () => {
+    // Show default CTA while loading
+    if (loading) {
+      return {
+        label: "See it in action",
+        onClick: () => navigate("/chart"),
+      };
+    }
+
     if (!user) {
       // User not logged in - offer preview
       return {
@@ -66,14 +74,6 @@ export default function Index() {
   };
 
   const ctaButtonConfig = getCtaButtonConfig();
-
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-lg text-gray-500">Loading...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-primary-dark">

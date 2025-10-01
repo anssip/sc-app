@@ -68,12 +68,24 @@ export const links: LinksFunction = () => [
 ];
 
 // Component to handle OAuth redirects using onAuthStateChanged
+// Only used for localhost redirect flow, not for production popup flow
 function OAuthRedirectHandler({ children }: { children: React.ReactNode }) {
   const [isProcessed, setIsProcessed] = useState(false);
 
   useEffect(() => {
     // Only run on client side
     if (typeof window === "undefined") {
+      setIsProcessed(true);
+      return;
+    }
+
+    // Only handle redirect flow (localhost/dev)
+    // Production uses popup flow which handles auth directly
+    const isLocalhost = window.location.hostname === 'localhost' ||
+                        window.location.hostname === '127.0.0.1';
+
+    if (!isLocalhost) {
+      // Production - using popup flow, no need for redirect handler
       setIsProcessed(true);
       return;
     }
