@@ -1,3 +1,4 @@
+import { useSearchParams } from "@remix-run/react";
 import { signInWithGoogle } from "~/lib/auth";
 
 interface GoogleSignInButtonProps {
@@ -13,11 +14,17 @@ export default function GoogleSignInButton({
   disabled = false,
   className = ""
 }: GoogleSignInButtonProps) {
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || '/';
+
   const handleGoogleSignIn = async () => {
     try {
-      await signInWithGoogle();
-      // User will be redirected to Google, then back to our app
-      // onSignIn callback will be handled after redirect via handleGoogleRedirectResult
+      await signInWithGoogle({
+        isSignup: false,
+        marketingConsent: false,
+        redirectTo: redirectTo,
+      });
+      // User will be redirected to Google, then back to /auth/google/callback
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to sign in with Google';
       onError?.(errorMessage);

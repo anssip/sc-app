@@ -5,7 +5,6 @@ import {
   User,
   GoogleAuthProvider,
   signInWithRedirect,
-  getRedirectResult,
   sendEmailVerification,
   reload
 } from 'firebase/auth';
@@ -43,25 +42,40 @@ export const signIn = async ({ email, password }: SignInData): Promise<User> => 
   }
 };
 
-export const signInWithGoogle = async (): Promise<void> => {
+export interface GoogleSignInOptions {
+  isSignup?: boolean;
+  marketingConsent?: boolean;
+  redirectTo?: string;
+}
+
+export const signInWithGoogle = async (options: GoogleSignInOptions = {}): Promise<void> => {
   try {
     const provider = new GoogleAuthProvider();
+
+    // Prepare state data to pass through OAuth flow
+    const authState = {
+      isSignup: options.isSignup || false,
+      marketingConsent: options.marketingConsent || false,
+      redirectTo: options.redirectTo || '/',
+    };
+
+    // Store in BOTH sessionStorage AND localStorage
+    // sessionStorage works for localhost/emulator
+    // localStorage persists across the Firebase auth domain redirect
+    sessionStorage.setItem('googleAuthState', JSON.stringify(authState));
+    localStorage.setItem('googleAuthState', JSON.stringify(authState));
+
+    // Also store a timestamp to detect stale data
+    localStorage.setItem('googleAuthStateTime', Date.now().toString());
+
+    // Set custom parameters
+    provider.setCustomParameters({
+      prompt: 'select_account',
+    });
+
     // Use redirect flow for all devices (more reliable, works everywhere)
     await signInWithRedirect(auth, provider);
-    // User will be redirected to Google, then back to our app
-  } catch (error) {
-    throw error;
-  }
-};
-
-// Handle redirect result after Google sign-in
-export const handleGoogleRedirectResult = async (): Promise<User | null> => {
-  try {
-    const result = await getRedirectResult(auth);
-    if (result?.user) {
-      return result.user;
-    }
-    return null;
+    // User will be redirected to Google, then back to the current page
   } catch (error) {
     throw error;
   }
@@ -107,9 +121,10 @@ export const refreshUser = async (user: User): Promise<void> => {
 };
 
 export const saveUserPreferences = async (
-  userId: string, 
-  email: string, 
-  marketingConsent: boolean
+  userId: string,
+  email: string,
+  marketingConsent: boolean,
+  emailVerified: boolean = false
 ): Promise<void> => {
   try {
     const userDocRef = doc(db, 'users', userId);
@@ -117,7 +132,7 @@ export const saveUserPreferences = async (
       email,
       marketingConsent,
       consentTimestamp: serverTimestamp(),
-      emailVerified: false,
+      emailVerified,
       createdAt: serverTimestamp(),
     }, { merge: true });
     } catch (error) {

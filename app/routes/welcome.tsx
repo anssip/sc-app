@@ -16,81 +16,67 @@ export const meta: MetaFunction = () => {
 };
 
 export default function Welcome() {
+  console.log("=== WELCOME PAGE COMPONENT RENDERED ===");
+
   const navigate = useNavigate();
   const { user, emailVerified, refreshUser, loading } = useAuth();
   const [checking, setChecking] = useState(true);
+  const [hasChecked, setHasChecked] = useState(false);
 
   useEffect(() => {
+    console.log("Welcome page useEffect:", {
+      loading,
+      user: user?.email,
+      hasChecked,
+      checking,
+      currentURL: typeof window !== 'undefined' ? window.location.pathname : 'SSR'
+    });
+    // Prevent re-running if we've already checked
+    if (hasChecked) {
+      return;
+    }
+
     // Don't do anything while auth is loading
     if (loading) {
-      console.log("Auth is loading, waiting...");
       return;
     }
 
     const checkVerification = async () => {
       if (!user) {
-        // No user after auth has loaded, redirect to signup
-        console.log("No user found after auth loaded, redirecting to signup");
-        navigate("/signup");
+        // No user yet - keep showing loading, don't redirect
+        // The effect will run again when user becomes available
+        console.log("Welcome page: No user yet, staying in loading state");
+        setChecking(true);
         return;
       }
 
-      console.log(
-        "User found:",
-        user.email,
-        "emailVerified:",
-        user.emailVerified
-      );
-      console.log("Context emailVerified:", emailVerified);
+      console.log("Welcome page: User found, processing:", user.email);
 
       // Force refresh user data to get latest verification status from Firebase
       await refreshUser();
 
-      // Check both user.emailVerified and the context's emailVerified
-      if (user.emailVerified || emailVerified) {
-        try {
-          console.log("Email is verified, updating Firestore and tracking");
-          const { updateEmailVerificationStatus } = await import("~/lib/auth");
-          await updateEmailVerificationStatus(user.uid, true);
-          console.log("Email verification status updated - Customer.io will be synced automatically via Cloud Function");
-        } catch (error) {
-          console.error("Failed to update verification status:", error);
-        }
-        // Email is verified, show the welcome page
-        setChecking(false);
-      } else {
-        console.log("Email not yet verified in Firebase Auth");
-        // Force a hard refresh of the user object
-        try {
-          const { getAuth } = await import("firebase/auth");
-          const auth = getAuth();
-          if (auth.currentUser) {
-            await auth.currentUser.reload();
-            console.log(
-              "After reload, emailVerified:",
-              auth.currentUser.emailVerified
-            );
-            if (auth.currentUser.emailVerified) {
-              // Update our state and Firestore
-              const { updateEmailVerificationStatus } = await import(
-                "~/lib/auth"
-              );
-              await updateEmailVerificationStatus(auth.currentUser.uid, true);
-              window.location.reload(); // Force page reload to update auth context
-            }
-          }
-        } catch (error) {
-          console.error("Failed to reload user:", error);
-        }
+      // Update Firestore with verification status
+      try {
+        const { updateEmailVerificationStatus } = await import("~/lib/auth");
+        await updateEmailVerificationStatus(user.uid, true);
+        console.log("Welcome page: Updated email verification in Firestore");
+      } catch (error) {
+        console.error("Welcome page: Error updating Firestore:", error);
       }
 
+      // Show the welcome page
+      console.log("Welcome page: Showing welcome screen");
       setChecking(false);
+      setHasChecked(true);
     };
 
     checkVerification();
-  }, [user, navigate, refreshUser, loading, emailVerified]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, hasChecked, user]); // Depend on user so we can detect when it becomes available
 
   const handleViewPricing = () => {
+    // Clear the signup flag when user navigates away
+    sessionStorage.removeItem('justCompletedSignup');
     navigate("/pricing");
   };
 
@@ -129,7 +115,7 @@ export default function Welcome() {
             </div>
 
             <h2 className="text-3xl font-extrabold text-white">
-              Email <span className="text-accent-1">Verified!</span>
+              Your account <span className="text-accent-1">is ready</span>
             </h2>
 
             <p className="mt-4 text-gray-300">

@@ -5,12 +5,16 @@ import {
   Scripts,
   ScrollRestoration,
   useLocation,
+  useNavigate,
 } from "@remix-run/react";
 import type { LinksFunction } from "@remix-run/node";
 import { AuthProvider } from "~/lib/auth-context";
 import { SubscriptionProvider } from "~/contexts/SubscriptionContext";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { initGA, logPageView } from "~/lib/analytics";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "~/lib/firebase";
 
 import "./tailwind.css";
 
@@ -62,6 +66,120 @@ export const links: LinksFunction = () => [
     href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Lexend:wght@100..900&display=swap",
   },
 ];
+
+// Component to handle OAuth redirects using onAuthStateChanged
+function OAuthRedirectHandler({ children }: { children: React.ReactNode }) {
+  const [isProcessed, setIsProcessed] = useState(false);
+
+  useEffect(() => {
+    // Only run on client side
+    if (typeof window === "undefined") {
+      setIsProcessed(true);
+      return;
+    }
+
+    // Check if we have RECENT OAuth state (means we're returning from OAuth)
+    const sessionState = sessionStorage.getItem('googleAuthState');
+    const localState = localStorage.getItem('googleAuthState');
+    const stateTime = localStorage.getItem('googleAuthStateTime');
+
+    // If we have sessionStorage state, it's fresh (same session)
+    if (sessionState) {
+      console.log("ROOT: Fresh OAuth state in sessionStorage, waiting for auth...");
+    }
+    // If we have localStorage state, check if it's recent (within 2 minutes)
+    else if (localState && stateTime) {
+      const age = Date.now() - parseInt(stateTime);
+      if (age > 2 * 60 * 1000) {
+        console.log("ROOT: OAuth state is stale (>2min), clearing and rendering normally");
+        localStorage.removeItem('googleAuthState');
+        localStorage.removeItem('googleAuthStateTime');
+        setIsProcessed(true);
+        return;
+      }
+      console.log("ROOT: Recent OAuth state in localStorage, waiting for auth...");
+    }
+    // No OAuth state or stale state
+    else {
+      setIsProcessed(true);
+      return;
+    }
+
+    // Wait for Firebase to process the OAuth redirect
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        console.log("ROOT: User authenticated via OAuth:", user.email);
+
+        // Get state from storage
+        let marketingConsent = false;
+        try {
+          const sessionState = sessionStorage.getItem('googleAuthState');
+          const localState = localStorage.getItem('googleAuthState');
+          const storedState = sessionState || localState;
+          if (storedState) {
+            const stateData = JSON.parse(storedState);
+            marketingConsent = stateData.marketingConsent || false;
+          }
+        } catch (e) {
+          console.warn("Could not retrieve OAuth state");
+        }
+
+        // Clean up storage
+        sessionStorage.removeItem('googleAuthState');
+        localStorage.removeItem('googleAuthState');
+        localStorage.removeItem('googleAuthStateTime');
+        sessionStorage.removeItem('processedCallback');
+
+        // Check if user exists in Firestore
+        const userDocRef = doc(db, "users", user.uid);
+        const userDoc = await getDoc(userDocRef);
+        const isNewUser = !userDoc.exists();
+
+        console.log("ROOT: Saving user to Firestore, isNewUser:", isNewUser);
+
+        // Save to Firestore
+        await setDoc(userDocRef, {
+          email: user.email,
+          marketingConsent,
+          consentTimestamp: serverTimestamp(),
+          emailVerified: true,
+          createdAt: isNewUser ? serverTimestamp() : (userDoc.data()?.createdAt || serverTimestamp()),
+        }, { merge: true });
+
+        console.log("ROOT: Redirecting to /welcome");
+        sessionStorage.setItem('justCompletedSignup', 'true');
+        window.location.href = "/welcome";
+      } else {
+        // No user yet, keep waiting
+        console.log("ROOT: No user yet, waiting...");
+      }
+    });
+
+    // Cleanup subscription after 10 seconds
+    const timeout = setTimeout(() => {
+      console.log("ROOT: Timeout waiting for OAuth, rendering normally");
+      unsubscribe();
+      setIsProcessed(true);
+    }, 10000);
+
+    return () => {
+      unsubscribe();
+      clearTimeout(timeout);
+    };
+  }, []);
+
+  // While waiting for OAuth processing, show nothing
+  if (!isProcessed) {
+    return (
+      <div className="min-h-screen bg-primary-dark flex items-center justify-center">
+        <div className="text-white text-lg">Processing sign-in...</div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+}
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -125,10 +243,12 @@ export default function App() {
   }, [location]);
 
   return (
-    <AuthProvider>
-      <SubscriptionProvider>
-        <Outlet />
-      </SubscriptionProvider>
-    </AuthProvider>
+    <OAuthRedirectHandler>
+      <AuthProvider>
+        <SubscriptionProvider>
+          <Outlet />
+        </SubscriptionProvider>
+      </AuthProvider>
+    </OAuthRedirectHandler>
   );
 }

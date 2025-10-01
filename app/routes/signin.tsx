@@ -1,7 +1,7 @@
 import type { MetaFunction } from "@remix-run/node";
 import { useNavigate, useSearchParams } from "@remix-run/react";
 import { useState, useEffect } from "react";
-import { signIn, getErrorMessage, handleGoogleRedirectResult } from "~/lib/auth";
+import { signIn, getErrorMessage } from "~/lib/auth";
 import { useAuth } from "~/lib/auth-context";
 import GoogleSignInButton from "~/components/GoogleSignInButton";
 import Button from "~/components/Button";
@@ -29,28 +29,10 @@ export default function SignIn() {
   const fromPricing = searchParams.get('from') === 'pricing';
   const redirectTo = searchParams.get('redirect') || '/';
 
-  // Handle Google redirect result after returning from Google authentication
+  // Handle redirect logic (OAuth is now handled at root level)
   useEffect(() => {
-    const handleRedirect = async () => {
-      try {
-        const redirectUser = await handleGoogleRedirectResult();
-        if (redirectUser) {
-          console.log("Google redirect sign-in successful for user:", redirectUser.uid);
-          // Navigation will happen automatically via the other useEffect when user state changes
-        }
-      } catch (error: any) {
-        console.error("Error handling Google redirect:", error);
-        setError(getErrorMessage(error));
-      }
-    };
-
-    handleRedirect();
-  }, []);
-
-  // Redirect if user is signed in
-  useEffect(() => {
+    // Redirect if user is already signed in
     if (user) {
-      console.log(`Redirecting to ${redirectTo} - user signed in`);
       navigate(redirectTo);
     }
   }, [user, navigate, redirectTo]);
