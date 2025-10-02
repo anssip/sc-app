@@ -39,9 +39,18 @@ interface Message {
 
 export function useMCPClient(userId?: string, chartId?: string) {
   const [isConnected, setIsConnected] = useState(false);
-  const [currentSessionId, setCurrentSessionId] = useState<string>(
-    () => `session_${chartId || "default"}_${Date.now()}`
-  );
+  const [currentSessionId, setCurrentSessionId] = useState<string>(() => {
+    // Try to get existing session from localStorage
+    const storageKey = `chat_session_${chartId || "default"}`;
+    const existingSession = localStorage.getItem(storageKey);
+    if (existingSession) {
+      return existingSession;
+    }
+    // Create new session if none exists
+    const newSessionId = `session_${chartId || "default"}_${Date.now()}`;
+    localStorage.setItem(storageKey, newSessionId);
+    return newSessionId;
+  });
   const sessionsCache = useRef<Map<string, ChatSession[]>>(new Map());
 
   const sendMessage = useCallback(
@@ -269,6 +278,10 @@ export function useMCPClient(userId?: string, chartId?: string) {
     const newSessionId = `session_${chartId || "default"}_${Date.now()}`;
     setCurrentSessionId(newSessionId);
 
+    // Update localStorage with new session
+    const storageKey = `chat_session_${chartId || "default"}`;
+    localStorage.setItem(storageKey, newSessionId);
+
     // Clear cache to force reload
     if (userId && chartId) {
       const cacheKey = `${userId}_${chartId}`;
@@ -281,9 +294,14 @@ export function useMCPClient(userId?: string, chartId?: string) {
   const loadSession = useCallback(
     async (sessionId: string): Promise<Message[]> => {
       setCurrentSessionId(sessionId);
+
+      // Update localStorage with loaded session
+      const storageKey = `chat_session_${chartId || "default"}`;
+      localStorage.setItem(storageKey, sessionId);
+
       return loadHistory(sessionId);
     },
-    [loadHistory]
+    [loadHistory, chartId]
   );
 
   return {
