@@ -462,3 +462,11 @@ Remove all mentions of trials from this app.
 # Terms
 
 Add a section that we don't offer trading advice. AI suggestions are just possible scenarios. Use at your own risk.
+
+# Mobile chart/spotlight toggle Fix
+
+We made the chart/spotlight toggle in commit 4eba8fafbd5e1a7077ea67dbb8e38bb2e2e71ac1. This has the issue that in chat mode, the chart is not initialized at all and all commands targeted towards the chart are not rendered to it. The chart should be initialized properly in chat mode, also on mobile. Can you fix that? The chat UI could be semi transparent and with a background blur so that the drawing of trend lines etc. that are initiated by the chat can be seen live in the chat view.
+
+# Share ananlysis
+
+Make a shareable view of the chart screenshot + AI chat conversation. OR tweet a screenshot + chat in the conversation.
