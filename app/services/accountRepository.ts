@@ -530,3 +530,40 @@ class AccountRepository {
 
 // Singleton instance
 export const accountRepository = new AccountRepository();
+
+// Twitter Credentials Management
+export interface TwitterCredentials {
+  accessToken: string;
+  accessSecret: string;
+  username: string;
+  userId: string;
+}
+
+/**
+ * Get Twitter API credentials from user's Firestore profile
+ */
+export async function getTwitterCredentials(
+  userId: string
+): Promise<TwitterCredentials | null> {
+  const userDoc = await getDoc(doc(db, "users", userId));
+
+  if (!userDoc.exists()) {
+    return null;
+  }
+
+  const data = userDoc.data();
+  return data.twitterCredentials || null;
+}
+
+/**
+ * Delete Twitter API credentials from user's Firestore profile
+ */
+export async function deleteTwitterCredentials(userId: string): Promise<void> {
+  const { updateDoc, doc, deleteField } = await import("firebase/firestore");
+  const userRef = doc(db, "users", userId);
+
+  await updateDoc(userRef, {
+    twitterCredentials: deleteField(),
+    updatedAt: new Date(),
+  });
+}

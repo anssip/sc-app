@@ -100,6 +100,13 @@ export default function AccountMenu() {
                     </Link>
                   )}
                   <Link
+                    to="/settings"
+                    onClick={() => setIsOpen(false)}
+                    className="block w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-800 rounded-md transition-colors whitespace-nowrap"
+                  >
+                    Settings
+                  </Link>
+                  <Link
                     to="/billing"
                     onClick={() => setIsOpen(false)}
                     className="block w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-800 rounded-md transition-colors whitespace-nowrap"
@@ -142,20 +149,10 @@ export default function AccountMenu() {
                     onError={setAuthError}
                     className="w-full"
                   />
-                  <Button
-                    asLink
-                    to="/signin"
-                    variant="secondary"
-                    fullWidth
-                  >
+                  <Button asLink to="/signin" variant="secondary" fullWidth>
                     Sign In
                   </Button>
-                  <Button
-                    asLink
-                    to="/signup"
-                    variant="primary"
-                    fullWidth
-                  >
+                  <Button asLink to="/signup" variant="primary" fullWidth>
                     Create Account
                   </Button>
                 </div>
@@ -218,6 +215,13 @@ export default function AccountMenu() {
                   </Link>
                 )}
                 <Link
+                  to="/settings"
+                  onClick={() => setIsOpen(false)}
+                  className="block w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-800 rounded-md transition-colors"
+                >
+                  Settings
+                </Link>
+                <Link
                   to="/billing"
                   onClick={() => setIsOpen(false)}
                   className="block w-full text-left px-3 py-2 text-sm text-white hover:bg-gray-800 rounded-md transition-colors"
@@ -257,20 +261,10 @@ export default function AccountMenu() {
 
               <div className="space-y-3">
                 <GoogleSignInButton onError={setAuthError} className="w-full" />
-                <Button
-                  asLink
-                  to="/signin"
-                  variant="secondary"
-                  fullWidth
-                >
+                <Button asLink to="/signin" variant="secondary" fullWidth>
                   Sign In
                 </Button>
-                <Button
-                  asLink
-                  to="/signup"
-                  variant="primary"
-                  fullWidth
-                >
+                <Button asLink to="/signup" variant="primary" fullWidth>
                   Create Account
                 </Button>
               </div>
