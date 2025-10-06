@@ -25,7 +25,7 @@
     "add-emu-user": "node scripts/add-emulator-user.mjs"
   },
   "dependencies": {
-    "@anssip/rs-charts": "1.2.43",
+    "@anssip/rs-charts": "1.2.44",
     "@headlessui/react": "^2.2.4",
     "@remix-run/node": "^2.16.8",
     "@remix-run/react": "^2.16.8",
