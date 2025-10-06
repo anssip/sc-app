@@ -304,46 +304,27 @@ export function AIChatPanel({
         const granularity = activeChartApi.getGranularity?.();
         const timeRange = activeChartApi.getTimeRange?.();
         const priceRange = activeChartApi.getPriceRange?.();
-        const candles = activeChartApi.getCandles?.(); // Get visible candles
-        const indicators = activeChartApi.getVisibleIndicators?.(); // Get active indicators
 
-        // Build chart context with all available data
-        // Extract raw values from potential proxy objects
-        // Use JSON parse/stringify to break proxy references
-        chartContext = JSON.parse(
-          JSON.stringify({
-            symbol: symbol ? String(symbol) : undefined,
-            granularity: granularity ? String(granularity) : undefined,
-            timeRange: timeRange
-              ? {
-                  start: Number(timeRange.start),
-                  end: Number(timeRange.end),
-                }
-              : undefined,
-            priceRange: priceRange
-              ? {
-                  min: Number(priceRange.min),
-                  max: Number(priceRange.max),
-                  range: Number(
-                    priceRange.range || priceRange.max - priceRange.min
-                  ),
-                }
-              : undefined,
-            // Add candles data (limit to last 50 for context efficiency)
-            candles: candles
-              ? candles.slice(-50).map(([timestamp, candle]) => ({
-                  timestamp,
-                  open: candle.open,
-                  high: candle.high,
-                  low: candle.low,
-                  close: candle.close,
-                  volume: candle.volume,
-                }))
-              : [],
-            // Add active indicators
-            indicators: indicators || [],
-          })
-        );
+        // Build chart context - only include simple primitive values to avoid proxy issues
+        chartContext = {
+          symbol: symbol ? String(symbol) : undefined,
+          granularity: granularity ? String(granularity) : undefined,
+          timeRange: timeRange
+            ? {
+                start: Number(timeRange.start),
+                end: Number(timeRange.end),
+              }
+            : undefined,
+          priceRange: priceRange
+            ? {
+                min: Number(priceRange.min),
+                max: Number(priceRange.max),
+                range: Number(
+                  priceRange.range || priceRange.max - priceRange.min
+                ),
+              }
+            : undefined,
+        };
       } catch (error) {
         console.error("Error building chart context:", error);
       }
