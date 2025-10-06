@@ -88,9 +88,9 @@ export const ShareModal: React.FC<ShareModalProps> = ({
         throw new Error("takeScreenshot method is not available");
       }
 
-      // Get screenshot as data URL
+      // Get screenshot as data URL (using JPEG for black background instead of transparent)
       const dataUrl = await actualApi.takeScreenshot({
-        format: "png",
+        format: "jpeg",
         quality: 0.95,
       });
 
