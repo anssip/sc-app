@@ -372,9 +372,11 @@ async function processWithLLM({
 
     VOLUME COMPARISON EXAMPLE:
     When user says "Compare that to the period of the previous 50 candles":
-    1. Current visible candles already analyzed: ${
-      chartContext.candles.length
-    } candles
+    1. Current visible candles already analyzed${
+      chartContext.candles && chartContext.candles.length > 0
+        ? `: ${chartContext.candles.length} candles`
+        : ""
+    }
     2. To get previous 50 candles, use get_price_data with:
        - symbol: "${chartContext.symbol}"
        - interval: "${chartContext.granularity}"
