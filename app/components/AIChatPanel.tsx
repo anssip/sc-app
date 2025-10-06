@@ -324,7 +324,46 @@ export function AIChatPanel({
                 ),
               }
             : undefined,
+          candles: [],
+          indicators: [],
         };
+
+        // Try to extract candles data safely
+        try {
+          const candles = activeChartApi.getCandles?.();
+          if (candles) {
+            // Serialize using structuredClone which handles proxies better
+            const serializedCandles = structuredClone(
+              candles.slice(-50).map((item: any) => {
+                const timestamp = Array.isArray(item) ? item[0] : item.timestamp;
+                const candle = Array.isArray(item) ? item[1] : item;
+                return {
+                  timestamp: Number(timestamp),
+                  open: Number(candle.open),
+                  high: Number(candle.high),
+                  low: Number(candle.low),
+                  close: Number(candle.close),
+                  volume: Number(candle.volume),
+                };
+              })
+            );
+            chartContext.candles = serializedCandles;
+          }
+        } catch (candleError) {
+          console.warn("Could not extract candles:", candleError);
+          chartContext.candles = [];
+        }
+
+        // Try to extract indicators data safely
+        try {
+          const indicators = activeChartApi.getVisibleIndicators?.();
+          if (indicators) {
+            chartContext.indicators = structuredClone(indicators);
+          }
+        } catch (indicatorError) {
+          console.warn("Could not extract indicators:", indicatorError);
+          chartContext.indicators = [];
+        }
       } catch (error) {
         console.error("Error building chart context:", error);
       }
