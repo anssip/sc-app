@@ -307,43 +307,46 @@ export function AIChatPanel({
         const candles = activeChartApi.getCandles?.(); // Get visible candles
         const indicators = activeChartApi.getVisibleIndicators?.(); // Get active indicators
 
-        if (symbol && granularity && timeRange && priceRange) {
-          // Extract raw values from potential proxy objects
-          // Use JSON parse/stringify to break proxy references
-          chartContext = JSON.parse(
-            JSON.stringify({
-              symbol: String(symbol),
-              granularity: String(granularity),
-              timeRange: {
-                start: Number(timeRange.start),
-                end: Number(timeRange.end),
-              },
-              priceRange: {
-                min: Number(priceRange.min),
-                max: Number(priceRange.max),
-                range: Number(
-                  priceRange.range || priceRange.max - priceRange.min
-                ),
-              },
-              // Add candles data (limit to last 50 for context efficiency)
-              candles: candles
-                ? candles.slice(-50).map(([timestamp, candle]) => ({
-                    timestamp,
-                    open: candle.open,
-                    high: candle.high,
-                    low: candle.low,
-                    close: candle.close,
-                    volume: candle.volume,
-                  }))
-                : [],
-              // Add active indicators
-              indicators: indicators || [],
-            })
-          );
-        } else {
-        }
-      } catch (error) {}
-    } else {
+        // Build chart context with all available data
+        // Extract raw values from potential proxy objects
+        // Use JSON parse/stringify to break proxy references
+        chartContext = JSON.parse(
+          JSON.stringify({
+            symbol: symbol ? String(symbol) : undefined,
+            granularity: granularity ? String(granularity) : undefined,
+            timeRange: timeRange
+              ? {
+                  start: Number(timeRange.start),
+                  end: Number(timeRange.end),
+                }
+              : undefined,
+            priceRange: priceRange
+              ? {
+                  min: Number(priceRange.min),
+                  max: Number(priceRange.max),
+                  range: Number(
+                    priceRange.range || priceRange.max - priceRange.min
+                  ),
+                }
+              : undefined,
+            // Add candles data (limit to last 50 for context efficiency)
+            candles: candles
+              ? candles.slice(-50).map(([timestamp, candle]) => ({
+                  timestamp,
+                  open: candle.open,
+                  high: candle.high,
+                  low: candle.low,
+                  close: candle.close,
+                  volume: candle.volume,
+                }))
+              : [],
+            // Add active indicators
+            indicators: indicators || [],
+          })
+        );
+      } catch (error) {
+        console.error("Error building chart context:", error);
+      }
     }
 
     try {
