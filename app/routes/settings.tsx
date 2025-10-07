@@ -43,111 +43,12 @@ function SettingsContent() {
   const [credentials, setCredentials] = useState<TwitterCredentials | null>(
     null
   );
-  const oauthProcessingRef = useRef(false);
-
-  // Check for OAuth callback status
+  // Check for OAuth callback status (now handled entirely server-side)
   useEffect(() => {
     const twitterConnected = searchParams.get("twitter_connected");
     const errorParam = searchParams.get("error");
-    const oauthCallback = searchParams.get("oauth_callback");
 
-    if (oauthCallback === "true" && !oauthProcessingRef.current) {
-      oauthProcessingRef.current = true;
-      // Handle OAuth completion
-      const completeOAuth = async () => {
-        try {
-          const oauthToken = searchParams.get("oauth_token");
-          const oauthVerifier = searchParams.get("oauth_verifier");
-
-          // Helper function to get cookie value
-          const getCookie = (name: string) => {
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) return parts.pop()?.split(";").shift();
-            return null;
-          };
-
-          // Get stored values from cookies
-          const oauthTokenSecret = getCookie("twitter_oauth_token_secret");
-          const userId = getCookie("twitter_oauth_user_id");
-
-          console.log("Retrieved from cookies:", { oauthTokenSecret, userId });
-
-          if (!oauthToken || !oauthVerifier || !oauthTokenSecret || !userId) {
-            // Clean up cookies on error
-            document.cookie = "twitter_oauth_token_secret=; path=/; max-age=0";
-            document.cookie = "twitter_oauth_user_id=; path=/; max-age=0";
-            console.error("Missing OAuth parameters:", {
-              oauthToken: !!oauthToken,
-              oauthVerifier: !!oauthVerifier,
-              oauthTokenSecret: !!oauthTokenSecret,
-              userId: !!userId,
-            });
-            setError("OAuth parameters missing. Please try connecting again.");
-            window.history.replaceState({}, "", "/settings");
-            return;
-          }
-
-          setIsConnecting(true);
-
-          // Get auth token
-          const auth = getAuth();
-          const currentUser = auth.currentUser;
-          if (!currentUser) {
-            setError("Not authenticated. Please sign in and try again.");
-            window.history.replaceState({}, "", "/settings");
-            return;
-          }
-
-          const idToken = await currentUser.getIdToken();
-
-          // Call server endpoint to complete OAuth
-          const response = await fetch("/api/twitter-complete", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${idToken}`,
-            },
-            body: JSON.stringify({
-              oauthToken,
-              oauthVerifier,
-              oauthTokenSecret,
-              userId,
-            }),
-          });
-
-          if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || "Failed to complete OAuth");
-          }
-
-          // Success - clean up cookies
-          document.cookie = "twitter_oauth_token_secret=; path=/; max-age=0";
-          document.cookie = "twitter_oauth_user_id=; path=/; max-age=0";
-
-          setSuccess("X (Twitter) account connected successfully!");
-          await loadCredentials();
-          window.history.replaceState({}, "", "/settings");
-        } catch (error) {
-          console.error("Error completing OAuth:", error);
-
-          // Clean up cookies on error
-          document.cookie = "twitter_oauth_token_secret=; path=/; max-age=0";
-          document.cookie = "twitter_oauth_user_id=; path=/; max-age=0";
-
-          setError(
-            error instanceof Error
-              ? error.message
-              : "Failed to connect X account"
-          );
-          window.history.replaceState({}, "", "/settings");
-        } finally {
-          setIsConnecting(false);
-        }
-      };
-
-      completeOAuth();
-    } else if (twitterConnected === "true") {
+    if (twitterConnected === "true") {
       setSuccess("X (Twitter) account connected successfully!");
       setTimeout(() => setSuccess(null), 5000);
       // Reload credentials
@@ -214,13 +115,8 @@ function SettingsContent() {
 
       const data = await response.json();
 
-      // Store oauth_token_secret and user_id in cookies for the callback
-      // Using cookies instead of sessionStorage because some browsers don't preserve
-      // sessionStorage across OAuth redirects
-      document.cookie = `twitter_oauth_token_secret=${data.oauthTokenSecret}; path=/; max-age=600; SameSite=Lax`;
-      document.cookie = `twitter_oauth_user_id=${user.uid}; path=/; max-age=600; SameSite=Lax`;
-
-      // Redirect to Twitter authorization page
+      // OAuth flow is now handled entirely server-side
+      // Just redirect to Twitter authorization page
       window.location.href = data.authUrl;
     } catch (error) {
       console.error("Error connecting Twitter:", error);

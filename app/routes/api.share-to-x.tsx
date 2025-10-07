@@ -171,6 +171,9 @@ export async function action({ request }: ActionFunctionArgs) {
   }
 
   try {
+    // Clone the request to avoid body consumption issues with Firebase Hosting proxy
+    const clonedRequest = request.clone();
+
     // Get and verify authorization token
     const authHeader = request.headers.get("Authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -216,7 +219,28 @@ export async function action({ request }: ActionFunctionArgs) {
     console.log("- Username:", credentials.username);
     console.log("- User ID:", credentials.userId);
 
-    const data: ShareRequest = await request.json();
+    // Parse request body with error handling (use cloned request)
+    let data: ShareRequest;
+    try {
+      const text = await clonedRequest.text();
+      console.log("Request body length:", text.length);
+
+      if (!text || text.trim() === "") {
+        return json({ error: "Empty request body" }, { status: 400 });
+      }
+
+      data = JSON.parse(text);
+    } catch (error) {
+      console.error("Error parsing request body:", error);
+      return json(
+        {
+          error: "Invalid JSON in request body",
+          details: error instanceof Error ? error.message : "Unknown error"
+        },
+        { status: 400 }
+      );
+    }
+
     const { screenshot, mainTweetText, selectedMessages } = data;
 
     // Validate inputs

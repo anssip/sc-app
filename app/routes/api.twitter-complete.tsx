@@ -83,8 +83,31 @@ export async function action({ request }: ActionFunctionArgs) {
       verifiedUserId = decodedToken.uid;
     }
 
-    // Get request body
-    const body = await request.json();
+    // Get request body with error handling
+    console.log("Request bodyUsed:", request.bodyUsed);
+    console.log("Request headers:", Object.fromEntries(request.headers.entries()));
+
+    let body;
+    try {
+      const text = await request.text();
+      console.log("Request body text:", text);
+
+      if (!text || text.trim() === "") {
+        return json({ error: "Empty request body" }, { status: 400 });
+      }
+
+      body = JSON.parse(text);
+    } catch (error) {
+      console.error("Error parsing request body:", error);
+      return json(
+        {
+          error: "Invalid JSON in request body",
+          details: error instanceof Error ? error.message : "Unknown error"
+        },
+        { status: 400 }
+      );
+    }
+
     const { oauthToken, oauthVerifier, oauthTokenSecret, userId } = body;
 
     // Verify user ID matches

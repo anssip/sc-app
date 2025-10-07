@@ -328,14 +328,16 @@ export function AIChatPanel({
           indicators: [],
         };
 
-        // Try to extract candles data safely
+        // TODO: Fix the rs-charts API to return candles data safely (not proxy objects)
         try {
           const candles = activeChartApi.getCandles?.();
           if (candles) {
             // Serialize using structuredClone which handles proxies better
             const serializedCandles = structuredClone(
               candles.slice(-50).map((item: any) => {
-                const timestamp = Array.isArray(item) ? item[0] : item.timestamp;
+                const timestamp = Array.isArray(item)
+                  ? item[0]
+                  : item.timestamp;
                 const candle = Array.isArray(item) ? item[1] : item;
                 return {
                   timestamp: Number(timestamp),
@@ -354,7 +356,7 @@ export function AIChatPanel({
           chartContext.candles = [];
         }
 
-        // Try to extract indicators data safely
+        // TODO: Fix the rs-charts API to return indicators data safely (not proxy objects)
         try {
           const indicators = activeChartApi.getVisibleIndicators?.();
           if (indicators) {

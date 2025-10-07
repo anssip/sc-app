@@ -33,12 +33,17 @@ export const remix = onRequest(
     region: "us-central1", // Change this to your preferred region
     // Allow unauthenticated access
     invoker: "public",
+    // Declare secrets needed by Remix backend routes
+    secrets: ["TWITTER_API_KEY", "TWITTER_API_SECRET", "TWITTER_CALLBACK_URL"],
   },
   app
 );
 
 // Export MCP server from TypeScript build
 export { mcpServer } from "./dist/mcp-server.js";
+
+// Export share-to-X function from TypeScript build
+export { shareToX } from "./dist/share-to-x.js";
 
 // Export scheduled functions for usage billing
 export { processUsageBilling, triggerUsageBilling } from "./dist/scheduled-usage-billing.js";

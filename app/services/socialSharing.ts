@@ -92,8 +92,12 @@ export async function shareToX(options: ShareToXOptions): Promise<ShareResult> {
 
     const idToken = await user.getIdToken();
 
-    // Step 5: Send request to server API with auth token
-    const response = await fetch("/api/share-to-x", {
+    // Step 5: Send request to Cloud Function directly (bypasses Firebase Hosting)
+    const shareToXUrl =
+      import.meta.env.VITE_SHARE_TO_X_URL ||
+      "http://localhost:5001/spotcanvas-prod/us-central1/shareToX";
+
+    const response = await fetch(shareToXUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -102,7 +106,27 @@ export async function shareToX(options: ShareToXOptions): Promise<ShareResult> {
       body: JSON.stringify(payload),
     });
 
-    const result = await response.json();
+    // Check content type before parsing
+    const contentType = response.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      const text = await response.text();
+      console.error("Non-JSON response:", text.substring(0, 500));
+      return {
+        success: false,
+        error: `Server returned non-JSON response (${response.status}). Check server logs for details.`,
+      };
+    }
+
+    let result;
+    try {
+      result = await response.json();
+    } catch (error) {
+      console.error("Failed to parse JSON response:", error);
+      return {
+        success: false,
+        error: "Invalid response from server. Please try again.",
+      };
+    }
 
     if (!response.ok) {
       return {
