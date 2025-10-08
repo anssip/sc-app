@@ -84,7 +84,48 @@ async function verifyAuthToken(idToken: string): Promise<string> {
 }
 
 /**
+ * Strip markdown and HTML from text for Twitter
+ */
+function sanitizeTextForTwitter(text: string): string {
+  let sanitized = text;
+
+  // Remove HTML tags
+  sanitized = sanitized.replace(/<[^>]*>/g, "");
+
+  // Remove markdown code blocks (```code```)
+  sanitized = sanitized.replace(/```[\s\S]*?```/g, "");
+
+  // Remove inline code (`code`)
+  sanitized = sanitized.replace(/`([^`]+)`/g, "$1");
+
+  // Remove markdown bold/italic (**bold**, __bold__, *italic*, _italic_)
+  sanitized = sanitized.replace(/\*\*([^*]+)\*\*/g, "$1");
+  sanitized = sanitized.replace(/__([^_]+)__/g, "$1");
+  sanitized = sanitized.replace(/\*([^*]+)\*/g, "$1");
+  sanitized = sanitized.replace(/_([^_]+)_/g, "$1");
+
+  // Remove markdown headers (# Header)
+  sanitized = sanitized.replace(/^#{1,6}\s+/gm, "");
+
+  // Remove markdown links but keep the text ([text](url) -> text)
+  sanitized = sanitized.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+
+  // Remove markdown images (![alt](url))
+  sanitized = sanitized.replace(/!\[([^\]]*)\]\([^)]+\)/g, "");
+
+  // Normalize whitespace (multiple spaces/newlines to single)
+  sanitized = sanitized.replace(/\n{3,}/g, "\n\n");
+  sanitized = sanitized.replace(/  +/g, " ");
+
+  // Trim
+  sanitized = sanitized.trim();
+
+  return sanitized;
+}
+
+/**
  * Split messages into tweet-sized chunks
+ * NOTE: Sanitizes text BEFORE splitting to get accurate length calculations
  */
 function splitMessages(
   messages: Array<{ role: string; content: string }>,
@@ -94,8 +135,11 @@ function splitMessages(
   let currentChunk = "";
 
   for (const message of messages) {
+    // Sanitize content FIRST to get accurate character count
+    // (markdown/HTML will be removed, so we need to measure the final text)
+    const sanitizedContent = sanitizeTextForTwitter(message.content);
     const messageText = `${message.role === "user" ? "👤" : "🤖"} ${
-      message.content
+      sanitizedContent
     }`;
     const separator = currentChunk ? "\n\n---\n\n" : "";
     const combined = currentChunk + separator + messageText;
@@ -195,17 +239,22 @@ app.post("/", async (req: Request, res: Response) => {
 
     // Post main tweet with image
     console.log("Posting main tweet...");
+    const sanitizedMainText = sanitizeTextForTwitter(mainTweetText);
     const mainTweet = await client.v2.tweet({
-      text: mainTweetText,
+      text: sanitizedMainText,
       media: {
         media_ids: [mediaId],
+      },
+      reply: {
+        reply_settings: "everyone",
       },
     });
 
     console.log("Main tweet posted:", mainTweet.data.id);
 
     // If there are selected messages, create thread
-    let lastTweetId = mainTweet.data.id;
+    // All replies should point to the main tweet to create a proper thread
+    const mainTweetId = mainTweet.data.id;
     if (selectedMessages && selectedMessages.length > 0) {
       console.log("Creating thread with", selectedMessages.length, "messages");
 
@@ -213,14 +262,14 @@ app.post("/", async (req: Request, res: Response) => {
       console.log("Split into", chunks.length, "tweet chunks");
 
       for (const chunk of chunks) {
+        // Chunk is already sanitized by splitMessages(), so just post it
         const replyTweet = await client.v2.tweet({
           text: chunk,
           reply: {
-            in_reply_to_tweet_id: lastTweetId,
+            in_reply_to_tweet_id: mainTweetId,
           },
         });
-        lastTweetId = replyTweet.data.id;
-        console.log("Posted reply tweet:", lastTweetId);
+        console.log("Posted reply tweet:", replyTweet.data.id);
       }
     }
 
