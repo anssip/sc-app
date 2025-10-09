@@ -70,14 +70,10 @@ export const links: LinksFunction = () => [
 // Component to handle OAuth redirects using onAuthStateChanged
 // Only used for localhost redirect flow, not for production popup flow
 function OAuthRedirectHandler({ children }: { children: React.ReactNode }) {
-  const [isProcessed, setIsProcessed] = useState(false);
-
-  useEffect(() => {
-    // Only run on client side
-    if (typeof window === "undefined") {
-      setIsProcessed(true);
-      return;
-    }
+  // Initialize state synchronously to avoid flash of "Processing sign-in..." for normal users
+  const [isProcessed, setIsProcessed] = useState(() => {
+    // Server-side: always render content immediately
+    if (typeof window === "undefined") return true;
 
     // Only handle redirect flow (localhost/dev)
     // Production uses popup flow which handles auth directly
@@ -86,8 +82,7 @@ function OAuthRedirectHandler({ children }: { children: React.ReactNode }) {
 
     if (!isLocalhost) {
       // Production - using popup flow, no need for redirect handler
-      setIsProcessed(true);
-      return;
+      return true;
     }
 
     // Check if we have RECENT OAuth state (means we're returning from OAuth)
@@ -95,24 +90,48 @@ function OAuthRedirectHandler({ children }: { children: React.ReactNode }) {
     const localState = localStorage.getItem('googleAuthState');
     const stateTime = localStorage.getItem('googleAuthStateTime');
 
-    // If we have sessionStorage state, it's fresh (same session)
+    // If we have sessionStorage state, it's fresh (same session) - show processing
     if (sessionState) {
-      console.log("ROOT: Fresh OAuth state in sessionStorage, waiting for auth...");
+      console.log("ROOT: Fresh OAuth state in sessionStorage, will wait for auth...");
+      return false;
     }
+
     // If we have localStorage state, check if it's recent (within 2 minutes)
-    else if (localState && stateTime) {
+    if (localState && stateTime) {
       const age = Date.now() - parseInt(stateTime);
       if (age > 2 * 60 * 1000) {
         console.log("ROOT: OAuth state is stale (>2min), clearing and rendering normally");
         localStorage.removeItem('googleAuthState');
         localStorage.removeItem('googleAuthStateTime');
-        setIsProcessed(true);
-        return;
+        return true;
       }
-      console.log("ROOT: Recent OAuth state in localStorage, waiting for auth...");
+      console.log("ROOT: Recent OAuth state in localStorage, will wait for auth...");
+      return false;
     }
-    // No OAuth state or stale state
-    else {
+
+    // No OAuth state - show normal content immediately
+    return true;
+  });
+
+  useEffect(() => {
+    // Only run on client side
+    if (typeof window === "undefined") return;
+
+    // Only handle redirect flow (localhost/dev)
+    const isLocalhost = window.location.hostname === 'localhost' ||
+                        window.location.hostname === '127.0.0.1';
+
+    if (!isLocalhost) return;
+
+    // If already processed, nothing to do
+    if (isProcessed) return;
+
+    // At this point, we know we have OAuth state and need to wait for auth
+    const sessionState = sessionStorage.getItem('googleAuthState');
+    const localState = localStorage.getItem('googleAuthState');
+
+    if (!sessionState && !localState) {
+      // State was cleared, show normal content
       setIsProcessed(true);
       return;
     }
