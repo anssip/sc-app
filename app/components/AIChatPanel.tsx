@@ -356,14 +356,26 @@ export function AIChatPanel({
           chartContext.candles = [];
         }
 
-        // TODO: Fix the rs-charts API to return indicators data safely (not proxy objects)
+        // Extract and serialize indicators to plain objects
         try {
           const indicators = activeChartApi.getVisibleIndicators?.();
-          if (indicators) {
-            chartContext.indicators = structuredClone(indicators);
+          if (indicators && Array.isArray(indicators)) {
+            // Map to plain objects with only necessary fields
+            chartContext.indicators = indicators.map((indicator: any) => ({
+              id: String(indicator.id),
+              name: String(indicator.name || indicator.id),
+              visible: Boolean(indicator.visible),
+              display: indicator.display ? String(indicator.display) : undefined,
+              scale: indicator.scale ? String(indicator.scale) : undefined,
+              params: indicator.params ? JSON.parse(JSON.stringify(indicator.params)) : undefined,
+            }));
+            console.log(`Extracted ${chartContext.indicators.length} indicators for chat context`);
+          } else {
+            console.warn("getVisibleIndicators returned invalid data:", indicators);
+            chartContext.indicators = [];
           }
         } catch (indicatorError) {
-          console.warn("Could not extract indicators:", indicatorError);
+          console.error("Error extracting indicators:", indicatorError);
           chartContext.indicators = [];
         }
       } catch (error) {

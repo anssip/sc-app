@@ -84,7 +84,84 @@ async function verifyAuthToken(idToken: string): Promise<string> {
 }
 
 /**
+ * Delay execution for specified milliseconds
+ */
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Format Unix timestamp to human-readable time
+ */
+export function formatResetTime(resetTimestamp: number): string {
+  const resetDate = new Date(resetTimestamp * 1000);
+  const now = new Date();
+  const diffMs = resetDate.getTime() - now.getTime();
+
+  if (diffMs <= 0) {
+    return "now";
+  }
+
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+  if (hours > 0) {
+    return `${hours} hour${hours > 1 ? 's' : ''} and ${minutes} minute${minutes !== 1 ? 's' : ''}`;
+  }
+
+  return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+}
+
+/**
+ * Strip markdown and HTML from text for Twitter
+ */
+export function sanitizeTextForTwitter(text: string): string {
+  let sanitized = text;
+
+  // Remove HTML tags
+  sanitized = sanitized.replace(/<[^>]*>/g, "");
+
+  // Remove markdown code blocks (```code```)
+  sanitized = sanitized.replace(/```[\s\S]*?```/g, "");
+
+  // Remove inline code (`code`)
+  sanitized = sanitized.replace(/`([^`]+)`/g, "$1");
+
+  // Remove markdown images FIRST (![alt](url)) before links are processed
+  sanitized = sanitized.replace(/!\[([^\]]*)\]\([^)]+\)/g, "");
+
+  // Remove markdown links but keep the text ([text](url) -> text)
+  sanitized = sanitized.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+
+  // Remove markdown bold/italic (**bold**, __bold__, *italic*, _italic_)
+  // Using .+? for non-greedy matching and s flag for multiline support
+  sanitized = sanitized.replace(/\*\*(.+?)\*\*/gs, "$1");
+  sanitized = sanitized.replace(/__(.+?)__/gs, "$1");
+  sanitized = sanitized.replace(/\*(.+?)\*/gs, "$1");
+  sanitized = sanitized.replace(/_(.+?)_/gs, "$1");
+
+  // Remove markdown headers (# Header)
+  sanitized = sanitized.replace(/^#{1,6}\s+/gm, "");
+
+  // Clean up any remaining orphaned markdown markers that weren't part of matched pairs
+  sanitized = sanitized.replace(/\*\*/g, "");
+  sanitized = sanitized.replace(/__/g, "");
+  sanitized = sanitized.replace(/\*/g, "");
+  sanitized = sanitized.replace(/_/g, "");
+
+  // Normalize whitespace (multiple spaces/newlines to single)
+  sanitized = sanitized.replace(/\n{3,}/g, "\n\n");
+  sanitized = sanitized.replace(/  +/g, " ");
+
+  // Trim
+  sanitized = sanitized.trim();
+
+  return sanitized;
+}
+
+/**
  * Split messages into tweet-sized chunks
+ * NOTE: Sanitizes text BEFORE splitting to get accurate length calculations
  */
 function splitMessages(
   messages: Array<{ role: string; content: string }>,
@@ -94,8 +171,11 @@ function splitMessages(
   let currentChunk = "";
 
   for (const message of messages) {
+    // Sanitize content FIRST to get accurate character count
+    // (markdown/HTML will be removed, so we need to measure the final text)
+    const sanitizedContent = sanitizeTextForTwitter(message.content);
     const messageText = `${message.role === "user" ? "👤" : "🤖"} ${
-      message.content
+      sanitizedContent
     }`;
     const separator = currentChunk ? "\n\n---\n\n" : "";
     const combined = currentChunk + separator + messageText;
@@ -195,32 +275,43 @@ app.post("/", async (req: Request, res: Response) => {
 
     // Post main tweet with image
     console.log("Posting main tweet...");
+    const sanitizedMainText = sanitizeTextForTwitter(mainTweetText);
     const mainTweet = await client.v2.tweet({
-      text: mainTweetText,
+      text: sanitizedMainText,
       media: {
         media_ids: [mediaId],
       },
+      reply_settings: "everyone",
     });
 
     console.log("Main tweet posted:", mainTweet.data.id);
 
     // If there are selected messages, create thread
-    let lastTweetId = mainTweet.data.id;
+    // All replies should point to the main tweet to create a proper thread
+    const mainTweetId = mainTweet.data.id;
     if (selectedMessages && selectedMessages.length > 0) {
       console.log("Creating thread with", selectedMessages.length, "messages");
 
       const chunks = splitMessages(selectedMessages);
       console.log("Split into", chunks.length, "tweet chunks");
 
-      for (const chunk of chunks) {
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+
+        // Add 2-second delay before posting (except for the first tweet)
+        if (i > 0) {
+          console.log("Waiting 2 seconds before posting next tweet...");
+          await delay(2000);
+        }
+
+        // Chunk is already sanitized by splitMessages(), so just post it
         const replyTweet = await client.v2.tweet({
           text: chunk,
           reply: {
-            in_reply_to_tweet_id: lastTweetId,
+            in_reply_to_tweet_id: mainTweetId,
           },
         });
-        lastTweetId = replyTweet.data.id;
-        console.log("Posted reply tweet:", lastTweetId);
+        console.log("Posted reply tweet:", replyTweet.data.id);
       }
     }
 
@@ -236,13 +327,41 @@ app.post("/", async (req: Request, res: Response) => {
 
     // Handle specific Twitter API errors
     if (error instanceof Error) {
-      const errorMessage = error.message;
+      const errorCode = (error as any).code;
       const errorData = (error as any).data;
+      const rateLimit = (error as any).rateLimit;
 
       console.error("Error type:", (error as any).type);
-      console.error("Error code:", (error as any).code);
+      console.error("Error code:", errorCode);
       console.error("Error data:", errorData);
 
+      // Handle rate limit errors (429)
+      if (errorCode === 429 && rateLimit) {
+        const resetTime = rateLimit.day?.reset || rateLimit.reset;
+        const remaining = rateLimit.day?.remaining ?? rateLimit.remaining;
+        const limit = rateLimit.day?.limit ?? rateLimit.limit;
+
+        console.error("Rate limit hit:", {
+          limit,
+          remaining,
+          resetTime,
+        });
+
+        const timeUntilReset = formatResetTime(resetTime);
+        const resetDate = new Date(resetTime * 1000);
+
+        return res.status(429).json({
+          error: "Twitter API rate limit reached",
+          message: `You've reached your daily posting limit (${limit} posts per 24 hours). Your limit will reset in ${timeUntilReset}.`,
+          resetTime: resetDate.toISOString(),
+          resetIn: timeUntilReset,
+          remaining,
+          limit,
+        });
+      }
+
+      // Handle other Twitter API errors
+      const errorMessage = error.message;
       return res.status(500).json({
         error: errorMessage || "Failed to share to X",
         details: errorData,

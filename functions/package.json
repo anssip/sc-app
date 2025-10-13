@@ -13,7 +13,7 @@
     "shell": "firebase functions:shell",
     "start": "npm run shell",
     "deploy": "bun run build && firebase deploy --only functions",
-    "deploy:customerio": "bun run build:ts && firebase deploy --only functions:syncUserToCustomerIO,functions:syncSubscriptionToCustomerIO",
+    "deploy:func": "bun run build:ts && firebase deploy --only functions:syncUserToCustomerIO,functions:shareToX",
     "logs": "firebase functions:log"
   },
   "engines": {
