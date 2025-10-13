@@ -86,7 +86,7 @@ async function verifyAuthToken(idToken: string): Promise<string> {
 /**
  * Strip markdown and HTML from text for Twitter
  */
-function sanitizeTextForTwitter(text: string): string {
+export function sanitizeTextForTwitter(text: string): string {
   let sanitized = text;
 
   // Remove HTML tags
@@ -98,20 +98,27 @@ function sanitizeTextForTwitter(text: string): string {
   // Remove inline code (`code`)
   sanitized = sanitized.replace(/`([^`]+)`/g, "$1");
 
-  // Remove markdown bold/italic (**bold**, __bold__, *italic*, _italic_)
-  sanitized = sanitized.replace(/\*\*([^*]+)\*\*/g, "$1");
-  sanitized = sanitized.replace(/__([^_]+)__/g, "$1");
-  sanitized = sanitized.replace(/\*([^*]+)\*/g, "$1");
-  sanitized = sanitized.replace(/_([^_]+)_/g, "$1");
-
-  // Remove markdown headers (# Header)
-  sanitized = sanitized.replace(/^#{1,6}\s+/gm, "");
+  // Remove markdown images FIRST (![alt](url)) before links are processed
+  sanitized = sanitized.replace(/!\[([^\]]*)\]\([^)]+\)/g, "");
 
   // Remove markdown links but keep the text ([text](url) -> text)
   sanitized = sanitized.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
 
-  // Remove markdown images (![alt](url))
-  sanitized = sanitized.replace(/!\[([^\]]*)\]\([^)]+\)/g, "");
+  // Remove markdown bold/italic (**bold**, __bold__, *italic*, _italic_)
+  // Using .+? for non-greedy matching and s flag for multiline support
+  sanitized = sanitized.replace(/\*\*(.+?)\*\*/gs, "$1");
+  sanitized = sanitized.replace(/__(.+?)__/gs, "$1");
+  sanitized = sanitized.replace(/\*(.+?)\*/gs, "$1");
+  sanitized = sanitized.replace(/_(.+?)_/gs, "$1");
+
+  // Remove markdown headers (# Header)
+  sanitized = sanitized.replace(/^#{1,6}\s+/gm, "");
+
+  // Clean up any remaining orphaned markdown markers that weren't part of matched pairs
+  sanitized = sanitized.replace(/\*\*/g, "");
+  sanitized = sanitized.replace(/__/g, "");
+  sanitized = sanitized.replace(/\*/g, "");
+  sanitized = sanitized.replace(/_/g, "");
 
   // Normalize whitespace (multiple spaces/newlines to single)
   sanitized = sanitized.replace(/\n{3,}/g, "\n\n");
@@ -245,9 +252,7 @@ app.post("/", async (req: Request, res: Response) => {
       media: {
         media_ids: [mediaId],
       },
-      reply: {
-        reply_settings: "everyone",
-      },
+      reply_settings: "everyone",
     });
 
     console.log("Main tweet posted:", mainTweet.data.id);
