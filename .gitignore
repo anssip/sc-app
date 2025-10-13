@@ -118,3 +118,5 @@ functions/package.json.bak
 functions/.env
 functions/.secret.local
 functions/dist
+
+serviceAccountKey.json
