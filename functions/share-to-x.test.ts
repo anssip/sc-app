@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { sanitizeTextForTwitter } from "./share-to-x";
+import { sanitizeTextForTwitter, formatResetTime } from "./share-to-x";
 
 describe("sanitizeTextForTwitter", () => {
   describe("Markdown Bold Removal", () => {
@@ -236,5 +236,47 @@ HTML content`;
       const expected = "Text that\nspans multiple\nlines";
       expect(sanitizeTextForTwitter(input)).toBe(expected);
     });
+  });
+});
+
+describe("formatResetTime", () => {
+  test("should return 'now' for timestamps in the past", () => {
+    const pastTimestamp = Math.floor(Date.now() / 1000) - 3600; // 1 hour ago
+    expect(formatResetTime(pastTimestamp)).toBe("now");
+  });
+
+  test("should format minutes correctly", () => {
+    const futureTimestamp = Math.floor(Date.now() / 1000) + 600; // 10 minutes from now
+    const result = formatResetTime(futureTimestamp);
+    expect(result).toMatch(/^\d+ minutes?$/);
+    expect(result).toContain("minute");
+  });
+
+  test("should format hours and minutes correctly", () => {
+    const futureTimestamp = Math.floor(Date.now() / 1000) + 7500; // ~2 hours from now
+    const result = formatResetTime(futureTimestamp);
+    expect(result).toMatch(/^\d+ hours? and \d+ minutes?$/);
+    expect(result).toContain("hour");
+  });
+
+  test("should handle 24-hour rate limit reset (typical Twitter case)", () => {
+    const futureTimestamp = Math.floor(Date.now() / 1000) + 86400; // 24 hours from now
+    const result = formatResetTime(futureTimestamp);
+    expect(result).toContain("23 hours"); // Accounts for timing differences
+    expect(result).toContain("minute");
+  });
+
+  test("should include 'hour' for longer durations", () => {
+    const futureTimestamp = Math.floor(Date.now() / 1000) + 18000; // 5 hours from now
+    const result = formatResetTime(futureTimestamp);
+    expect(result).toContain("hour");
+    expect(result).toContain("and");
+  });
+
+  test("should format realistic Twitter rate limit reset", () => {
+    // Twitter typically shows reset times up to 24 hours away
+    const futureTimestamp = Math.floor(Date.now() / 1000) + 50400; // ~14 hours from now
+    const result = formatResetTime(futureTimestamp);
+    expect(result).toMatch(/\d+ hours? and \d+ minutes?/);
   });
 });

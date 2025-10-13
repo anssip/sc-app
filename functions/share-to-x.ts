@@ -84,6 +84,28 @@ async function verifyAuthToken(idToken: string): Promise<string> {
 }
 
 /**
+ * Format Unix timestamp to human-readable time
+ */
+export function formatResetTime(resetTimestamp: number): string {
+  const resetDate = new Date(resetTimestamp * 1000);
+  const now = new Date();
+  const diffMs = resetDate.getTime() - now.getTime();
+
+  if (diffMs <= 0) {
+    return "now";
+  }
+
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+  if (hours > 0) {
+    return `${hours} hour${hours > 1 ? 's' : ''} and ${minutes} minute${minutes !== 1 ? 's' : ''}`;
+  }
+
+  return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+}
+
+/**
  * Strip markdown and HTML from text for Twitter
  */
 export function sanitizeTextForTwitter(text: string): string {
@@ -290,13 +312,41 @@ app.post("/", async (req: Request, res: Response) => {
 
     // Handle specific Twitter API errors
     if (error instanceof Error) {
-      const errorMessage = error.message;
+      const errorCode = (error as any).code;
       const errorData = (error as any).data;
+      const rateLimit = (error as any).rateLimit;
 
       console.error("Error type:", (error as any).type);
-      console.error("Error code:", (error as any).code);
+      console.error("Error code:", errorCode);
       console.error("Error data:", errorData);
 
+      // Handle rate limit errors (429)
+      if (errorCode === 429 && rateLimit) {
+        const resetTime = rateLimit.day?.reset || rateLimit.reset;
+        const remaining = rateLimit.day?.remaining ?? rateLimit.remaining;
+        const limit = rateLimit.day?.limit ?? rateLimit.limit;
+
+        console.error("Rate limit hit:", {
+          limit,
+          remaining,
+          resetTime,
+        });
+
+        const timeUntilReset = formatResetTime(resetTime);
+        const resetDate = new Date(resetTime * 1000);
+
+        return res.status(429).json({
+          error: "Twitter API rate limit reached",
+          message: `You've reached your daily posting limit (${limit} posts per 24 hours). Your limit will reset in ${timeUntilReset}.`,
+          resetTime: resetDate.toISOString(),
+          resetIn: timeUntilReset,
+          remaining,
+          limit,
+        });
+      }
+
+      // Handle other Twitter API errors
+      const errorMessage = error.message;
       return res.status(500).json({
         error: errorMessage || "Failed to share to X",
         details: errorData,
