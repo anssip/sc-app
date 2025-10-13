@@ -84,6 +84,13 @@ async function verifyAuthToken(idToken: string): Promise<string> {
 }
 
 /**
+ * Delay execution for specified milliseconds
+ */
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
  * Format Unix timestamp to human-readable time
  */
 export function formatResetTime(resetTimestamp: number): string {
@@ -288,7 +295,15 @@ app.post("/", async (req: Request, res: Response) => {
       const chunks = splitMessages(selectedMessages);
       console.log("Split into", chunks.length, "tweet chunks");
 
-      for (const chunk of chunks) {
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+
+        // Add 2-second delay before posting (except for the first tweet)
+        if (i > 0) {
+          console.log("Waiting 2 seconds before posting next tweet...");
+          await delay(2000);
+        }
+
         // Chunk is already sanitized by splitMessages(), so just post it
         const replyTweet = await client.v2.tweet({
           text: chunk,
