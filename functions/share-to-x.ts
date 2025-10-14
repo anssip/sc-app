@@ -281,7 +281,6 @@ app.post("/", async (req: Request, res: Response) => {
       media: {
         media_ids: [mediaId],
       },
-      reply_settings: "everyone",
     });
 
     console.log("Main tweet posted:", mainTweet.data.id);
