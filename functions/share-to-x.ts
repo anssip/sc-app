@@ -106,10 +106,12 @@ export function formatResetTime(resetTimestamp: number): string {
   const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
 
   if (hours > 0) {
-    return `${hours} hour${hours > 1 ? 's' : ''} and ${minutes} minute${minutes !== 1 ? 's' : ''}`;
+    return `${hours} hour${hours > 1 ? "s" : ""} and ${minutes} minute${
+      minutes !== 1 ? "s" : ""
+    }`;
   }
 
-  return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+  return `${minutes} minute${minutes !== 1 ? "s" : ""}`;
 }
 
 /**
@@ -174,9 +176,9 @@ function splitMessages(
     // Sanitize content FIRST to get accurate character count
     // (markdown/HTML will be removed, so we need to measure the final text)
     const sanitizedContent = sanitizeTextForTwitter(message.content);
-    const messageText = `${message.role === "user" ? "👤" : "🤖"} ${
-      sanitizedContent
-    }`;
+    const messageText = `${
+      message.role === "user" ? "👤" : "🤖"
+    } ${sanitizedContent}`;
     const separator = currentChunk ? "\n\n---\n\n" : "";
     const combined = currentChunk + separator + messageText;
 
@@ -281,6 +283,7 @@ app.post("/", async (req: Request, res: Response) => {
       media: {
         media_ids: [mediaId],
       },
+      reply_settings: "mentionedUsers",
     });
 
     console.log("Main tweet posted:", mainTweet.data.id);
