@@ -53,6 +53,31 @@ const SUBSCRIPTION_DATA = {
   },
 };
 
+async function createUserDocument() {
+  try {
+    // Create or update user document with Twitter credentials for testing
+    const userRef = db.collection("users").doc(TEST_USER.uid);
+
+    await userRef.set({
+      email: TEST_USER.email,
+      displayName: TEST_USER.displayName,
+      createdAt: new Date(),
+      // Add test Twitter credentials for emulator
+      twitterCredentials: {
+        accessToken: "test_access_token",
+        accessSecret: "test_access_secret",
+        username: "testuser",
+        userId: "123456789",
+      },
+    }, { merge: true });
+
+    console.log("✅ Successfully created user document with Twitter credentials");
+  } catch (error) {
+    console.error("Error creating user document:", error);
+    throw error;
+  }
+}
+
 async function createSubscription() {
   try {
     // Check if subscription already exists and delete it
@@ -111,6 +136,10 @@ async function createUser() {
     console.log("   Display Name:", userRecord.displayName);
     console.log("   Email Verified:", userRecord.emailVerified);
 
+    // Create user document with Twitter credentials
+    console.log("\nCreating user document...");
+    await createUserDocument();
+
     // Create subscription for the user
     console.log("\nCreating subscription...");
     await createSubscription();
@@ -123,6 +152,7 @@ async function createUser() {
     console.log(`  Password: ${TEST_USER.password}`);
     console.log(`  UID: ${TEST_USER.uid}`);
     console.log(`  Plan: Starter (with 7-day trial)`);
+    console.log(`  Twitter: Test credentials configured`);
     console.log("==============================================\n");
 
     process.exit(0);
