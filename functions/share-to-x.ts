@@ -283,37 +283,31 @@ app.post("/", async (req: Request, res: Response) => {
       media: {
         media_ids: [mediaId],
       },
-      reply_settings: "mentionedUsers",
     });
 
     console.log("Main tweet posted:", mainTweet.data.id);
 
-    // If there are selected messages, create thread
-    // All replies should point to the main tweet to create a proper thread
-    const mainTweetId = mainTweet.data.id;
     if (selectedMessages && selectedMessages.length > 0) {
       console.log("Creating thread with", selectedMessages.length, "messages");
 
       const chunks = splitMessages(selectedMessages);
       console.log("Split into", chunks.length, "tweet chunks");
 
+      // Use the dedicated .reply method for creating threads
+      let lastTweet = mainTweet;
+
       for (let i = 0; i < chunks.length; i++) {
         const chunk = chunks[i];
 
-        // Add 2-second delay before posting (except for the first tweet)
         if (i > 0) {
           console.log("Waiting 2 seconds before posting next tweet...");
           await delay(2000);
         }
 
-        // Chunk is already sanitized by splitMessages(), so just post it
-        const replyTweet = await client.v2.tweet({
-          text: chunk,
-          reply: {
-            in_reply_to_tweet_id: mainTweetId,
-          },
-        });
-        console.log("Posted reply tweet:", replyTweet.data.id);
+        const reply = await client.v2.reply(chunk, lastTweet.data.id);
+
+        lastTweet = reply; // Update lastTweet to the new reply
+        console.log("Posted reply tweet:", lastTweet.data.id);
       }
     }
 

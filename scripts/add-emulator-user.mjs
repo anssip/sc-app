@@ -58,20 +58,25 @@ async function createUserDocument() {
     // Create or update user document with Twitter credentials for testing
     const userRef = db.collection("users").doc(TEST_USER.uid);
 
-    await userRef.set({
-      email: TEST_USER.email,
-      displayName: TEST_USER.displayName,
-      createdAt: new Date(),
-      // Add test Twitter credentials for emulator
-      twitterCredentials: {
-        accessToken: "test_access_token",
-        accessSecret: "test_access_secret",
-        username: "testuser",
-        userId: "123456789",
+    await userRef.set(
+      {
+        email: TEST_USER.email,
+        displayName: TEST_USER.displayName,
+        createdAt: new Date(),
+        // Add test Twitter credentials for emulator
+        twitterCredentials: {
+          accessToken: "77168577-TD3GgMZfjI0KjpxdvrpFrPwjQv7ftcrY4EFu7v2wL",
+          accessSecret: "GUSVPvBvc3bVe9dkWQ0dcGBUZpXeP42JOYm9oWqm55GP6",
+          username: "anssip",
+          userId: "77168577",
+        },
       },
-    }, { merge: true });
+      { merge: true }
+    );
 
-    console.log("✅ Successfully created user document with Twitter credentials");
+    console.log(
+      "✅ Successfully created user document with Twitter credentials"
+    );
   } catch (error) {
     console.error("Error creating user document:", error);
     throw error;
