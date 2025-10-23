@@ -8,6 +8,7 @@
  */
 
 export { TradingEngine } from "./TradingEngine";
+export { BacktestingEngine } from "./BacktestingEngine";
 export { OrderExecutor } from "./OrderExecutor";
 export { PositionManager } from "./PositionManager";
 export { AccountManager } from "./AccountManager";

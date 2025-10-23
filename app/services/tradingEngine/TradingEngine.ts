@@ -129,6 +129,10 @@ export abstract class TradingEngine extends EventEmitter {
         }
       }
 
+      // Track position before trade to detect if it gets closed
+      const positionBefore = this.positionManager.getPosition(order.symbol);
+      const hadPosition = positionBefore !== undefined;
+
       // Execute based on order type
       let trade: Trade | null = null;
 
@@ -149,6 +153,27 @@ export abstract class TradingEngine extends EventEmitter {
         // Credit proceeds if selling
         if (order.side === "sell") {
           this.accountManager.creditOrderProceeds(trade);
+        }
+
+        // Check if position was closed by this trade
+        if (hadPosition && position.quantity === 0) {
+          // Position was fully closed - create completed trade
+          const completedTrade: CompletedTrade = {
+            id: trade.id,
+            symbol: trade.symbol,
+            side: positionBefore.side,
+            quantity: positionBefore.quantity,
+            entryPrice: positionBefore.avgEntryPrice,
+            exitPrice: trade.price,
+            pnl: (trade.price - positionBefore.avgEntryPrice) * positionBefore.quantity * (positionBefore.side === "long" ? 1 : -1),
+            pnlPercent: ((trade.price - positionBefore.avgEntryPrice) / positionBefore.avgEntryPrice) * 100 * (positionBefore.side === "long" ? 1 : -1),
+            entryTime: positionBefore.entryTime,
+            exitTime: trade.timestamp,
+            duration: trade.timestamp - positionBefore.entryTime,
+          };
+
+          this.trades.push(completedTrade);
+          this.emit("position-closed", completedTrade);
         }
 
         // Update account equity
