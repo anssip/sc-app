@@ -38,9 +38,9 @@ This document outlines the API additions needed in the rs-charts library to supp
 8. Enhanced crosshair events
 
 **Nice to Have (P2):**
-9. Equity curve overlay
-10. Risk zones
-11. Time markers
+9. Risk zones
+10. Time markers
+11. Trading indicators (equity curve, drawdown)
 12. Order depth visualization
 
 ---
@@ -588,79 +588,240 @@ interface RiskZone extends RiskZoneConfig {
 
 ---
 
-## 10. Equity Curve Overlay
+## 10. Trading Indicators (Equity Curve & Drawdown)
 
 ### Purpose
-Overlay portfolio equity curve on top of price chart for performance visualization.
+Visualize portfolio performance metrics using the standard indicator system. This leverages rs-charts' existing indicator infrastructure instead of creating new custom APIs.
+
+**Architecture Decision:** Equity curve and drawdown are implemented as **indicators** rather than custom overlays. This provides:
+- ✅ Consistent API with existing technical indicators (RSI, MACD, etc.)
+- ✅ Reuses panel management and rendering infrastructure
+- ✅ Familiar UX for users who already know indicators
+- ✅ Standard configuration and settings UI
+- ✅ Easy toggle on/off like any other indicator
 
 ### API Methods
 
+Use the **existing** `showIndicator()` and `hideIndicator()` methods:
+
 ```typescript
-// Show equity curve overlay
-showEquityCurve(data: EquityPoint[]): void
+// Show equity curve indicator (existing API)
+chart.showIndicator({
+  id: 'equity-curve',
+  name: 'Portfolio Equity',
+  display: 'Bottom',      // Creates separate panel below price chart
+  visible: true,
+  params: {
+    data: EquityPoint[],  // Pre-calculated equity curve from sc-app
+    lineColor?: string,
+    lineWidth?: number,
+    showPeakLine?: boolean,
+    fillArea?: boolean
+  },
+  scale: 'Value',
+  className: 'TradingIndicator'
+});
 
-// Hide equity curve overlay
-hideEquityCurve(): void
+// Show drawdown indicator (existing API)
+chart.showIndicator({
+  id: 'drawdown',
+  name: 'Drawdown %',
+  display: 'Bottom',
+  visible: true,
+  params: {
+    data: DrawdownPoint[], // Pre-calculated drawdown curve from sc-app
+    fillColor?: string,
+    fillOpacity?: number,
+    showZeroLine?: boolean,
+    invertYAxis?: boolean,
+    warnThreshold?: number
+  },
+  scale: 'Percent',
+  className: 'TradingIndicator'
+});
 
-// Update equity curve data
-updateEquityCurve(data: EquityPoint[]): void
-
-// Check if equity curve is visible
-isEquityCurveVisible(): boolean
+// Hide indicators (existing API)
+chart.hideIndicator('equity-curve');
+chart.hideIndicator('drawdown');
 ```
 
 ### TypeScript Interfaces
 
 ```typescript
+// Equity Curve Indicator Parameters
+interface EquityCurveParams {
+  data: EquityPoint[];                // Pre-calculated equity curve (from sc-app)
+  lineColor?: string;                 // Line color (default: #2196f3)
+  lineWidth?: number;                 // Line thickness (default: 2)
+  showPeakLine?: boolean;             // Show running maximum equity
+  peakLineColor?: string;             // Peak line color (default: #666)
+  peakLineStyle?: 'solid' | 'dashed' | 'dotted';
+  fillArea?: boolean;                 // Fill area under curve
+  areaColor?: string;                 // Area fill color
+  areaOpacity?: number;               // Area opacity (0-1)
+}
+
+// Drawdown Indicator Parameters
+interface DrawdownParams {
+  data: DrawdownPoint[];              // Pre-calculated drawdown curve (from sc-app)
+  fillColor?: string;                 // Fill color (default: #ff0000)
+  fillOpacity?: number;               // Fill opacity (default: 0.3)
+  showZeroLine?: boolean;             // Show horizontal line at 0% (default: true)
+  invertYAxis?: boolean;              // True = drawdowns go down (default: true)
+  warnThreshold?: number;             // Highlight when drawdown exceeds % (e.g., -10)
+  warnColor?: string;                 // Color for severe drawdowns
+}
+
+// Data point structures (calculated by sc-app)
 interface EquityPoint {
-  timestamp: number;              // Unix timestamp
-  equity: number;                 // Portfolio value at this time
+  timestamp: number;                  // Unix timestamp
+  equity: number;                     // Portfolio value at this time
 }
 
-interface EquityCurveConfig {
-  data: EquityPoint[];
-  color?: string;                 // Line color (default: blue)
-  lineWidth?: number;             // Line thickness
-  lineStyle?: 'solid' | 'dashed' | 'dotted';
-  showArea?: boolean;             // Fill area under curve
-  areaColor?: string;             // Area fill color
-  opacity?: number;               // Line/area opacity
-  yAxisPosition?: 'left' | 'right' | 'separate';  // Y-axis placement
-}
-```
-
----
-
-## 11. Drawdown Visualization
-
-### Purpose
-Highlight drawdown periods on the chart.
-
-### API Methods
-
-```typescript
-// Show drawdown overlay
-showDrawdown(data: DrawdownPoint[]): void
-
-// Hide drawdown overlay
-hideDrawdown(): void
-
-// Update drawdown data
-updateDrawdown(data: DrawdownPoint[]): void
-```
-
-### TypeScript Interfaces
-
-```typescript
 interface DrawdownPoint {
-  timestamp: number;
-  drawdownPercent: number;        // Negative percentage
+  timestamp: number;                  // Unix timestamp
+  drawdownPercent: number;            // Negative percentage (e.g., -15.5)
 }
 ```
 
+### Implementation Notes
+
+**Key Principle:** These indicators are **data renderers**, not calculators. Equity and drawdown are calculated in sc-app's business logic layer (PerformanceAnalytics), then passed to rs-charts for visualization only.
+
+**In sc-app** (business logic layer):
+
+```typescript
+// app/services/tradingEngine/PerformanceAnalytics.ts
+class PerformanceAnalytics {
+  generateEquityCurve(trades: Trade[], startingBalance: number): EquityPoint[] {
+    let equity = startingBalance;
+    const points: EquityPoint[] = [
+      { timestamp: trades[0]?.entryTime || Date.now(), equity: startingBalance }
+    ];
+
+    trades.forEach(trade => {
+      equity += trade.pnl;
+      points.push({ timestamp: trade.exitTime, equity });
+    });
+
+    return points;
+  }
+
+  generateDrawdownCurve(equityCurve: EquityPoint[]): DrawdownPoint[] {
+    let peak = equityCurve[0]?.equity || 0;
+    const points: DrawdownPoint[] = [];
+
+    equityCurve.forEach(point => {
+      if (point.equity > peak) peak = point.equity;
+      const drawdown = ((peak - point.equity) / peak) * 100;
+      points.push({ timestamp: point.timestamp, drawdownPercent: -drawdown });
+    });
+
+    return points;
+  }
+}
+```
+
+**In rs-charts** (visualization layer):
+
+```typescript
+// Example: Equity Curve Indicator (just renders pre-calculated data)
+class EquityCurveIndicator extends MarketIndicator {
+  constructor(params: EquityCurveParams) {
+    super({
+      name: 'Portfolio Equity',
+      display: 'bottom',
+      scale: 'value'
+    });
+    this.params = params;
+  }
+
+  calculate(): IndicatorResult {
+    // NO calculation - data is already calculated by sc-app
+    const { data } = this.params;
+
+    return {
+      lines: [{
+        name: 'equity',
+        values: data.map(p => p.equity),
+        timestamps: data.map(p => p.timestamp),
+        color: this.params.lineColor || '#2196f3',
+        width: this.params.lineWidth || 2
+      }]
+    };
+  }
+}
+
+// Example: Drawdown Indicator (just renders pre-calculated data)
+class DrawdownIndicator extends MarketIndicator {
+  constructor(params: DrawdownParams) {
+    super({
+      name: 'Drawdown %',
+      display: 'bottom',
+      scale: 'percent'
+    });
+    this.params = params;
+  }
+
+  calculate(): IndicatorResult {
+    // NO calculation - data is already calculated by sc-app
+    const { data } = this.params;
+
+    return {
+      areas: [{
+        name: 'drawdown',
+        values: data.map(p => p.drawdownPercent),
+        timestamps: data.map(p => p.timestamp),
+        fillColor: this.params.fillColor || '#ff0000',
+        fillOpacity: this.params.fillOpacity || 0.3
+      }]
+    };
+  }
+}
+
+// Register trading indicators
+registerIndicator('equity-curve', EquityCurveIndicator);
+registerIndicator('drawdown', DrawdownIndicator);
+```
+
+### Visual Layout
+
+The indicators create separate panels below the main price chart:
+
+```
+┌─────────────────────────────────────────────┐
+│  Main Price Chart (70%)                     │
+│  • Candles, volume, technical indicators    │
+│  • Trade markers                            │
+│  • Price lines for orders/positions         │
+└─────────────────────────────────────────────┘
+┌─────────────────────────────────────────────┐
+│  Equity Curve Indicator (15%)               │
+│  📈 Blue line showing portfolio value       │
+│  • Dotted line showing peak equity          │
+└─────────────────────────────────────────────┘
+┌─────────────────────────────────────────────┐
+│  Drawdown Indicator (15%)                   │
+│     0% ──────────────────────────────       │
+│    -5% ▁▁                                   │
+│   -10%   ▂▂▂                                │
+│   -15%      ▃▃▃▃▃                           │
+│  🔴 Red area showing decline from peak      │
+└─────────────────────────────────────────────┘
+```
+
+### Advantages of Indicator Approach
+
+1. **Consistent API** - Users already know `showIndicator()` / `hideIndicator()`
+2. **Reuses infrastructure** - Panel management, rendering, lifecycle all handled
+3. **Standard configuration** - Same settings pattern as RSI, MACD, etc.
+4. **Familiar UX** - Indicators can be toggled, configured, moved
+5. **Less code** - No new API methods needed
+6. **Maintainable** - Follows existing patterns
+
 ---
 
-## 12. Chart State Management for Trading
+## 11. Chart State Management for Trading
 
 ### Purpose
 Save and restore all trading overlays for persistence.
@@ -690,6 +851,8 @@ interface TradingChartState {
   riskZones: RiskZone[];
   positionOverlay: PositionOverlayConfig | null;
   clickToTrade: ClickToTradeConfig | null;
+  // Note: Equity curve and drawdown are handled as indicators,
+  // so they're part of the standard indicator state, not trading-specific state
 }
 ```
 
@@ -710,10 +873,11 @@ interface TradingChartState {
 8. **Enhanced Events** - Better interaction handling
 
 ### Phase 3 (Nice to Have - P2)
-9. **Equity Curve** - Advanced analytics
+9. **Trading Indicators** (Equity Curve & Drawdown) - Performance analytics
 10. **Risk Zones** - Risk management visualization
 11. **Time Markers** - Event marking
-12. **Drawdown** - Performance analysis
+
+**Note on Trading Indicators:** Equity curve and drawdown leverage the existing indicator system, so they're simpler to implement than custom overlays. They reuse all the panel management, rendering, and lifecycle code that already exists for technical indicators (RSI, MACD, etc.).
 
 ---
 
@@ -815,6 +979,80 @@ chart.on('order-request', (event) => {
     }
   });
 });
+
+// Example: Show equity curve and drawdown indicators (backtesting results)
+const backtestResult = await backtestEngine.runBacktest(strategy);
+
+// Step 1: Calculate equity and drawdown in sc-app (business logic)
+const analytics = new PerformanceAnalytics();
+const equityCurve = analytics.generateEquityCurve(
+  backtestResult.trades,
+  backtestResult.account.startingBalance
+);
+const drawdownCurve = analytics.generateDrawdownCurve(equityCurve);
+
+// Step 2: Pass pre-calculated data to rs-charts (visualization)
+chart.showIndicator({
+  id: 'equity-curve',
+  name: 'Portfolio Equity',
+  display: 'Bottom',
+  visible: true,
+  params: {
+    data: equityCurve,        // ✅ Pre-calculated EquityPoint[]
+    lineColor: '#2196f3',
+    lineWidth: 2,
+    showPeakLine: true,
+    peakLineStyle: 'dotted'
+  },
+  scale: 'Value',
+  className: 'TradingIndicator'
+});
+
+chart.showIndicator({
+  id: 'drawdown',
+  name: 'Drawdown %',
+  display: 'Bottom',
+  visible: true,
+  params: {
+    data: drawdownCurve,      // ✅ Pre-calculated DrawdownPoint[]
+    fillColor: '#ff0000',
+    fillOpacity: 0.3,
+    showZeroLine: true,
+    invertYAxis: true,
+    warnThreshold: -10
+  },
+  scale: 'Percent',
+  className: 'TradingIndicator'
+});
+
+// Example: Toggle indicators on/off (same as technical indicators)
+chart.hideIndicator('equity-curve');
+chart.showIndicator('drawdown');
+
+// Example: Update indicators when new trades are added (paper trading)
+paperTradingEngine.on('trade-executed', (trade) => {
+  const allTrades = paperTradingEngine.getTrades();
+
+  // Recalculate equity/drawdown in sc-app
+  const analytics = new PerformanceAnalytics();
+  const updatedEquityCurve = analytics.generateEquityCurve(allTrades, 100000);
+  const updatedDrawdownCurve = analytics.generateDrawdownCurve(updatedEquityCurve);
+
+  // Update indicators with recalculated data
+  chart.showIndicator({
+    id: 'equity-curve',
+    params: {
+      data: updatedEquityCurve  // ✅ Recalculated with new trade
+    }
+  });
+
+  chart.showIndicator({
+    id: 'drawdown',
+    params: {
+      data: updatedDrawdownCurve
+    }
+  });
+});
 ```
 
 ---
@@ -843,3 +1081,20 @@ This separation ensures:
 2. Business logic stays in sc-app where it belongs
 3. Testing is simpler (visual tests vs. business logic tests)
 4. Changes to trading rules don't require rs-charts updates
+
+### Architecture Decisions
+
+**Equity Curve & Drawdown as Indicators:**
+- These are implemented as indicators rather than custom APIs
+- Reuses existing indicator infrastructure (panels, rendering, lifecycle)
+- Provides consistent UX with technical indicators (RSI, MACD, etc.)
+- Simpler to implement and maintain
+- **sc-app calculates** equity/drawdown from trades (business logic layer)
+- **rs-charts renders** pre-calculated EquityPoint[] and DrawdownPoint[] (visualization layer)
+- Clear separation: calculation happens once in sc-app, rendering happens in rs-charts
+
+**What's an Indicator vs. What's a Custom API:**
+- **Indicators** (continuous data over time): Equity curve, drawdown, win rate
+- **Custom APIs** (discrete events/overlays): Trade markers, price lines, trade zones, position overlay
+- Use indicators when visualizing time-series data
+- Use custom APIs for point-in-time annotations or interactive elements

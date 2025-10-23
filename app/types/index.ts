@@ -240,3 +240,6 @@ export class ValidationError extends RepositoryError {
     this.name = "ValidationError";
   }
 }
+
+// Trading types
+export * from "./trading";

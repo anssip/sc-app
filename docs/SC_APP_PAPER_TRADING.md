@@ -120,7 +120,7 @@ class PaperTradingEngine extends TradingEngine {
       const unsubscribe = repository.subscribeToCandle(
         'coinbase',
         symbol,
-        'ONE_MINUTE',
+        'FIVE_MINUTE',
         (candle) => this.onPriceUpdate(symbol, candle.close)
       );
       this.priceSubscriptions.set(symbol, unsubscribe);
