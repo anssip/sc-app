@@ -129,8 +129,8 @@ export class BacktestingEngine extends TradingEngine {
           createdAt: candle.timestamp,
         };
 
-        // Execute order
-        const trade = await this.executeOrder(order);
+        // Execute order with historical timestamp
+        const trade = await this.executeOrder(order, candle.timestamp);
 
         if (trade) {
           strategy.onTrade?.(trade);
@@ -157,7 +157,7 @@ export class BacktestingEngine extends TradingEngine {
     const finalCandle = candles[candles.length - 1];
     const openPositions = [...this.getPositions()];
     for (const position of openPositions) {
-      await this.closePosition(position.symbol);
+      await this.closePosition(position.symbol, finalCandle.timestamp);
     }
 
     // Generate result

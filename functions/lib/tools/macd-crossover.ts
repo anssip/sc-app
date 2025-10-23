@@ -3,7 +3,7 @@
  * Detects MACD signal line crossovers and zero-line crossovers
  */
 
-import { PriceCandle, MarketAPI } from "../market-api.js";
+import { type PriceCandle, MarketAPI } from "../market-api.js";
 
 export interface MACDCrossover {
   type: "bullish" | "bearish" | "bullish_zero" | "bearish_zero";

@@ -103,11 +103,12 @@ export abstract class TradingEngine extends EventEmitter {
   /**
    * Execute an order
    * @param order Order to execute
+   * @param timestamp Optional timestamp for the trade (for backtesting)
    * @returns Executed trade or null if rejected
    */
-  async executeOrder(order: Order): Promise<Trade | null> {
+  async executeOrder(order: Order, timestamp?: number): Promise<Trade | null> {
     try {
-      const currentPrice = await this.getPriceAt(order.symbol, Date.now());
+      const currentPrice = await this.getPriceAt(order.symbol, timestamp ?? Date.now());
 
       if (currentPrice === 0) {
         this.emit("order-rejected", {
@@ -137,13 +138,13 @@ export abstract class TradingEngine extends EventEmitter {
       let trade: Trade | null = null;
 
       if (order.type === "market") {
-        trade = this.orderExecutor.executeMarketOrder(order, currentPrice);
+        trade = this.orderExecutor.executeMarketOrder(order, currentPrice, timestamp);
       } else if (order.type === "limit") {
-        trade = this.orderExecutor.checkLimitOrder(order, currentPrice);
+        trade = this.orderExecutor.checkLimitOrder(order, currentPrice, timestamp);
       } else if (order.type === "stop") {
-        trade = this.orderExecutor.checkStopOrder(order, currentPrice);
+        trade = this.orderExecutor.checkStopOrder(order, currentPrice, timestamp);
       } else if (order.type === "stop_limit") {
-        trade = this.orderExecutor.checkStopLimitOrder(order, currentPrice);
+        trade = this.orderExecutor.checkStopLimitOrder(order, currentPrice, timestamp);
       }
 
       if (trade) {
@@ -202,11 +203,12 @@ export abstract class TradingEngine extends EventEmitter {
   /**
    * Close a position at current market price
    * @param symbol Symbol to close
+   * @param timestamp Optional timestamp for the trade (for backtesting)
    * @returns Completed trade or null if no position
    */
-  async closePosition(symbol: string): Promise<CompletedTrade | null> {
-    const currentPrice = await this.getPriceAt(symbol, Date.now());
-    const closedTrade = this.positionManager.closePosition(symbol, currentPrice);
+  async closePosition(symbol: string, timestamp?: number): Promise<CompletedTrade | null> {
+    const currentPrice = await this.getPriceAt(symbol, timestamp ?? Date.now());
+    const closedTrade = this.positionManager.closePosition(symbol, currentPrice, timestamp);
 
     if (closedTrade) {
       // Record the completed trade

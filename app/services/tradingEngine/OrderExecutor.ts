@@ -15,9 +15,10 @@ export class OrderExecutor {
    * Execute a market order at current price
    * @param order The order to execute
    * @param currentPrice Current market price
+   * @param timestamp Optional timestamp (for backtesting, defaults to now)
    * @returns Executed trade
    */
-  executeMarketOrder(order: Order, currentPrice: number): Trade {
+  executeMarketOrder(order: Order, currentPrice: number, timestamp?: number): Trade {
     return {
       id: this.generateTradeId(),
       orderId: order.id,
@@ -25,7 +26,7 @@ export class OrderExecutor {
       side: order.side,
       quantity: order.quantity,
       price: currentPrice,
-      timestamp: Date.now(),
+      timestamp: timestamp ?? Date.now(),
       type: "market",
       metadata: order.metadata,
     };
@@ -35,17 +36,18 @@ export class OrderExecutor {
    * Check if a limit order should execute and execute if conditions met
    * @param order The limit order to check
    * @param currentPrice Current market price
+   * @param timestamp Optional timestamp (for backtesting, defaults to now)
    * @returns Executed trade or null if conditions not met
    */
-  checkLimitOrder(order: Order, currentPrice: number): Trade | null {
+  checkLimitOrder(order: Order, currentPrice: number, timestamp?: number): Trade | null {
     // Limit buy: execute if current price <= limit price
     if (order.side === "buy" && currentPrice <= (order.price || 0)) {
-      return this.executeLimitOrder(order, order.price!);
+      return this.executeLimitOrder(order, order.price!, timestamp);
     }
 
     // Limit sell: execute if current price >= limit price
     if (order.side === "sell" && currentPrice >= (order.price || 0)) {
-      return this.executeLimitOrder(order, order.price!);
+      return this.executeLimitOrder(order, order.price!, timestamp);
     }
 
     return null;
@@ -55,9 +57,10 @@ export class OrderExecutor {
    * Execute a limit order at specified price
    * @param order The order to execute
    * @param limitPrice The limit price
+   * @param timestamp Optional timestamp (for backtesting, defaults to now)
    * @returns Executed trade
    */
-  executeLimitOrder(order: Order, limitPrice: number): Trade {
+  executeLimitOrder(order: Order, limitPrice: number, timestamp?: number): Trade {
     return {
       id: this.generateTradeId(),
       orderId: order.id,
@@ -65,7 +68,7 @@ export class OrderExecutor {
       side: order.side,
       quantity: order.quantity,
       price: limitPrice,
-      timestamp: Date.now(),
+      timestamp: timestamp ?? Date.now(),
       type: "limit",
       metadata: order.metadata,
     };
@@ -75,17 +78,18 @@ export class OrderExecutor {
    * Check if a stop order should trigger and execute if conditions met
    * @param order The stop order to check
    * @param currentPrice Current market price
+   * @param timestamp Optional timestamp (for backtesting, defaults to now)
    * @returns Executed trade or null if conditions not met
    */
-  checkStopOrder(order: Order, currentPrice: number): Trade | null {
+  checkStopOrder(order: Order, currentPrice: number, timestamp?: number): Trade | null {
     // Stop buy: trigger if current price >= stop price (buying on breakout)
     if (order.side === "buy" && currentPrice >= (order.price || 0)) {
-      return this.executeStopOrder(order, currentPrice);
+      return this.executeStopOrder(order, currentPrice, timestamp);
     }
 
     // Stop sell: trigger if current price <= stop price (stop-loss)
     if (order.side === "sell" && currentPrice <= (order.price || 0)) {
-      return this.executeStopOrder(order, currentPrice);
+      return this.executeStopOrder(order, currentPrice, timestamp);
     }
 
     return null;
@@ -95,9 +99,10 @@ export class OrderExecutor {
    * Execute a stop order at market price
    * @param order The order to execute
    * @param marketPrice Current market price
+   * @param timestamp Optional timestamp (for backtesting, defaults to now)
    * @returns Executed trade
    */
-  executeStopOrder(order: Order, marketPrice: number): Trade {
+  executeStopOrder(order: Order, marketPrice: number, timestamp?: number): Trade {
     return {
       id: this.generateTradeId(),
       orderId: order.id,
@@ -105,7 +110,7 @@ export class OrderExecutor {
       side: order.side,
       quantity: order.quantity,
       price: marketPrice,
-      timestamp: Date.now(),
+      timestamp: timestamp ?? Date.now(),
       type: "stop",
       metadata: order.metadata,
     };
@@ -115,9 +120,10 @@ export class OrderExecutor {
    * Check if a stop-limit order should trigger and execute
    * @param order The stop-limit order to check
    * @param currentPrice Current market price
+   * @param timestamp Optional timestamp (for backtesting, defaults to now)
    * @returns Executed trade or null if conditions not met
    */
-  checkStopLimitOrder(order: Order, currentPrice: number): Trade | null {
+  checkStopLimitOrder(order: Order, currentPrice: number, timestamp?: number): Trade | null {
     if (!order.stopPrice) {
       return null;
     }
@@ -131,7 +137,7 @@ export class OrderExecutor {
       if (currentPrice >= order.stopPrice) {
         // Stop triggered, now check limit
         if (currentPrice <= (order.price || Infinity)) {
-          return this.executeLimitOrder(order, order.price!);
+          return this.executeLimitOrder(order, order.price!, timestamp);
         }
       }
     }
@@ -141,7 +147,7 @@ export class OrderExecutor {
       if (currentPrice <= order.stopPrice) {
         // Stop triggered, now check limit
         if (currentPrice >= (order.price || 0)) {
-          return this.executeLimitOrder(order, order.price!);
+          return this.executeLimitOrder(order, order.price!, timestamp);
         }
       }
     }

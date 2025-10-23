@@ -156,15 +156,17 @@ export class PositionManager {
    * Close a position and return the closing trade
    * @param symbol Symbol to close
    * @param exitPrice Exit price
+   * @param timestamp Optional timestamp for the exit (for backtesting, defaults to now)
    * @returns Closing trade with P&L or null if no position
    */
-  closePosition(symbol: string, exitPrice: number): CompletedTrade | null {
+  closePosition(symbol: string, exitPrice: number, timestamp?: number): CompletedTrade | null {
     const position = this.positions.get(symbol);
     if (!position) {
       return null;
     }
 
     const pnl = this.calculatePnL(position, exitPrice);
+    const exitTime = timestamp ?? Date.now();
 
     // Create closing trade
     const closingTrade: CompletedTrade = {
@@ -177,8 +179,8 @@ export class PositionManager {
       pnl: pnl.unrealizedPnL,
       pnlPercent: pnl.unrealizedPnLPercent,
       entryTime: position.entryTime,
-      exitTime: Date.now(),
-      duration: Date.now() - position.entryTime,
+      exitTime: exitTime,
+      duration: exitTime - position.entryTime,
     };
 
     this.positions.delete(symbol);

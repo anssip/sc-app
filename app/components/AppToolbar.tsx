@@ -2,7 +2,7 @@ import React from "react";
 import { LayoutSelector } from "./LayoutSelector";
 import AccountMenu from "./AccountMenu";
 import PreviewTimer from "./PreviewTimer";
-import { Bot } from "lucide-react";
+import { Bot, TrendingUp } from "lucide-react";
 import { ToolbarButton } from "./ToolbarButton";
 import type { PanelLayout } from "./ChartPanel";
 import type { Repository } from "~/services/repository";
@@ -18,6 +18,8 @@ interface AppToolbarProps {
   onPreviewExpire?: () => void;
   showAIChat?: boolean;
   onToggleAIChat?: () => void;
+  showBacktest?: boolean;
+  onToggleBacktest?: () => void;
 }
 
 export const AppToolbar: React.FC<AppToolbarProps> = ({
@@ -31,6 +33,8 @@ export const AppToolbar: React.FC<AppToolbarProps> = ({
   onPreviewExpire,
   showAIChat,
   onToggleAIChat,
+  showBacktest,
+  onToggleBacktest,
 }) => {
   return (
     <div className="flex-shrink-0 bg-gray-900 border-b border-gray-800 relative z-[300]">
@@ -64,7 +68,7 @@ export const AppToolbar: React.FC<AppToolbarProps> = ({
             )}
           </div>
 
-          {/* Right side - AI Chat Toggle and Layout Selector */}
+          {/* Right side - AI Chat Toggle, Backtest, and Layout Selector */}
           <div className="flex items-center gap-2">
             {/* AI Chat Toggle - Show even if no callback for better visibility */}
             <ToolbarButton
@@ -77,6 +81,19 @@ export const AppToolbar: React.FC<AppToolbarProps> = ({
               }
             >
               <Bot className="w-4 h-4" />
+            </ToolbarButton>
+
+            {/* Backtest Toggle */}
+            <ToolbarButton
+              onClick={onToggleBacktest || (() => {})}
+              active={showBacktest}
+              title={
+                showBacktest
+                  ? "Close Backtesting"
+                  : "Open Backtesting Panel"
+              }
+            >
+              <TrendingUp className="w-4 h-4" />
             </ToolbarButton>
 
             {/* Layout Selector */}

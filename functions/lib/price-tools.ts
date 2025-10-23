@@ -1,6 +1,6 @@
 // Firestore data access tools
 import { Firestore } from "firebase-admin/firestore";
-import { marketAPI, PriceCandle } from "./market-api.js";
+import { marketAPI, type PriceCandle } from "./market-api.js";
 import {
   PatternDetector,
   Candle as PatternCandle,
@@ -725,8 +725,6 @@ export const priceTools = {
     endTime,
   }: PriceDataArgs): Promise<any> {
     try {
-      const API_BASE_URL = "https://market.spotcanvas.com";
-
       // If no time range provided, calculate a reasonable default
       if (!startTime || !endTime) {
         const now = Date.now();
@@ -735,36 +733,20 @@ export const priceTools = {
         startTime = startTime || endTime - 7 * 24 * 60 * 60 * 1000;
       }
 
-      // Build query parameters
-      // Ensure timestamps are integers (no decimals)
-      const params = new URLSearchParams({
-        symbol,
-        granularity: interval || "ONE_HOUR",
-        start_time: Math.floor(startTime).toString(),
-        end_time: Math.floor(endTime).toString(),
-        exchange: "coinbase",
-      });
-
       console.log(
-        `Fetching price data from API: ${API_BASE_URL}/history?${params}`
+        `getPriceData: Fetching ${symbol} from ${new Date(
+          startTime
+        ).toISOString()} to ${new Date(endTime).toISOString()}`
       );
 
-      // Fetch from the API
-      const response = await fetch(`${API_BASE_URL}/history?${params}`);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`API Error Response: ${errorText}`);
-        throw new Error(
-          `API error: ${response.status} ${response.statusText} - ${errorText}`
-        );
-      }
-
-      const data: any = await response.json();
-
-      // The API returns data in a different format, so we need to transform it
-      // Assuming the API returns an array of candles
-      const candles: Candle[] = data.candles || data || [];
+      // Use MarketAPI which handles batching automatically
+      const candles: PriceCandle[] = await marketAPI.fetchPriceData(
+        symbol,
+        interval || "ONE_HOUR",
+        Math.floor(startTime),
+        Math.floor(endTime),
+        (message) => console.log(`MarketAPI: ${message}`)
+      );
 
       if (candles.length === 0) {
         return {
@@ -779,14 +761,12 @@ export const priceTools = {
       const limitedCandles = candles.slice(0, limit);
 
       // Calculate some basic statistics
-      const high = Math.max(...limitedCandles.map((c) => c.high || c.h || 0));
-      const low = Math.min(
-        ...limitedCandles.map((c) => c.low || c.l || Number.MAX_VALUE)
-      );
+      const high = Math.max(...limitedCandles.map((c) => c.high));
+      const low = Math.min(...limitedCandles.map((c) => c.low));
       const lastCandle = limitedCandles[limitedCandles.length - 1];
       const firstCandle = limitedCandles[0];
-      const lastClose = lastCandle?.close || lastCandle?.c || 0;
-      const firstClose = firstCandle?.close || firstCandle?.c || 1;
+      const lastClose = lastCandle.close;
+      const firstClose = firstCandle.close;
       const change =
         limitedCandles.length > 1
           ? ((lastClose - firstClose) / firstClose) * 100

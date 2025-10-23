@@ -1,6 +1,8 @@
 /**
  * Market API client for fetching price data
  * Handles batching and rate limiting for the market.spotcanvas.com API
+ *
+ * This is a shared module used by both client and server code.
  */
 
 export interface IndicatorValue {
@@ -39,6 +41,14 @@ export class MarketAPI {
   /**
    * Fetches price data for a given symbol and time range
    * Automatically handles batching for large time ranges
+   *
+   * @param symbol Trading symbol (e.g., "BTC-USD")
+   * @param interval Granularity (e.g., "ONE_HOUR", "ONE_DAY")
+   * @param startTime Start timestamp in milliseconds
+   * @param endTime End timestamp in milliseconds
+   * @param onProgress Optional progress callback
+   * @param evaluators Optional list of evaluator IDs (e.g., ["moving-averages", "rsi"])
+   * @returns Array of price candles with optional indicator evaluations
    */
   async fetchPriceData(
     symbol: string,

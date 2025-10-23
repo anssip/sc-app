@@ -1,5 +1,6 @@
 import type { Granularity } from "~/types";
 import type { CandleWithIndicators } from "./indicatorTypes";
+import { marketAPI, type PriceCandle } from "../../../functions/lib/market-api";
 
 /**
  * Configuration for loading indicator data
@@ -14,29 +15,13 @@ export interface IndicatorLoadConfig {
 }
 
 /**
- * Response from Market API /history endpoint
- */
-interface MarketAPIHistoryResponse {
-  symbol: string;
-  granularity: string;
-  start_time: string;
-  end_time: string;
-  evaluators: string[];
-  candles: CandleWithIndicators[];
-}
-
-/**
  * Loads historical candles with indicator data from Market API
  */
 export class IndicatorDataLoader {
-  private baseUrl: string;
-
-  constructor(baseUrl: string = "https://market.spotcanvas.com") {
-    this.baseUrl = baseUrl;
-  }
-
   /**
    * Load historical candles with indicator evaluations
+   * Uses MarketAPI with automatic batching for large time ranges
+   *
    * @param config Configuration for data loading
    * @returns Array of candles with indicator data
    */
@@ -49,42 +34,35 @@ export class IndicatorDataLoader {
       startDate,
       endDate,
       evaluators = [],
-      exchange = "coinbase",
     } = config;
 
-    // Build query parameters
-    const params = new URLSearchParams({
-      symbol,
-      granularity,
-      start_time: startDate.toISOString(),
-      end_time: endDate.toISOString(),
-      exchange,
-    });
-
-    // Add evaluators if provided
-    if (evaluators.length > 0) {
-      params.append("evaluators", evaluators.join(","));
-    }
-
-    const url = `${this.baseUrl}/history?${params.toString()}`;
-
     try {
-      const response = await fetch(url);
+      // Convert dates to timestamps (milliseconds)
+      const startTime = startDate.getTime();
+      const endTime = endDate.getTime();
 
-      if (!response.ok) {
-        throw new Error(
-          `Market API returned ${response.status}: ${response.statusText}`
-        );
-      }
+      console.log("IndicatorDataLoader: Loading data with batching");
+      console.log(`  Symbol: ${symbol}`);
+      console.log(`  Granularity: ${granularity}`);
+      console.log(`  Start: ${startDate.toISOString()}`);
+      console.log(`  End: ${endDate.toISOString()}`);
+      console.log(`  Evaluators: ${evaluators.join(", ")}`);
 
-      const data: MarketAPIHistoryResponse = await response.json();
+      // Use MarketAPI which handles batching automatically
+      const candles: PriceCandle[] = await marketAPI.fetchPriceData(
+        symbol,
+        granularity,
+        startTime,
+        endTime,
+        (message) => console.log(`MarketAPI: ${message}`),
+        evaluators
+      );
 
-      // Validate response
-      if (!data.candles || !Array.isArray(data.candles)) {
-        throw new Error("Invalid response from Market API: missing candles");
-      }
+      console.log(`IndicatorDataLoader: Loaded ${candles.length} candles`);
 
-      return data.candles;
+      // Transform PriceCandle to CandleWithIndicators
+      // They have the same structure, just cast the type
+      return candles as CandleWithIndicators[];
     } catch (error) {
       if (error instanceof Error) {
         throw new Error(`Failed to load indicator data: ${error.message}`);
