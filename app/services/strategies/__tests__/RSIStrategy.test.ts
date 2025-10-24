@@ -108,6 +108,9 @@ describe("RSIStrategy", () => {
       expect(signal!.side).toBe("buy");
       expect(signal!.type).toBe("market");
       expect(signal!.quantity).toBe(1);
+
+      // Simulate trade execution
+      strategy.onTrade({ side: "buy", price: 46000 });
       expect(strategy.isInPosition()).toBe(true);
     });
 
@@ -120,7 +123,10 @@ describe("RSIStrategy", () => {
       const candle1 = createCandleWithRSI(1000, 45000, 25);
       strategy.onCandle(candle1);
       const candle2 = createCandleWithRSI(2000, 46000, 35);
-      strategy.onCandle(candle2);
+      const signal2 = strategy.onCandle(candle2);
+
+      // Simulate trade execution to enter position
+      strategy.onTrade({ side: "buy", price: 46000 });
 
       // RSI in overbought
       const candle3 = createCandleWithRSI(3000, 52000, 75);
@@ -133,6 +139,9 @@ describe("RSIStrategy", () => {
       expect(signal).toBeDefined();
       expect(signal!.side).toBe("sell");
       expect(signal!.type).toBe("market");
+
+      // Simulate trade execution to exit position
+      strategy.onTrade({ side: "sell", price: 51000 });
       expect(strategy.isInPosition()).toBe(false);
     });
 
@@ -145,6 +154,9 @@ describe("RSIStrategy", () => {
       const candle2 = createCandleWithRSI(2000, 46000, 35);
       const signal1 = strategy.onCandle(candle2);
       expect(signal1).toBeDefined();
+
+      // Simulate trade execution to enter position
+      strategy.onTrade({ side: "buy", price: 46000 });
 
       // Second buy signal attempt (should be ignored)
       const candle3 = createCandleWithRSI(3000, 45000, 25);
@@ -167,6 +179,9 @@ describe("RSIStrategy", () => {
       strategy.onCandle(candle1);
       const candle2 = createCandleWithRSI(2000, 50000, 35);
       strategy.onCandle(candle2);
+
+      // Simulate trade execution to enter position
+      strategy.onTrade({ side: "buy", price: 50000 });
       expect(strategy.getEntryPrice()).toBe(50000);
 
       // Price drops to 48900 (2.2% loss, triggers 2% stop-loss)
@@ -175,6 +190,9 @@ describe("RSIStrategy", () => {
 
       expect(signal).toBeDefined();
       expect(signal!.side).toBe("sell");
+
+      // Simulate trade execution to exit position
+      strategy.onTrade({ side: "sell", price: 48900 });
       expect(strategy.isInPosition()).toBe(false);
     });
 
@@ -190,12 +208,18 @@ describe("RSIStrategy", () => {
       const candle2 = createCandleWithRSI(2000, 50000, 35);
       strategy.onCandle(candle2);
 
+      // Simulate trade execution to enter position
+      strategy.onTrade({ side: "buy", price: 50000 });
+
       // Price rises to 52600 (5.2% gain, triggers 5% take-profit)
       const candle3 = createCandleWithRSI(3000, 52600, 60);
       const signal = strategy.onCandle(candle3);
 
       expect(signal).toBeDefined();
       expect(signal!.side).toBe("sell");
+
+      // Simulate trade execution to exit position
+      strategy.onTrade({ side: "sell", price: 52600 });
       expect(strategy.isInPosition()).toBe(false);
     });
   });
@@ -234,6 +258,9 @@ describe("RSIStrategy", () => {
       strategy.onCandle(candle1);
       const candle2 = createCandleWithRSI(2000, 46000, 35);
       strategy.onCandle(candle2);
+
+      // Simulate trade execution to enter position
+      strategy.onTrade({ side: "buy", price: 46000 });
 
       expect(strategy.isInPosition()).toBe(true);
       expect(strategy.getEntryPrice()).toBe(46000);

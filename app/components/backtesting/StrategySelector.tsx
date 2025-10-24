@@ -104,14 +104,14 @@ export function StrategySelector({
               leaveFrom="opacity-100"
               leaveTo="opacity-0"
             >
-              <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-primary-lighter py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+              <Listbox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-gray-900 py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                 {STRATEGIES.map((strategy) => (
                   <Listbox.Option
                     key={strategy.type}
                     value={strategy}
                     className={({ active }) =>
                       `relative cursor-pointer select-none py-2 pl-10 pr-4 ${
-                        active ? "bg-primary text-white" : "text-gray-300"
+                        active ? "bg-primary text-white" : "text-gray-300 bg-gray-900"
                       }`
                     }
                   >
@@ -178,7 +178,7 @@ function SMAConfigForm({
           value={config.fastPeriod}
           onChange={(e) => onChange("fastPeriod", parseInt(e.target.value))}
           min="2"
-          className="w-full px-3 py-2 bg-primary rounded text-sm text-white border border-primary-lighter focus:border-accent-primary focus:outline-none"
+          className="w-full px-3 py-2 bg-gray-900 rounded text-sm text-white border border-gray-800 focus:border-accent-primary focus:outline-none"
         />
       </div>
 
@@ -191,7 +191,7 @@ function SMAConfigForm({
           value={config.slowPeriod}
           onChange={(e) => onChange("slowPeriod", parseInt(e.target.value))}
           min="2"
-          className="w-full px-3 py-2 bg-primary rounded text-sm text-white border border-primary-lighter focus:border-accent-primary focus:outline-none"
+          className="w-full px-3 py-2 bg-gray-900 rounded text-sm text-white border border-gray-800 focus:border-accent-primary focus:outline-none"
         />
       </div>
 
@@ -205,7 +205,7 @@ function SMAConfigForm({
           onChange={(e) => onChange("quantity", parseFloat(e.target.value))}
           min="0.001"
           step="0.001"
-          className="w-full px-3 py-2 bg-primary rounded text-sm text-white border border-primary-lighter focus:border-accent-primary focus:outline-none"
+          className="w-full px-3 py-2 bg-gray-900 rounded text-sm text-white border border-gray-800 focus:border-accent-primary focus:outline-none"
         />
       </div>
     </div>
@@ -235,7 +235,7 @@ function RSIConfigForm({
           value={config.period || 14}
           onChange={(e) => onChange("period", parseInt(e.target.value))}
           min="2"
-          className="w-full px-3 py-2 bg-primary rounded text-sm text-white border border-primary-lighter focus:border-accent-primary focus:outline-none"
+          className="w-full px-3 py-2 bg-gray-900 rounded text-sm text-white border border-gray-800 focus:border-accent-primary focus:outline-none"
         />
       </div>
 
@@ -252,7 +252,7 @@ function RSIConfigForm({
             }
             min="0"
             max="100"
-            className="w-full px-3 py-2 bg-primary rounded text-sm text-white border border-primary-lighter focus:border-accent-primary focus:outline-none"
+            className="w-full px-3 py-2 bg-gray-900 rounded text-sm text-white border border-gray-800 focus:border-accent-primary focus:outline-none"
           />
         </div>
 
@@ -268,7 +268,7 @@ function RSIConfigForm({
             }
             min="0"
             max="100"
-            className="w-full px-3 py-2 bg-primary rounded text-sm text-white border border-primary-lighter focus:border-accent-primary focus:outline-none"
+            className="w-full px-3 py-2 bg-gray-900 rounded text-sm text-white border border-gray-800 focus:border-accent-primary focus:outline-none"
           />
         </div>
       </div>
@@ -283,7 +283,7 @@ function RSIConfigForm({
           onChange={(e) => onChange("quantity", parseFloat(e.target.value))}
           min="0.001"
           step="0.001"
-          className="w-full px-3 py-2 bg-primary rounded text-sm text-white border border-primary-lighter focus:border-accent-primary focus:outline-none"
+          className="w-full px-3 py-2 bg-gray-900 rounded text-sm text-white border border-gray-800 focus:border-accent-primary focus:outline-none"
         />
       </div>
 
@@ -308,7 +308,7 @@ function RSIConfigForm({
             min="0.1"
             step="0.1"
             placeholder="Stop Loss %"
-            className="w-full px-3 py-2 bg-primary rounded text-sm text-white border border-primary-lighter focus:border-accent-primary focus:outline-none"
+            className="w-full px-3 py-2 bg-gray-900 rounded text-sm text-white border border-gray-800 focus:border-accent-primary focus:outline-none"
           />
         )}
       </div>
@@ -334,7 +334,7 @@ function RSIConfigForm({
             min="0.1"
             step="0.1"
             placeholder="Take Profit %"
-            className="w-full px-3 py-2 bg-primary rounded text-sm text-white border border-primary-lighter focus:border-accent-primary focus:outline-none"
+            className="w-full px-3 py-2 bg-gray-900 rounded text-sm text-white border border-gray-800 focus:border-accent-primary focus:outline-none"
           />
         )}
       </div>

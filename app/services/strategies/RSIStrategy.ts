@@ -74,6 +74,20 @@ export class RSIStrategy extends BaseStrategy {
   }
 
   /**
+   * Called when a trade executes - synchronize position state
+   */
+  onTrade(trade: any): void {
+    // Update position tracking based on actual executed trades
+    if (trade.side === "buy") {
+      this.inPosition = true;
+      this.entryPrice = trade.price;
+    } else if (trade.side === "sell") {
+      this.inPosition = false;
+      this.entryPrice = undefined;
+    }
+  }
+
+  /**
    * Analyze candle and generate trading signal
    */
   protected analyze(candle: CandleWithIndicators): OrderSignal | null {
@@ -91,8 +105,6 @@ export class RSIStrategy extends BaseStrategy {
     if (this.inPosition && this.useStopLoss && this.entryPrice) {
       const stopLossPrice = this.entryPrice * (1 - this.stopLossPercent / 100);
       if (currentPrice <= stopLossPrice) {
-        this.inPosition = false;
-        this.entryPrice = undefined;
         return {
           side: "sell",
           type: "market",
@@ -105,8 +117,6 @@ export class RSIStrategy extends BaseStrategy {
     if (this.inPosition && this.useTakeProfit && this.entryPrice) {
       const takeProfitPrice = this.entryPrice * (1 + this.takeProfitPercent / 100);
       if (currentPrice >= takeProfitPrice) {
-        this.inPosition = false;
-        this.entryPrice = undefined;
         return {
           side: "sell",
           type: "market",
@@ -131,8 +141,7 @@ export class RSIStrategy extends BaseStrategy {
           type: "market",
           quantity: this.quantity,
         };
-        this.inPosition = true;
-        this.entryPrice = currentPrice;
+        // Note: Don't update inPosition here - wait for onTrade callback
       }
     }
     // Sell signal: RSI crosses below overbought level (overbought -> declining)
@@ -145,8 +154,7 @@ export class RSIStrategy extends BaseStrategy {
           type: "market",
           quantity: this.quantity,
         };
-        this.inPosition = false;
-        this.entryPrice = undefined;
+        // Note: Don't update inPosition here - wait for onTrade callback
       }
     }
 
