@@ -108,6 +108,16 @@ export const ChartApp: React.FC<ChartAppProps> = ({
     resetBacktest,
   } = useBacktesting();
 
+  // Track whether to show backtest results or configuration view
+  const [showBacktestResults, setShowBacktestResults] = useState(false);
+
+  // Automatically show results when backtest completes
+  useEffect(() => {
+    if (backtestResult && !backtestRunning) {
+      setShowBacktestResults(true);
+    }
+  }, [backtestResult, backtestRunning]);
+
   // Create default single chart layout for unsaved/new users
   // Users must create and save a layout to access multi-panel layouts
   const createDefaultLayout = (): PanelLayout => ({
@@ -266,18 +276,18 @@ export const ChartApp: React.FC<ChartAppProps> = ({
     (layout: PanelLayout, changeType: LayoutChangeType = "unknown") => {
       setCurrentLayout(layout);
 
-      // Clear existing timeout
-      if (autoSaveTimeoutRef.current) {
-        clearTimeout(autoSaveTimeoutRef.current);
-      }
-
       // Only auto-save for structural changes (panel resizes, splits) and only for authenticated users
       // Chart data changes are handled by ChartContainer
       if (currentLayoutId && changeType === "structure" && user) {
+        // Clear existing timeout
+        if (autoSaveTimeoutRef.current) {
+          clearTimeout(autoSaveTimeoutRef.current);
+        }
+
+        // Debounce auto-save - wait 1.5 seconds after resize stops
         autoSaveTimeoutRef.current = setTimeout(() => {
           autoSaveLayout();
-        }, 1000); // Auto-save 1 second after resize stops
-      } else {
+        }, 1500);
       }
     },
     [currentLayoutId, autoSaveLayout, user]
@@ -597,44 +607,44 @@ export const ChartApp: React.FC<ChartAppProps> = ({
               )}
             </div>
           ) : (
-            // Desktop layout: Horizontal panels (left: backtest, center: chart, right: AI chat)
+            // Desktop layout: Horizontal panels (left: backtest, middle: chart, right: AI chat)
             <PanelGroup direction="horizontal" className="h-full">
               {/* Left: Backtest panel */}
               {showBacktest && (
-                <>
-                  <Panel defaultSize={25} minSize={20} maxSize={35}>
-                    <div className="h-full overflow-hidden bg-gray-950">
-                      {backtestResult ? (
-                        <BacktestResults
-                          result={backtestResult}
-                          onClose={handleToggleBacktest}
-                          onExport={handleBacktestExport}
-                          onVisualize={handleBacktestVisualize}
-                        />
-                      ) : (
-                        <BacktestPanel
-                          symbol={
-                            currentLayout?.type === "chart"
-                              ? currentLayout.chart?.symbol || "BTC-USD"
-                              : "BTC-USD"
-                          }
-                          onRun={handleBacktestRun}
-                          onCancel={cancelBacktest}
-                          onClose={handleToggleBacktest}
-                          isRunning={backtestRunning}
-                          isLoading={backtestLoading}
-                          progress={backtestProgress}
-                          error={backtestError}
-                        />
-                      )}
-                    </div>
-                  </Panel>
-                  <PanelResizeHandle className="w-1 bg-gray-800 hover:bg-gray-700 transition-colors" />
-                </>
+                <Panel id="backtest" order={1} className="flex-none" style={{ width: '260px', minWidth: '260px', maxWidth: '260px', willChange: 'width' }}>
+                  <div className="h-full bg-gray-950 overflow-hidden">
+                    {backtestResult && showBacktestResults ? (
+                      <BacktestResults
+                        result={backtestResult}
+                        onClose={handleToggleBacktest}
+                        onExport={handleBacktestExport}
+                        onVisualize={handleBacktestVisualize}
+                        onBack={() => setShowBacktestResults(false)}
+                      />
+                    ) : (
+                      <BacktestPanel
+                        symbol={
+                          currentLayout?.type === "chart"
+                            ? currentLayout.chart?.symbol || "BTC-USD"
+                            : "BTC-USD"
+                        }
+                        onRun={handleBacktestRun}
+                        onCancel={cancelBacktest}
+                        onClose={handleToggleBacktest}
+                        hasResults={!!backtestResult}
+                        onViewResults={() => setShowBacktestResults(true)}
+                        isRunning={backtestRunning}
+                        isLoading={backtestLoading}
+                        progress={backtestProgress}
+                        error={backtestError}
+                      />
+                    )}
+                  </div>
+                </Panel>
               )}
 
-              {/* Center: Chart panel */}
-              <Panel>
+              {/* Middle: Chart panel */}
+              <Panel id="chart" order={2} defaultSize={50} minSize={30} style={{ willChange: 'width' }}>
                 <ChartPanel
                   layout={currentLayout}
                   layoutId={currentLayoutId || undefined}
@@ -644,11 +654,11 @@ export const ChartApp: React.FC<ChartAppProps> = ({
                 />
               </Panel>
 
-              {/* Right: AI Chat panel */}
+              {/* Right: AI Chat panel (rightmost) */}
               {showAIChat && (
                 <>
-                  <PanelResizeHandle className="w-1 bg-gray-800 hover:bg-gray-700 transition-colors" />
-                  <Panel defaultSize={25} minSize={15} maxSize={40}>
+                  <PanelResizeHandle className="w-2 bg-gray-800 hover:bg-blue-600 transition-colors cursor-col-resize relative z-10" />
+                  <Panel id="ai-chat" order={3} defaultSize={25} minSize={15} maxSize={40} style={{ willChange: 'width' }}>
                     <div className="h-full overflow-hidden">
                       <AIChatPanel
                         onClose={handleToggleAIChat}

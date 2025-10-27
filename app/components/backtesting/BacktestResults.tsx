@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Download, TrendingUp, BarChart3, X } from "lucide-react";
+import { Download, TrendingUp, BarChart3, X, ArrowLeft } from "lucide-react";
 import { MetricsGrid } from "./MetricsGrid";
 import { TradesList } from "./TradesList";
 import type { BacktestResult } from "~/types/trading";
@@ -9,6 +9,7 @@ interface Props {
   onClose: () => void;
   onExport: (format: "csv" | "json") => void;
   onVisualize: () => void;
+  onBack: () => void;
 }
 
 type TabType = "metrics" | "trades";
@@ -21,6 +22,7 @@ export function BacktestResults({
   onClose,
   onExport,
   onVisualize,
+  onBack,
 }: Props) {
   const [activeTab, setActiveTab] = useState<TabType>("metrics");
 
@@ -36,8 +38,15 @@ export function BacktestResults({
     <div className="flex flex-col h-full bg-gray-950 text-white">
       {/* Header */}
       <div className="p-4 border-b border-gray-800">
-        <div className="flex items-start justify-between mb-2">
-          <div>
+        <div className="flex items-start gap-3 mb-2">
+          <button
+            onClick={onBack}
+            className="p-1 hover:bg-gray-800 rounded transition-colors mt-0.5"
+            title="Back to configuration"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <div className="flex-1">
             <h2 className="text-lg font-semibold">Backtest Results</h2>
             <p className="text-xs text-gray-400 mt-1">
               {result.strategy} • {result.symbol}

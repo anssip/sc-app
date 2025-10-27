@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Play, X, RotateCcw, Loader } from "lucide-react";
+import { Play, X, RotateCcw, Loader, BarChart3 } from "lucide-react";
 import {
   StrategySelector,
   createStrategy,
@@ -25,7 +25,9 @@ interface Props {
   error: string | null;
   onRun: (config: BacktestConfig) => void;
   onCancel: () => void;
-  onReset: () => void;
+  onClose: () => void;
+  hasResults: boolean;
+  onViewResults: () => void;
 }
 
 /**
@@ -39,7 +41,9 @@ export function BacktestPanel({
   error,
   onRun,
   onCancel,
-  onReset,
+  onClose,
+  hasResults,
+  onViewResults,
 }: Props) {
   // Form state
   const [strategyType, setStrategyType] = useState<StrategyType>("sma");
@@ -127,10 +131,31 @@ export function BacktestPanel({
     <div className="flex flex-col h-full bg-gray-950 text-white">
       {/* Header */}
       <div className="p-4 border-b border-gray-800">
-        <h2 className="text-lg font-semibold">Backtest Configuration</h2>
-        <p className="text-xs text-gray-400 mt-1">
-          Configure and run strategy backtests
-        </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">Backtest Configuration</h2>
+            <p className="text-xs text-gray-400 mt-1">
+              Configure and run strategy backtests
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {hasResults && !isRunning && (
+              <button
+                onClick={onViewResults}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 hover:bg-gray-800 rounded text-xs font-medium transition-colors border border-gray-800"
+              >
+                <BarChart3 className="h-3.5 w-3.5" />
+                Results
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="p-1 hover:bg-gray-800 rounded transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Form */}
@@ -249,24 +274,15 @@ export function BacktestPanel({
       </div>
 
       {/* Control Buttons */}
-      <div className="p-4 border-t border-gray-800 space-y-2">
+      <div className="p-4 border-t border-gray-800">
         {!isRunning ? (
-          <>
-            <button
-              onClick={handleRun}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-accent-primary hover:bg-accent-primary/90 rounded-lg text-white font-medium transition-colors"
-            >
-              <Play className="h-4 w-4" />
-              Run Backtest
-            </button>
-            <button
-              onClick={onReset}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-900 hover:bg-gray-800 rounded-lg text-white transition-colors border border-gray-800"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Reset
-            </button>
-          </>
+          <button
+            onClick={handleRun}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 rounded-lg text-white font-medium transition-colors"
+          >
+            <Play className="h-4 w-4" />
+            Run Backtest
+          </button>
         ) : (
           <button
             onClick={onCancel}
