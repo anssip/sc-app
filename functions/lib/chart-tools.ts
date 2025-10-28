@@ -296,6 +296,174 @@ export const chartTools = {
     {
       type: "function",
       function: {
+        name: "add_price_line",
+        description:
+          "Add a horizontal price line to the chart (ideal for support/resistance levels, price alerts, stop losses, take profits)",
+        parameters: {
+          type: "object",
+          properties: {
+            price: {
+              type: "number",
+              description: "Price level for the horizontal line",
+            },
+            color: {
+              type: "string",
+              description: "Line color in hex format",
+              default: "#6b7280",
+            },
+            lineWidth: {
+              type: "number",
+              description: "Line width in pixels",
+              default: 2,
+            },
+            style: {
+              type: "string",
+              enum: ["solid", "dashed", "dotted"],
+              default: "solid",
+            },
+            label: {
+              type: "object",
+              description: "Optional label configuration",
+              properties: {
+                text: {
+                  type: "string",
+                  description: "Label text (e.g., 'Support @ $45,000')",
+                },
+                position: {
+                  type: "string",
+                  enum: ["left", "right"],
+                  description: "Label position",
+                  default: "left",
+                },
+                backgroundColor: {
+                  type: "string",
+                  description: "Label background color",
+                },
+                textColor: {
+                  type: "string",
+                  description: "Label text color",
+                  default: "#ffffff",
+                },
+                fontSize: {
+                  type: "number",
+                  description: "Label font size in pixels",
+                  default: 11,
+                },
+              },
+              required: ["text"],
+            },
+            draggable: {
+              type: "boolean",
+              description: "Allow user to drag the line up/down",
+              default: false,
+            },
+            extendLeft: {
+              type: "boolean",
+              description: "Extend line to the left edge",
+              default: true,
+            },
+            extendRight: {
+              type: "boolean",
+              description: "Extend line to the right edge",
+              default: true,
+            },
+            showPriceLabel: {
+              type: "boolean",
+              description: "Show price on Y-axis",
+              default: true,
+            },
+            levelType: {
+              type: "string",
+              enum: ["spike", "swing", "horizontal"],
+              description:
+                "Type of support/resistance level (spike = extreme reversal, swing = regular reversal, horizontal = consolidation)",
+            },
+            opacity: {
+              type: "number",
+              description: "Opacity value (0.0 to 1.0)",
+              minimum: 0,
+              maximum: 1,
+            },
+            markers: {
+              type: "object",
+              description: "Optional markers along the line",
+              properties: {
+                enabled: {
+                  type: "boolean",
+                  description: "Enable markers",
+                },
+                symbol: {
+                  type: "string",
+                  enum: ["diamond", "circle", "square", "triangle"],
+                  description: "Marker symbol type",
+                },
+                size: {
+                  type: "number",
+                  description: "Marker size in pixels",
+                },
+                spacing: {
+                  type: "number",
+                  description: "Spacing between markers in pixels",
+                },
+                color: {
+                  type: "string",
+                  description: "Marker color (defaults to line color)",
+                },
+              },
+              required: ["enabled", "symbol", "size", "spacing"],
+            },
+            zIndex: {
+              type: "number",
+              description: "Z-index for layering (higher = on top)",
+            },
+            animation: {
+              type: "object",
+              description:
+                "Optional animation configuration (e.g., for spike levels)",
+              properties: {
+                type: {
+                  type: "string",
+                  enum: ["pulse"],
+                  description:
+                    "Animation type (currently only pulse is supported)",
+                },
+                duration: {
+                  type: "number",
+                  description:
+                    "Duration of one animation cycle in milliseconds",
+                  default: 2000,
+                },
+                intensity: {
+                  type: "number",
+                  description: "Intensity of the animation (0.0 to 1.0)",
+                  default: 0.3,
+                  minimum: 0,
+                  maximum: 1,
+                },
+                enabled: {
+                  type: "boolean",
+                  description: "Whether the animation is enabled",
+                  default: true,
+                },
+              },
+            },
+            metadata: {
+              type: "object",
+              description: "Store custom data (e.g., order ID, level info)",
+            },
+            lastTest: {
+              type: "number",
+              description:
+                "Unix timestamp in milliseconds of when this level was last tested (for browser timezone conversion)",
+            },
+          },
+          required: ["price"],
+        },
+      },
+    },
+    {
+      type: "function",
+      function: {
         name: "set_time_range",
         description: "Adjust the visible time range on the chart",
         parameters: {
@@ -855,6 +1023,8 @@ export const chartTools = {
         return `✓ Removed ${args.id.replace(/-/g, " ")} indicator`;
       case "add_trend_line":
         return `✓ Drew trend line`;
+      case "add_price_line":
+        return `✓ Drew price line at $${args.price}`;
       case "draw_horizontal_line_at_price":
         const priceTypeLabel =
           args.priceType === "current"
