@@ -522,28 +522,33 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
         >
           <Menu.Items className="absolute right-0 mt-2 w-24 bg-black border border-gray-700 rounded-md shadow-lg z-[350]">
             <div className="py-1">
-              {GRANULARITY_OPTIONS.map((option) => (
-                <Menu.Item key={option.value}>
-                  {({ active }) => (
-                    <button
-                      onClick={() => {
-                        if (chartApiRef?.current?.setGranularity) {
-                          chartApiRef.current.setGranularity(option.value);
-                        }
-                      }}
-                      className={`w-full px-3 py-2 text-left text-sm transition-colors ${
-                        active ? "bg-gray-900" : ""
-                      } ${
-                        settings.granularity === option.value
-                          ? "text-blue-400"
-                          : "text-gray-100"
-                      }`}
-                    >
-                      {option.label}
-                    </button>
-                  )}
-                </Menu.Item>
-              ))}
+              {GRANULARITY_OPTIONS.map((option) => {
+                const granularityValue = String(option.value);
+                return (
+                  <Menu.Item key={granularityValue}>
+                    {({ active }) => (
+                      <button
+                        onClick={() => {
+                          if (chartApiRef?.current?.setGranularity) {
+                            chartApiRef.current.setGranularity(
+                              granularityValue
+                            );
+                          }
+                        }}
+                        className={`w-full px-3 py-2 text-left text-sm transition-colors ${
+                          active ? "bg-gray-900" : ""
+                        } ${
+                          settings.granularity === granularityValue
+                            ? "text-blue-400"
+                            : "text-gray-100"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    )}
+                  </Menu.Item>
+                );
+              })}
             </div>
           </Menu.Items>
         </Transition>
