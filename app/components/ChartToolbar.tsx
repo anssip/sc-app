@@ -225,15 +225,18 @@ export const ChartToolbar: React.FC<ChartToolbarProps> = ({
                                   indicator.id
                                 );
                               } else if (canAdd) {
-                                // Show indicator
+                                // Show indicator - map display types to rs-charts format
+                                const displayMap: Record<string, string> = {
+                                  Overlay: "main",
+                                  Bottom: "bottom",
+                                  StackBottom: "stackBottom",
+                                };
                                 const apiIndicatorConfig = {
                                   id: indicator.id,
                                   name: indicator.name,
                                   visible: true,
                                   display:
-                                    indicator.display === "Overlay"
-                                      ? "main"
-                                      : "bottom",
+                                    displayMap[indicator.display] || "bottom",
                                   scale:
                                     indicator.scale === "Price"
                                       ? "value"

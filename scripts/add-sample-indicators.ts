@@ -28,7 +28,7 @@ const sampleIndicators = [
   {
     id: "rsi",
     name: "RSI",
-    display: "Bottom",
+    display: "StackBottom",
     visible: false,
     params: { period: 14 },
     scale: "Value",
@@ -37,7 +37,7 @@ const sampleIndicators = [
   {
     id: "macd",
     name: "MACD",
-    display: "Bottom",
+    display: "StackBottom",
     visible: false,
     params: { fast: 12, slow: 26, signal: 9 },
     scale: "Value",
@@ -82,7 +82,7 @@ const sampleIndicators = [
   {
     id: "stochastic",
     name: "Stochastic",
-    display: "Bottom",
+    display: "StackBottom",
     visible: false,
     params: { kPeriod: 14, dPeriod: 3, smooth: 3 },
     scale: "Value",
@@ -91,7 +91,7 @@ const sampleIndicators = [
   {
     id: "atr",
     name: "Average True Range",
-    display: "Bottom",
+    display: "StackBottom",
     visible: false,
     params: { period: 14 },
     scale: "Value",
@@ -100,7 +100,7 @@ const sampleIndicators = [
   {
     id: "williams-r",
     name: "Williams %R",
-    display: "Bottom",
+    display: "StackBottom",
     visible: false,
     params: { period: 14 },
     scale: "Value",
