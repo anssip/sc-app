@@ -287,6 +287,10 @@ app.post("/", async (req: Request, res: Response) => {
 
     console.log("Main tweet posted:", mainTweet.data.id);
 
+    // Track posted replies for partial success reporting
+    const postedReplies: string[] = [];
+    let lastSuccessfulTweetId = mainTweet.data.id;
+
     if (selectedMessages && selectedMessages.length > 0) {
       console.log("Creating thread with", selectedMessages.length, "messages");
 
@@ -299,15 +303,46 @@ app.post("/", async (req: Request, res: Response) => {
       for (let i = 0; i < chunks.length; i++) {
         const chunk = chunks[i];
 
-        if (i > 0) {
-          console.log("Waiting 2 seconds before posting next tweet...");
-          await delay(2000);
+        try {
+          // Increase delay to reduce spam detection (3-5 seconds with randomization)
+          const delayMs = 3000 + Math.random() * 2000; // 3-5 seconds
+          console.log(
+            `Waiting ${Math.round(delayMs / 1000)} seconds before posting tweet ${i + 1}/${chunks.length}...`
+          );
+          await delay(delayMs);
+
+          const reply = await client.v2.reply(chunk, lastTweet.data.id);
+
+          lastTweet = reply; // Update lastTweet to the new reply
+          lastSuccessfulTweetId = lastTweet.data.id;
+          postedReplies.push(lastTweet.data.id);
+          console.log(
+            `Posted reply tweet ${i + 1}/${chunks.length}:`,
+            lastTweet.data.id
+          );
+        } catch (replyError) {
+          console.error(`Failed to post reply tweet ${i + 1}:`, replyError);
+
+          // Check if it's a 403 Forbidden error (spam detection or permission issue)
+          const errorCode = (replyError as any).code;
+          if (errorCode === 403) {
+            console.warn(
+              "Twitter spam detection or permission issue detected - stopping thread creation"
+            );
+            // Return partial success - main tweet and some replies were posted
+            const tweetUrl = `https://twitter.com/${credentials.username}/status/${mainTweet.data.id}`;
+            return res.json({
+              success: true,
+              tweetUrl,
+              warning: `Posted main tweet and ${postedReplies.length} of ${chunks.length} replies. Twitter's spam detection prevented further posts. Try posting the remaining content separately.`,
+              postedReplies: postedReplies.length,
+              totalReplies: chunks.length,
+            });
+          }
+
+          // For other errors, rethrow to be caught by outer handler
+          throw replyError;
         }
-
-        const reply = await client.v2.reply(chunk, lastTweet.data.id);
-
-        lastTweet = reply; // Update lastTweet to the new reply
-        console.log("Posted reply tweet:", lastTweet.data.id);
       }
     }
 
