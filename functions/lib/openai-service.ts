@@ -1958,6 +1958,10 @@ Return your analysis in this JSON format:
               "detect_macd_divergence",
               "detect_volume_divergence",
             ].includes(toolCall.function.name);
+              `Has divergences: ${!!result.divergences}, count: ${
+                result.divergences?.length || 0
+              }`
+            );
 
             // Check if this is MACD crossover detection tool
             const isMACDCrossoverTool =

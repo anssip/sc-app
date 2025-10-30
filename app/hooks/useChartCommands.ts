@@ -205,8 +205,8 @@ async function executeChartCommand(
       }
 
       const lineId = api.addTrendLine({
-        startPoint: params.start,
-        endPoint: params.end,
+        startPoint: params.startPoint || params.start,
+        endPoint: params.endPoint || params.end,
         color: params.color || "#2962ff",
         lineWidth: params.lineWidth || 2,
         style: params.style || "solid",
@@ -374,6 +374,11 @@ async function executeChartCommand(
       return { cleared: true };
 
     case "visualize_divergences":
+      console.log(
+        `[visualize_divergences] Starting visualization with ${
+          params.divergences?.length || 0
+        } divergences`
+      );
       if (!params.divergences || !Array.isArray(params.divergences)) {
         throw new Error(
           "Divergences array is required for visualize_divergences command"
@@ -387,6 +392,9 @@ async function executeChartCommand(
       const showLabels = params.showLabels !== false; // Default true
 
       const drawnLines: string[] = [];
+      console.log(
+        `[visualize_divergences] Config: drawOnPrice=${drawOnPrice}, bullishColor=${bullishColor}, bearishColor=${bearishColor}`
+      );
 
       for (const divergence of params.divergences) {
         // Determine color based on divergence type
@@ -416,6 +424,16 @@ async function executeChartCommand(
 
         // Draw trend line on price chart
         if (drawOnPrice && divergence.startPoint && divergence.endPoint) {
+          console.log(
+            `[visualize_divergences] Drawing trend line for ${divergence.type} divergence:`,
+            {
+              start: divergence.startPoint,
+              end: divergence.endPoint,
+              color,
+              style,
+              lineWidth,
+            }
+          );
           const priceLineId = api.addTrendLine({
             startPoint: {
               timestamp: divergence.startPoint.timestamp,
@@ -437,6 +455,9 @@ async function executeChartCommand(
             selected: false,
             opacity: isHidden ? 0.7 : 1,
           });
+          console.log(
+            `[visualize_divergences] Trend line created with ID: ${priceLineId}`
+          );
           drawnLines.push(priceLineId);
         }
 
