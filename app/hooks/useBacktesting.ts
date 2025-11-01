@@ -4,6 +4,7 @@ import type {
   TradingStrategy,
   BacktestResult,
   Granularity,
+  EvaluatorConfig,
 } from "~/types/trading";
 
 /**
@@ -16,7 +17,7 @@ export interface BacktestConfig {
   granularity: Granularity;
   startingBalance: number;
   strategy: TradingStrategy;
-  evaluators?: string[]; // Indicator evaluators to load
+  evaluators?: EvaluatorConfig[]; // Indicator evaluators to load with parameters
 }
 
 /**

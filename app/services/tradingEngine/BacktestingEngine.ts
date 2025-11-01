@@ -6,6 +6,7 @@ import type {
   Order,
   EquityPoint,
   Granularity,
+  EvaluatorConfig,
 } from "~/types/trading";
 import type { CandleWithIndicators } from "~/services/indicators";
 import { indicatorDataLoader } from "~/services/indicators";
@@ -32,14 +33,14 @@ export class BacktestingEngine extends TradingEngine {
    * @param startDate Start date for historical data
    * @param endDate End date for historical data
    * @param granularity Candle granularity
-   * @param evaluators List of indicator evaluators to include
+   * @param evaluators List of indicator evaluator configurations
    */
   async loadHistoricalData(
     symbol: string,
     startDate: Date,
     endDate: Date,
     granularity: Granularity,
-    evaluators: string[] = []
+    evaluators: EvaluatorConfig[] = []
   ): Promise<void> {
     // Load candles with indicators from Market API
     const candles = await indicatorDataLoader.loadIndicatorData({

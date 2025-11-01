@@ -1,0 +1,28 @@
+{
+  "id": "atr",
+  "name": "Average True Range (ATR)",
+  "description": "Volatility indicator measuring the degree of price movement",
+  "category": "volatility",
+  "parameters": {
+    "period": {
+      "type": "number",
+      "label": "Period",
+      "description": "Lookback period for ATR calculation",
+      "default": 14,
+      "min": 2,
+      "max": 100,
+      "required": true
+    }
+  },
+  "outputs": [
+    {
+      "name": "atr",
+      "label": "ATR Value",
+      "type": "line",
+      "overlay": false
+    }
+  ],
+  "version": 1,
+  "tags": ["volatility", "atr", "range"],
+  "isPublic": true
+}

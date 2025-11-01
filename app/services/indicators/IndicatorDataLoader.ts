@@ -1,4 +1,5 @@
 import type { Granularity } from "~/types";
+import type { EvaluatorConfig } from "~/types/trading";
 import type { CandleWithIndicators } from "./indicatorTypes";
 import { marketAPI, type PriceCandle } from "../../../functions/lib/market-api";
 
@@ -10,7 +11,7 @@ export interface IndicatorLoadConfig {
   granularity: Granularity;
   startDate: Date;
   endDate: Date;
-  evaluators?: string[]; // List of evaluator IDs (e.g., ["moving-averages", "rsi"])
+  evaluators?: EvaluatorConfig[]; // List of evaluator configurations with parameters
   exchange?: string; // Default: "coinbase"
 }
 
@@ -78,14 +79,15 @@ export class IndicatorDataLoader {
     symbol: string,
     granularity: Granularity,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
+    params?: { fastPeriod?: number; slowPeriod?: number }
   ): Promise<CandleWithIndicators[]> {
     return this.loadIndicatorData({
       symbol,
       granularity,
       startDate,
       endDate,
-      evaluators: ["moving-averages"],
+      evaluators: [{ id: "moving-averages", params }],
     });
   }
 
@@ -96,14 +98,15 @@ export class IndicatorDataLoader {
     symbol: string,
     granularity: Granularity,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
+    params?: { period?: number }
   ): Promise<CandleWithIndicators[]> {
     return this.loadIndicatorData({
       symbol,
       granularity,
       startDate,
       endDate,
-      evaluators: ["rsi"],
+      evaluators: [{ id: "rsi", params }],
     });
   }
 
@@ -115,7 +118,7 @@ export class IndicatorDataLoader {
     granularity: Granularity,
     startDate: Date,
     endDate: Date,
-    evaluators: string[]
+    evaluators: EvaluatorConfig[]
   ): Promise<CandleWithIndicators[]> {
     return this.loadIndicatorData({
       symbol,
@@ -131,7 +134,7 @@ export class IndicatorDataLoader {
    */
   validateIndicators(
     candles: CandleWithIndicators[],
-    requiredEvaluators: string[]
+    requiredEvaluators: EvaluatorConfig[]
   ): boolean {
     if (candles.length === 0) return false;
 
@@ -140,9 +143,8 @@ export class IndicatorDataLoader {
     if (!firstCandle.evaluations) return false;
 
     const evaluatorIds = firstCandle.evaluations.map((e) => e.id);
-    return requiredEvaluators.every((required) =>
-      evaluatorIds.includes(required)
-    );
+    const requiredIds = requiredEvaluators.map((e) => e.id);
+    return requiredIds.every((required) => evaluatorIds.includes(required));
   }
 
   /**
@@ -158,15 +160,15 @@ export class IndicatorDataLoader {
    */
   filterCompleteCandles(
     candles: CandleWithIndicators[],
-    requiredEvaluators: string[]
+    requiredEvaluators: EvaluatorConfig[]
   ): CandleWithIndicators[] {
+    const requiredIds = requiredEvaluators.map((e) => e.id);
+
     return candles.filter((candle) => {
       if (!candle.evaluations) return false;
 
       const evaluatorIds = candle.evaluations.map((e) => e.id);
-      return requiredEvaluators.every((required) =>
-        evaluatorIds.includes(required)
-      );
+      return requiredIds.every((required) => evaluatorIds.includes(required));
     });
   }
 }

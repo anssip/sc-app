@@ -260,3 +260,13 @@ export interface DataLoadedEvent {
   startDate: Date;
   endDate: Date;
 }
+
+// Indicator Configuration Types
+
+/**
+ * Configuration for an indicator/evaluator with parameters
+ */
+export interface EvaluatorConfig {
+  id: string; // Evaluator ID (e.g., "moving-averages", "rsi")
+  params?: Record<string, any>; // Custom parameters for the indicator
+}

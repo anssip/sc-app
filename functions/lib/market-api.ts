@@ -5,6 +5,11 @@
  * This is a shared module used by both client and server code.
  */
 
+export interface EvaluatorConfig {
+  id: string;
+  params?: Record<string, any>;
+}
+
 export interface IndicatorValue {
   name: string;
   timestamp: number;
@@ -15,6 +20,7 @@ export interface IndicatorValue {
 export interface Evaluation {
   id: string;
   name?: string;
+  params?: Record<string, any>;
   values: IndicatorValue[];
   plot_styles?: any;
 }
@@ -47,7 +53,7 @@ export class MarketAPI {
    * @param startTime Start timestamp in milliseconds
    * @param endTime End timestamp in milliseconds
    * @param onProgress Optional progress callback
-   * @param evaluators Optional list of evaluator IDs (e.g., ["moving-averages", "rsi"])
+   * @param evaluators Optional list of evaluator configurations with parameters
    * @returns Array of price candles with optional indicator evaluations
    */
   async fetchPriceData(
@@ -56,7 +62,7 @@ export class MarketAPI {
     startTime: number,
     endTime: number,
     onProgress?: (message: string) => void,
-    evaluators?: string[]
+    evaluators?: EvaluatorConfig[]
   ): Promise<PriceCandle[]> {
     try {
       console.log("=== MarketAPI.fetchPriceData DEBUG ===");
@@ -215,7 +221,7 @@ export class MarketAPI {
     interval: string,
     startTime: number,
     endTime: number,
-    evaluators?: string[]
+    evaluators?: EvaluatorConfig[]
   ): Promise<PriceCandle[]> {
     // Build query parameters
     // Ensure timestamps are integers (no decimals)
@@ -226,8 +232,9 @@ export class MarketAPI {
     params.append("end_time", Math.floor(endTime).toString());
 
     // Add evaluators if provided
+    // The Market API expects a JSON array of evaluator configurations
     if (evaluators && evaluators.length > 0) {
-      params.append("evaluators", evaluators.join(","));
+      params.append("evaluators", JSON.stringify(evaluators));
     }
 
     console.log("=== fetchSingleBatch DEBUG ===");

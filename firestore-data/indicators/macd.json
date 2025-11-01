@@ -1,0 +1,59 @@
+{
+  "id": "macd",
+  "name": "MACD",
+  "description": "Moving Average Convergence Divergence - trend-following momentum indicator",
+  "category": "momentum",
+  "parameters": {
+    "fastPeriod": {
+      "type": "number",
+      "label": "Fast Period",
+      "description": "Fast EMA period",
+      "default": 12,
+      "min": 2,
+      "max": 100,
+      "required": true
+    },
+    "slowPeriod": {
+      "type": "number",
+      "label": "Slow Period",
+      "description": "Slow EMA period",
+      "default": 26,
+      "min": 2,
+      "max": 100,
+      "required": true,
+      "validation": "slowPeriod > fastPeriod"
+    },
+    "signalPeriod": {
+      "type": "number",
+      "label": "Signal Period",
+      "description": "Signal line EMA period",
+      "default": 9,
+      "min": 2,
+      "max": 50,
+      "required": true
+    }
+  },
+  "outputs": [
+    {
+      "name": "macd",
+      "label": "MACD Line",
+      "type": "line",
+      "overlay": false
+    },
+    {
+      "name": "macd_signal",
+      "label": "Signal Line",
+      "type": "line",
+      "overlay": false
+    },
+    {
+      "name": "macd_histogram",
+      "label": "Histogram",
+      "type": "histogram",
+      "overlay": false
+    }
+  ],
+  "version": 1,
+  "tags": ["momentum", "macd", "trend-following"],
+  "isPublic": true
+}

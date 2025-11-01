@@ -5,7 +5,9 @@ import {
   createStrategy,
   type StrategyType,
 } from "./StrategySelector";
-import type { Granularity } from "~/types/trading";
+import { IndicatorSelector } from "./IndicatorSelector";
+import { schemaService } from "~/services/indicators/schemaService";
+import type { Granularity, EvaluatorConfig } from "~/types/trading";
 import type { BacktestConfig } from "~/hooks/useBacktesting";
 
 const GRANULARITIES: { value: Granularity; label: string }[] = [
@@ -64,6 +66,9 @@ export function BacktestPanel({
   });
   const [granularity, setGranularity] = useState<Granularity>("ONE_HOUR");
   const [startingBalance, setStartingBalance] = useState<number>(100000);
+  const [evaluatorConfigs, setEvaluatorConfigs] = useState<EvaluatorConfig[]>(
+    []
+  );
 
   // Form validation
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -97,18 +102,31 @@ export function BacktestPanel({
     if (!validateForm()) return;
 
     try {
-      // Get evaluators needed for the strategy
-      const evaluators: string[] = [];
-      if (strategyType === "sma") {
-        evaluators.push("moving-averages");
-      } else if (strategyType === "rsi") {
-        evaluators.push("rsi");
+      // Validate all indicator parameters
+      const validationErrors: string[] = [];
+      evaluatorConfigs.forEach((config) => {
+        const result = schemaService.validateParams(
+          config.id,
+          config.params || {}
+        );
+        if (!result.valid) {
+          const schema = schemaService.getSchema(config.id);
+          const indicatorName = schema?.name || config.id;
+          validationErrors.push(
+            `${indicatorName}: ${result.errors.join(", ")}`
+          );
+        }
+      });
+
+      if (validationErrors.length > 0) {
+        setValidationError(validationErrors.join("; "));
+        return;
       }
 
       // Create strategy instance
       const strategy = createStrategy(strategyType, symbol, strategyConfig);
 
-      // Create backtest config
+      // Create backtest config with validated evaluator configs
       const config: BacktestConfig = {
         symbol,
         startDate: new Date(startDate),
@@ -116,7 +134,7 @@ export function BacktestPanel({
         granularity,
         startingBalance,
         strategy,
-        evaluators,
+        evaluators: evaluatorConfigs,
       };
 
       onRun(config);
@@ -178,6 +196,19 @@ export function BacktestPanel({
           onConfigChange={setStrategyConfig}
           symbol={symbol}
         />
+
+        {/* Indicator Configuration */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Indicators
+          </label>
+          <div className="bg-gray-900 rounded border border-gray-800 p-3">
+            <IndicatorSelector
+              selectedEvaluators={evaluatorConfigs}
+              onChange={setEvaluatorConfigs}
+            />
+          </div>
+        </div>
 
         {/* Date Range */}
         <div>
