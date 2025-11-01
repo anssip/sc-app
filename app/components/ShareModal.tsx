@@ -6,6 +6,7 @@ import {
   isTwitterConfigured,
   getCharacterCount,
 } from "../services/socialSharing";
+import { splitIntoTweets, type TweetPreview } from "../utils/twitter";
 
 interface Message {
   id: string;
@@ -35,9 +36,18 @@ export const ShareModal: React.FC<ShareModalProps> = ({
   const [selectedMessageIds, setSelectedMessageIds] = useState<Set<string>>(
     new Set()
   );
+  const [tweetPreviews, setTweetPreviews] = useState<TweetPreview[]>([]);
+  const [selectedTweetIds, setSelectedTweetIds] = useState<Set<string>>(
+    new Set()
+  );
   const [shareState, setShareState] = useState<ShareState>("idle");
   const [error, setError] = useState<string | null>(null);
   const [tweetUrl, setTweetUrl] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
+  const [partialSuccess, setPartialSuccess] = useState<{
+    posted: number;
+    total: number;
+  } | null>(null);
   const [loadingScreenshot, setLoadingScreenshot] = useState(false);
 
   const isConfigured = isTwitterConfigured();
@@ -60,11 +70,43 @@ export const ShareModal: React.FC<ShareModalProps> = ({
       setScreenshotUrl(null);
       setMainTweetText("");
       setSelectedMessageIds(new Set());
+      setTweetPreviews([]);
+      setSelectedTweetIds(new Set());
       setShareState("idle");
       setError(null);
       setTweetUrl(null);
+      setWarning(null);
+      setPartialSuccess(null);
     }
   }, [isOpen]);
+
+  // Generate tweet previews when selected messages change
+  useEffect(() => {
+    if (selectedMessages.length > 0) {
+      const previews = splitIntoTweets(selectedMessages);
+      const prevSelectedIds = selectedTweetIds;
+
+      setTweetPreviews(previews);
+
+      // Update selection:
+      // - If no tweets were previously selected, auto-select all new tweets
+      // - Otherwise, preserve existing selections (works because IDs are stable by index)
+      if (prevSelectedIds.size === 0) {
+        setSelectedTweetIds(new Set(previews.map((p) => p.id)));
+      } else {
+        // Keep only the IDs that still exist in the new preview set
+        const validIds = new Set(previews.map(p => p.id));
+        const preservedSelection = new Set(
+          Array.from(prevSelectedIds).filter(id => validIds.has(id))
+        );
+        setSelectedTweetIds(preservedSelection);
+      }
+    } else {
+      setTweetPreviews([]);
+      setSelectedTweetIds(new Set());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMessages]);
 
   const captureScreenshot = async () => {
     setLoadingScreenshot(true);
@@ -132,6 +174,24 @@ export const ShareModal: React.FC<ShareModalProps> = ({
     setSelectedMessageIds(new Set());
   };
 
+  const toggleTweetSelection = (tweetId: string) => {
+    const newSelected = new Set(selectedTweetIds);
+    if (newSelected.has(tweetId)) {
+      newSelected.delete(tweetId);
+    } else {
+      newSelected.add(tweetId);
+    }
+    setSelectedTweetIds(newSelected);
+  };
+
+  const selectAllTweets = () => {
+    setSelectedTweetIds(new Set(tweetPreviews.map((t) => t.id)));
+  };
+
+  const clearTweetSelection = () => {
+    setSelectedTweetIds(new Set());
+  };
+
   const handleShare = async () => {
     if (!screenshot) {
       setError("No screenshot available");
@@ -157,15 +217,37 @@ export const ShareModal: React.FC<ShareModalProps> = ({
     setError(null);
 
     try {
+      // Get selected tweet texts from previews
+      const selectedTweetTexts = tweetPreviews
+        .filter(tweet => selectedTweetIds.has(tweet.id))
+        .map(tweet => tweet.text);
+
       const result = await shareToX({
         screenshot,
         mainTweetText: mainTweetText.trim(),
-        selectedMessages,
+        selectedTweets: selectedTweetTexts,
       });
 
       if (result.success) {
         setShareState("success");
-        setTweetUrl(result.tweetUrl || null);
+
+        // Check if queued for later posting
+        if ((result as any).queued) {
+          const message = (result as any).message || "Tweets queued for posting!";
+          setWarning(message);
+        } else {
+          // Immediate posting (old behavior for backward compatibility)
+          setTweetUrl(result.tweetUrl || null);
+
+          // Check for partial success warning
+          if ((result as any).warning) {
+            setWarning((result as any).warning);
+            setPartialSuccess({
+              posted: (result as any).postedReplies || 0,
+              total: (result as any).totalReplies || 0,
+            });
+          }
+        }
       } else {
         setShareState("error");
         setError(result.error || "Failed to share");
@@ -219,39 +301,6 @@ export const ShareModal: React.FC<ShareModalProps> = ({
                       Please configure your X (Twitter) API credentials in the
                       environment variables to enable sharing.
                     </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {shareState === "success" && (
-              <div className="mb-4 p-4 bg-green-900/20 border border-green-700 rounded-lg">
-                <div className="flex items-start gap-2">
-                  <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm text-green-200">
-                    <p className="font-semibold mb-1">Successfully Shared!</p>
-                    {tweetUrl && (
-                      <a
-                        href={tweetUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-400 hover:text-blue-300 underline"
-                      >
-                        View your tweet →
-                      </a>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {shareState === "error" && error && (
-              <div className="mb-4 p-4 bg-red-900/20 border border-red-700 rounded-lg">
-                <div className="flex items-start gap-2">
-                  <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm text-red-200">
-                    <p className="font-semibold mb-1">Error</p>
-                    <p>{error}</p>
                   </div>
                 </div>
               </div>
@@ -400,6 +449,142 @@ export const ShareModal: React.FC<ShareModalProps> = ({
                 )}
               </div>
             </div>
+
+            {/* Tweet Preview Section */}
+            {tweetPreviews.length > 0 && (
+              <div className="mt-6 border-t border-gray-800 pt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <label className="block text-sm font-medium text-gray-300">
+                    Tweet Preview ({tweetPreviews.length} tweet{tweetPreviews.length !== 1 ? 's' : ''})
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={selectAllTweets}
+                      className="text-xs text-blue-400 hover:text-blue-300"
+                    >
+                      Select All
+                    </button>
+                    <span className="text-gray-600">|</span>
+                    <button
+                      onClick={clearTweetSelection}
+                      className="text-xs text-blue-400 hover:text-blue-300"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                <div className="text-xs text-gray-500 mb-3">
+                  Preview of sanitized tweets (as they will appear on X)
+                </div>
+
+                <div className="space-y-3">
+                  {tweetPreviews.map((tweet, idx) => (
+                    <label
+                      key={tweet.id}
+                      className={`block border rounded-lg p-4 cursor-pointer transition-colors ${
+                        selectedTweetIds.has(tweet.id)
+                          ? 'border-blue-500 bg-blue-900/20'
+                          : 'border-gray-700 hover:border-gray-600 bg-gray-900/50'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedTweetIds.has(tweet.id)}
+                          onChange={() => toggleTweetSelection(tweet.id)}
+                          className="mt-1 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-500 focus:ring-offset-gray-900"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-semibold text-blue-400">
+                              Tweet {idx + 1}
+                            </span>
+                            <span className={`text-xs font-mono ${
+                              tweet.charCount > 280 ? 'text-red-400' : 'text-gray-400'
+                            }`}>
+                              {tweet.charCount}/280
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-300 whitespace-pre-wrap break-words">
+                            {tweet.text}
+                          </p>
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+
+                {selectedTweetIds.size > 0 && (
+                  <div className="mt-3 text-xs text-gray-400">
+                    {selectedTweetIds.size} tweet{selectedTweetIds.size !== 1 ? 's' : ''} selected
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Status Messages - positioned above footer */}
+            {shareState === "success" && (
+              <>
+                <div className="mt-6 p-4 bg-green-900/20 border border-green-700 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-green-200">
+                      <p className="font-semibold mb-1">
+                        {warning ? "Queued Successfully!" : "Successfully Shared!"}
+                      </p>
+                      {tweetUrl && (
+                        <a
+                          href={tweetUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:text-blue-300 underline"
+                        >
+                          View your tweet →
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {warning && (
+                  <div className="mt-3 p-4 bg-blue-900/20 border border-blue-700 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                      <div className="text-sm text-blue-200">
+                        {partialSuccess ? (
+                          <>
+                            <p className="font-semibold mb-1">Partial Success</p>
+                            <p className="mb-2">
+                              Posted main tweet + {partialSuccess.posted} of{" "}
+                              {partialSuccess.total} reply tweets
+                            </p>
+                            <p className="text-xs text-blue-300">{warning}</p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="font-semibold mb-1">Queued for Posting</p>
+                            <p className="text-xs text-blue-300">{warning}</p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {shareState === "error" && error && (
+              <div className="mt-6 p-4 bg-red-900/20 border border-red-700 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-red-200">
+                    <p className="font-semibold mb-1">Error</p>
+                    <p>{error}</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Footer */}
@@ -413,10 +598,10 @@ export const ShareModal: React.FC<ShareModalProps> = ({
                   </span>
                 ) : (
                   <span>
-                    {selectedMessages.length > 0
-                      ? `Main tweet + ${selectedMessages.length} message${
-                          selectedMessages.length !== 1 ? "s" : ""
-                        } as replies`
+                    {selectedTweetIds.size > 0
+                      ? `Main tweet + ${selectedTweetIds.size} reply tweet${
+                          selectedTweetIds.size !== 1 ? "s" : ""
+                        }`
                       : "Main tweet only"}
                   </span>
                 )}

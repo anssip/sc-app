@@ -48,5 +48,8 @@ export { shareToX } from "./dist/share-to-x.js";
 // Export scheduled functions for usage billing
 export { processUsageBilling, triggerUsageBilling } from "./dist/scheduled-usage-billing.js";
 
+// Export tweet queue processor
+export { processTweetQueue } from "./dist/process-tweet-queue.js";
+
 // Export Customer.io sync functions
 export { syncUserToCustomerIO, syncSubscriptionToCustomerIO } from "./dist/customerio-sync.js";

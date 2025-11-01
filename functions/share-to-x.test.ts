@@ -1,5 +1,6 @@
 import { describe, test, expect } from "bun:test";
-import { sanitizeTextForTwitter, formatResetTime } from "./share-to-x";
+import { sanitizeTextForTwitter } from "./utils/twitter.js";
+import { formatResetTime } from "./share-to-x.js";
 
 describe("sanitizeTextForTwitter", () => {
   describe("Markdown Bold Removal", () => {
