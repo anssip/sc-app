@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Play, X, RotateCcw, Loader, BarChart3 } from "lucide-react";
 import {
   StrategySelector,
   createStrategy,
   type StrategyType,
 } from "./StrategySelector";
-import { IndicatorSelector } from "./IndicatorSelector";
+import { DynamicEvaluatorForm } from "./DynamicEvaluatorForm";
 import { schemaService } from "~/services/indicators/schemaService";
 import type { Granularity, EvaluatorConfig } from "~/types/trading";
 import type { BacktestConfig } from "~/hooks/useBacktesting";
@@ -72,6 +72,42 @@ export function BacktestPanel({
 
   // Form validation
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Get required indicators from strategy
+  const requiredIndicators = useMemo(() => {
+    try {
+      const strategy = createStrategy(strategyType, symbol, strategyConfig);
+      return strategy.getRequiredIndicators();
+    } catch (error) {
+      return [];
+    }
+  }, [strategyType, symbol, strategyConfig]);
+
+  // Load schemas for required indicators
+  const indicatorSchemas = useMemo(() => {
+    return requiredIndicators
+      .map((id) => schemaService.getSchema(id))
+      .filter((schema) => schema !== null);
+  }, [requiredIndicators]);
+
+  // Initialize evaluator configs when strategy changes
+  useEffect(() => {
+    // Create default evaluator configs for required indicators
+    const defaultConfigs: EvaluatorConfig[] = requiredIndicators.map((id) => ({
+      id,
+      params: schemaService.getDefaultParams(id),
+    }));
+    setEvaluatorConfigs(defaultConfigs);
+  }, [requiredIndicators]);
+
+  // Update indicator params
+  const updateIndicatorParams = (indicatorId: string, params: Record<string, any>) => {
+    setEvaluatorConfigs((prev) =>
+      prev.map((config) =>
+        config.id === indicatorId ? { ...config, params } : config
+      )
+    );
+  };
 
   const validateForm = (): boolean => {
     // Validate dates
@@ -197,18 +233,28 @@ export function BacktestPanel({
           symbol={symbol}
         />
 
-        {/* Indicator Configuration */}
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Indicators
-          </label>
-          <div className="bg-gray-900 rounded border border-gray-800 p-3">
-            <IndicatorSelector
-              selectedEvaluators={evaluatorConfigs}
-              onChange={setEvaluatorConfigs}
-            />
+        {/* Required Indicators Configuration */}
+        {indicatorSchemas.length > 0 && (
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Required Indicators
+            </label>
+            <div className="space-y-3">
+              {indicatorSchemas.map((schema) => {
+                const config = evaluatorConfigs.find((c) => c.id === schema.id);
+                return (
+                  <div key={schema.id} className="bg-gray-900 rounded border border-gray-800 p-3">
+                    <DynamicEvaluatorForm
+                      schema={schema}
+                      values={config?.params || {}}
+                      onChange={(params) => updateIndicatorParams(schema.id, params)}
+                    />
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Date Range */}
         <div>

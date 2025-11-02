@@ -61,6 +61,13 @@ export abstract class BaseStrategy implements TradingStrategy {
   }
 
   /**
+   * Returns list of required indicator IDs that this strategy needs
+   * Subclasses must implement this
+   * @returns Array of evaluator IDs (e.g., ["moving-averages", "rsi"])
+   */
+  abstract getRequiredIndicators(): string[];
+
+  /**
    * Strategy-specific analysis logic
    * Subclasses must implement this
    * @param candle Current candle with indicators

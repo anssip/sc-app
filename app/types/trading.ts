@@ -129,6 +129,12 @@ export interface TradingStrategy {
   description?: string;
 
   /**
+   * Returns list of required indicator IDs that this strategy needs
+   * @returns Array of evaluator IDs (e.g., ["moving-averages", "rsi"])
+   */
+  getRequiredIndicators(): string[];
+
+  /**
    * Called for each candle during backtest
    * @param candle Current price candle
    * @returns Order signal or null

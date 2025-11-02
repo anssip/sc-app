@@ -53,6 +53,14 @@ export class SMAStrategy extends BaseStrategy {
   }
 
   /**
+   * Returns list of required indicators
+   * SMA strategy requires moving averages indicator
+   */
+  getRequiredIndicators(): string[] {
+    return ["moving-averages"];
+  }
+
+  /**
    * Analyze candle and generate trading signal
    */
   protected analyze(candle: CandleWithIndicators): OrderSignal | null {

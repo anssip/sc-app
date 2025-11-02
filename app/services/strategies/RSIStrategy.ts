@@ -74,6 +74,14 @@ export class RSIStrategy extends BaseStrategy {
   }
 
   /**
+   * Returns list of required indicators
+   * RSI strategy requires RSI indicator
+   */
+  getRequiredIndicators(): string[] {
+    return ["rsi"];
+  }
+
+  /**
    * Called when a trade executes - synchronize position state
    */
   onTrade(trade: any): void {
