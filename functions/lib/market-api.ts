@@ -41,7 +41,8 @@ export interface TimeRange {
 }
 
 export class MarketAPI {
-  private readonly API_BASE_URL = "https://market.spotcanvas.com";
+  private readonly API_BASE_URL =
+    "https://market-evaluators-dev-346028322665.europe-west1.run.app";
   private readonly MAX_CANDLES_PER_REQUEST = 200;
 
   /**

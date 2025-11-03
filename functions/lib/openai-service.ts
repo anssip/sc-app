@@ -556,7 +556,8 @@ async function processWithLLM({
               // Determine the price based on priceType
               if (args.priceType === "current") {
                 // Fetch the current price
-                const API_BASE_URL = "https://market.spotcanvas.com";
+                const API_BASE_URL =
+                  "https://market-evaluators-dev-346028322665.europe-west1.run.app";
                 const now = Date.now();
                 const oneHourAgo = now - 60 * 60 * 1000;
 
@@ -1958,10 +1959,6 @@ Return your analysis in this JSON format:
               "detect_macd_divergence",
               "detect_volume_divergence",
             ].includes(toolCall.function.name);
-              `Has divergences: ${!!result.divergences}, count: ${
-                result.divergences?.length || 0
-              }`
-            );
 
             // Check if this is MACD crossover detection tool
             const isMACDCrossoverTool =

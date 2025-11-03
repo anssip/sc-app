@@ -484,3 +484,16 @@ Using the company analyzer LangChain package
 # Price Lines for support/resistance tool
 
 I am trying to add trend lines to the chart using the AI chat. I can see that it adds "add_trend_line" commands to Firestore and those should then be added to the chart but this not happening now. Fix it to use Price Lines which are not in the API of rs-charts. It should use Price Lines instead of Trend Lines when drawing lines of support and resistance to the chart. See CHART_API_REFERENCE.md. [@useMCPClient.tsx](zed:///agent/file?path=%2FUsers%2Fanssi%2Fprojects%2Fspotcanvas%2Fsc-app%2Fapp%2Fhooks%2FuseMCPClient.tsx) [@openai-service.ts](zed:///agent/file?path=%2FUsers%2Fanssi%2Fprojects%2Fspotcanvas%2Fsc-app%2Ffunctions%2Flib%2Fopenai-service.ts)
+
+# Market evaluators enhancements
+
+I'd like to enhance the Market Evaluators (indicators) so that we have the parameter schemas stored in Firestore. The schemas should describe
+
+- Parameter names
+- Parameter types
+- Parameter default values
+- Parameter descriptions
+
+With this info, we can build the UI in the Backtesting tool, and indicator configuration tool, without hard-coding the indicator parameters and without hardwiring the UI to specific indicators and their parameters. The goal is to make a generic UI that can adapt to any indicator. Custom indicators are also in the roadmap – the users will be able to code their own indicators and use them in the Backtesting tool.
+
+What kind of changed do we need to be able to integrate these schemas in how we implement the indicators?

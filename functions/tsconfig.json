@@ -22,7 +22,7 @@
     "allowJs": true,
     "types": ["node"]
   },
-  "include": ["*.ts", "*.js", "lib/**/*.ts", "lib/**/*.js"],
+  "include": ["*.ts", "*.js", "lib/**/*.ts", "lib/**/*.js", "utils/**/*.ts", "types/**/*.ts"],
   "exclude": [
     "node_modules",
     "dist",

@@ -10,10 +10,7 @@ import {
   detectVolumeDivergence,
   Divergence,
 } from "./divergence-detection.js";
-import {
-  detectMACDCrossovers,
-  MACDCrossover,
-} from "./tools/macd-crossover.js";
+import { detectMACDCrossovers, MACDCrossover } from "./tools/macd-crossover.js";
 
 interface ToolDefinition {
   type: string;
@@ -474,14 +471,12 @@ export const priceTools = {
                 type: "string",
                 enum: ["regular", "hidden", "all"],
               },
-              description:
-                "Types of divergences to detect",
+              description: "Types of divergences to detect",
               default: ["regular"],
             },
             minStrength: {
               type: "number",
-              description:
-                "Minimum divergence strength (0-100, default: 30)",
+              description: "Minimum divergence strength (0-100, default: 30)",
               default: 30,
             },
           },
@@ -548,14 +543,12 @@ export const priceTools = {
                 type: "string",
                 enum: ["regular", "hidden", "all"],
               },
-              description:
-                "Types of divergences to detect",
+              description: "Types of divergences to detect",
               default: ["regular"],
             },
             minStrength: {
               type: "number",
-              description:
-                "Minimum divergence strength (0-100, default: 30)",
+              description: "Minimum divergence strength (0-100, default: 30)",
               default: 30,
             },
           },
@@ -606,8 +599,7 @@ export const priceTools = {
             },
             minStrength: {
               type: "number",
-              description:
-                "Minimum divergence strength (0-100, default: 30)",
+              description: "Minimum divergence strength (0-100, default: 30)",
               default: 30,
             },
           },
@@ -705,13 +697,25 @@ export const priceTools = {
       case "detect_divergence":
         return await this.detectDivergence(args as DetectDivergenceArgs, db);
       case "detect_rsi_divergence":
-        return await this.detectRSIDivergence(args as DetectRSIDivergenceArgs, db);
+        return await this.detectRSIDivergence(
+          args as DetectRSIDivergenceArgs,
+          db
+        );
       case "detect_macd_divergence":
-        return await this.detectMACDDivergence(args as DetectMACDDivergenceArgs, db);
+        return await this.detectMACDDivergence(
+          args as DetectMACDDivergenceArgs,
+          db
+        );
       case "detect_volume_divergence":
-        return await this.detectVolumeDivergence(args as DetectVolumeDivergenceArgs, db);
+        return await this.detectVolumeDivergence(
+          args as DetectVolumeDivergenceArgs,
+          db
+        );
       case "detect_macd_crossover":
-        return await this.detectMACDCrossover(args as DetectMACDCrossoverArgs, db);
+        return await this.detectMACDCrossover(
+          args as DetectMACDCrossoverArgs,
+          db
+        );
       default:
         throw new Error(`Unknown Firestore tool: ${toolName}`);
     }
@@ -793,7 +797,8 @@ export const priceTools = {
 
   async getLatestPrice({ symbol }: LatestPriceArgs): Promise<any> {
     try {
-      const API_BASE_URL = "https://market.spotcanvas.com";
+      const API_BASE_URL =
+        "https://market-evaluators-dev-346028322665.europe-west1.run.app";
 
       // Get the last hour of data to find the latest price
       const now = Date.now();
@@ -1034,7 +1039,8 @@ export const priceTools = {
     maxResistances = 5,
   }: SupportResistanceLevelsArgs): Promise<any> {
     try {
-      const API_BASE_URL = "https://market.spotcanvas.com";
+      const API_BASE_URL =
+        "https://market-evaluators-dev-346028322665.europe-west1.run.app";
 
       // Build query parameters
       const params = new URLSearchParams();
@@ -1348,7 +1354,16 @@ export const priceTools = {
   },
 
   async detectDivergence(
-    { symbol, interval, indicator, startTime, endTime, divergenceTypes = ["regular"], lookbackPeriod = 5, minStrength = 30 }: DetectDivergenceArgs,
+    {
+      symbol,
+      interval,
+      indicator,
+      startTime,
+      endTime,
+      divergenceTypes = ["regular"],
+      lookbackPeriod = 5,
+      minStrength = 30,
+    }: DetectDivergenceArgs,
     _db: Firestore
   ): Promise<any> {
     try {
@@ -1372,9 +1387,8 @@ export const priceTools = {
       }
 
       // If "any" is selected, check all available indicators
-      const evaluatorsToCheck = indicator === "any"
-        ? ["rsi", "macd", "stochastic"]
-        : [evaluator];
+      const evaluatorsToCheck =
+        indicator === "any" ? ["rsi", "macd", "stochastic"] : [evaluator];
 
       const allDivergences: Divergence[] = [];
 
@@ -1401,7 +1415,11 @@ export const priceTools = {
             const evaluation = candle.evaluations.find((e) =>
               e.name?.toLowerCase().includes(evalId.toLowerCase())
             );
-            if (evaluation && evaluation.values && evaluation.values.length > 0) {
+            if (
+              evaluation &&
+              evaluation.values &&
+              evaluation.values.length > 0
+            ) {
               // For MACD, use the MACD line value (not signal or histogram)
               // For RSI and other indicators, match by name
               const value = evaluation.values.find((v) => {
@@ -1426,13 +1444,19 @@ export const priceTools = {
         console.log(`Extracted ${indicatorData.length} indicator values`);
         if (indicatorData.length > 0) {
           console.log(`Sample indicator value:`, indicatorData[0]);
-          const minIndicator = Math.min(...indicatorData.map(d => d.value));
-          const maxIndicator = Math.max(...indicatorData.map(d => d.value));
-          console.log(`${evalId.toUpperCase()} range: ${minIndicator.toFixed(2)} to ${maxIndicator.toFixed(2)}`);
+          const minIndicator = Math.min(...indicatorData.map((d) => d.value));
+          const maxIndicator = Math.max(...indicatorData.map((d) => d.value));
+          console.log(
+            `${evalId.toUpperCase()} range: ${minIndicator.toFixed(
+              2
+            )} to ${maxIndicator.toFixed(2)}`
+          );
         }
 
         if (indicatorData.length < 10) {
-          console.log(`Skipping ${evalId}: not enough data (${indicatorData.length} < 10)`);
+          console.log(
+            `Skipping ${evalId}: not enough data (${indicatorData.length} < 10)`
+          );
           continue; // Not enough data for meaningful divergence detection
         }
 
@@ -1475,13 +1499,14 @@ export const priceTools = {
       if (allDivergences.length > 0) {
         result.suggestedVisualization = {
           tool: "visualize_divergences",
-          description: "Use visualize_divergences tool to draw these divergences on the chart",
+          description:
+            "Use visualize_divergences tool to draw these divergences on the chart",
           parameters: {
             divergences: allDivergences,
             drawOnPrice: true,
             drawOnIndicator: true,
-            showLabels: true
-          }
+            showLabels: true,
+          },
         };
       }
 
@@ -1493,7 +1518,15 @@ export const priceTools = {
   },
 
   async detectRSIDivergence(
-    { symbol, interval, startTime, endTime, rsiPeriod: _rsiPeriod = 14, divergenceTypes = ["regular"], minStrength = 30 }: DetectRSIDivergenceArgs,
+    {
+      symbol,
+      interval,
+      startTime,
+      endTime,
+      rsiPeriod: _rsiPeriod = 14,
+      divergenceTypes = ["regular"],
+      minStrength = 30,
+    }: DetectRSIDivergenceArgs,
     db: Firestore
   ): Promise<any> {
     return this.detectDivergence(
@@ -1512,7 +1545,15 @@ export const priceTools = {
   },
 
   async detectMACDDivergence(
-    { symbol, interval, startTime, endTime, macdSettings: _macdSettings, divergenceTypes = ["regular"], minStrength = 30 }: DetectMACDDivergenceArgs,
+    {
+      symbol,
+      interval,
+      startTime,
+      endTime,
+      macdSettings: _macdSettings,
+      divergenceTypes = ["regular"],
+      minStrength = 30,
+    }: DetectMACDDivergenceArgs,
     db: Firestore
   ): Promise<any> {
     return this.detectDivergence(
@@ -1531,7 +1572,14 @@ export const priceTools = {
   },
 
   async detectVolumeDivergence(
-    { symbol, interval, startTime, endTime, lookbackPeriod = 5, minStrength = 30 }: DetectVolumeDivergenceArgs,
+    {
+      symbol,
+      interval,
+      startTime,
+      endTime,
+      lookbackPeriod = 5,
+      minStrength = 30,
+    }: DetectVolumeDivergenceArgs,
     _db: Firestore
   ): Promise<any> {
     try {
@@ -1584,7 +1632,15 @@ export const priceTools = {
   },
 
   async detectMACDCrossover(
-    { symbol, interval, startTime, endTime, crossoverTypes = ["bullish", "bearish"], minStrength = 30, includeHistogram = true }: DetectMACDCrossoverArgs,
+    {
+      symbol,
+      interval,
+      startTime,
+      endTime,
+      crossoverTypes = ["bullish", "bearish"],
+      minStrength = 30,
+      includeHistogram = true,
+    }: DetectMACDCrossoverArgs,
     _db: Firestore
   ): Promise<any> {
     try {
@@ -1615,14 +1671,20 @@ export const priceTools = {
       if (crossovers.length === 0) {
         summary = "No MACD crossovers detected in the specified range.";
       } else {
-        const bullish = crossovers.filter((c) => c.type === "bullish" || c.type === "bullish_zero");
-        const bearish = crossovers.filter((c) => c.type === "bearish" || c.type === "bearish_zero");
+        const bullish = crossovers.filter(
+          (c) => c.type === "bullish" || c.type === "bullish_zero"
+        );
+        const bearish = crossovers.filter(
+          (c) => c.type === "bearish" || c.type === "bearish_zero"
+        );
 
         // Show filtering information if applicable
         if (filtered) {
           summary = `Found ${totalFound} MACD crossovers (showing top ${crossovers.length} by significance): `;
         } else {
-          summary = `Found ${crossovers.length} MACD crossover${crossovers.length !== 1 ? "s" : ""}: `;
+          summary = `Found ${crossovers.length} MACD crossover${
+            crossovers.length !== 1 ? "s" : ""
+          }: `;
         }
 
         if (bullish.length > 0) {
@@ -1636,7 +1698,9 @@ export const priceTools = {
         // Highlight high-confidence crossovers
         const highConfidence = crossovers.filter((c) => c.confidence >= 75);
         if (highConfidence.length > 0) {
-          summary += `. ${highConfidence.length} high-confidence signal${highConfidence.length !== 1 ? "s" : ""} shown`;
+          summary += `. ${highConfidence.length} high-confidence signal${
+            highConfidence.length !== 1 ? "s" : ""
+          } shown`;
         }
 
         // Add note about filtering criteria if filtered
@@ -1663,7 +1727,8 @@ export const priceTools = {
       if (crossovers.length > 0) {
         result.suggestedVisualization = {
           tool: "visualize_macd_crossovers",
-          description: "Use visualize_macd_crossovers tool to mark these crossovers on the chart",
+          description:
+            "Use visualize_macd_crossovers tool to mark these crossovers on the chart",
           parameters: {
             crossovers,
             drawMarkers: true,
@@ -1684,10 +1749,16 @@ export const priceTools = {
       return "No divergences detected in the specified range.";
     }
 
-    const bullish = divergences.filter((d) => d.type === "bullish" || d.type === "hidden_bullish");
-    const bearish = divergences.filter((d) => d.type === "bearish" || d.type === "hidden_bearish");
+    const bullish = divergences.filter(
+      (d) => d.type === "bullish" || d.type === "hidden_bullish"
+    );
+    const bearish = divergences.filter(
+      (d) => d.type === "bearish" || d.type === "hidden_bearish"
+    );
 
-    let summary = `Found ${divergences.length} divergence${divergences.length !== 1 ? "s" : ""}: `;
+    let summary = `Found ${divergences.length} divergence${
+      divergences.length !== 1 ? "s" : ""
+    }: `;
 
     if (bullish.length > 0) {
       summary += `${bullish.length} bullish`;
@@ -1700,7 +1771,9 @@ export const priceTools = {
     // Highlight high-confidence divergences
     const highConfidence = divergences.filter((d) => d.confidence >= 75);
     if (highConfidence.length > 0) {
-      summary += `. ${highConfidence.length} high-confidence signal${highConfidence.length !== 1 ? "s" : ""} detected`;
+      summary += `. ${highConfidence.length} high-confidence signal${
+        highConfidence.length !== 1 ? "s" : ""
+      } detected`;
     }
 
     return summary;
@@ -1872,38 +1945,59 @@ export const priceTools = {
           let formattedResult = result.summary + "\n\n";
 
           if (result.filtered) {
-            formattedResult += "*Note: Showing only the most significant crossovers based on confidence and strength.*\n\n";
+            formattedResult +=
+              "*Note: Showing only the most significant crossovers based on confidence and strength.*\n\n";
           }
 
-          result.crossovers.forEach((crossover: MACDCrossover, index: number) => {
-            const date = new Date(crossover.timestamp).toLocaleString("en-US", {
-              month: "short",
-              day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-              timeZone: "UTC",
-            });
+          result.crossovers.forEach(
+            (crossover: MACDCrossover, index: number) => {
+              const date = new Date(crossover.timestamp).toLocaleString(
+                "en-US",
+                {
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  timeZone: "UTC",
+                }
+              );
 
-            const typeEmoji =
-              crossover.type === "bullish" || crossover.type === "bullish_zero"
-                ? "🟢"
-                : "🔴";
-            const typeLabel = crossover.type
-              .replace(/_/g, " ")
-              .split(" ")
-              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-              .join(" ");
+              const typeEmoji =
+                crossover.type === "bullish" ||
+                crossover.type === "bullish_zero"
+                  ? "🟢"
+                  : "🔴";
+              const typeLabel = crossover.type
+                .replace(/_/g, " ")
+                .split(" ")
+                .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(" ");
 
-            formattedResult += `**${index + 1}. ${typeEmoji} ${typeLabel} Crossover**\n`;
-            formattedResult += `  - **Time:** ${date} UTC\n`;
-            formattedResult += `  - **Price:** $${crossover.price.toFixed(2)}\n`;
-            formattedResult += `  - **MACD:** ${crossover.macdValue.toFixed(2)}\n`;
-            formattedResult += `  - **Signal:** ${crossover.signalValue.toFixed(2)}\n`;
-            formattedResult += `  - **Histogram:** ${crossover.histogramValue.toFixed(2)}\n`;
-            formattedResult += `  - **Strength:** ${crossover.strength.toFixed(0)}%\n`;
-            formattedResult += `  - **Confidence:** ${crossover.confidence.toFixed(0)}%\n`;
-            formattedResult += `  - **Analysis:** ${crossover.description}\n\n`;
-          });
+              formattedResult += `**${
+                index + 1
+              }. ${typeEmoji} ${typeLabel} Crossover**\n`;
+              formattedResult += `  - **Time:** ${date} UTC\n`;
+              formattedResult += `  - **Price:** $${crossover.price.toFixed(
+                2
+              )}\n`;
+              formattedResult += `  - **MACD:** ${crossover.macdValue.toFixed(
+                2
+              )}\n`;
+              formattedResult += `  - **Signal:** ${crossover.signalValue.toFixed(
+                2
+              )}\n`;
+              formattedResult += `  - **Histogram:** ${crossover.histogramValue.toFixed(
+                2
+              )}\n`;
+              formattedResult += `  - **Strength:** ${crossover.strength.toFixed(
+                0
+              )}%\n`;
+              formattedResult += `  - **Confidence:** ${crossover.confidence.toFixed(
+                0
+              )}%\n`;
+              formattedResult += `  - **Analysis:** ${crossover.description}\n\n`;
+            }
+          );
 
           return formattedResult;
         }
@@ -1916,36 +2010,56 @@ export const priceTools = {
         if (result.divergences && result.divergences.length > 0) {
           let formattedResult = result.summary + "\n\n";
 
-          result.divergences.forEach((divergence: Divergence, index: number) => {
-            const startDate = new Date(divergence.startPoint.timestamp).toLocaleString("en-US", {
-              month: "short",
-              day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-              timeZone: "UTC",
-            });
-            const endDate = new Date(divergence.endPoint.timestamp).toLocaleString("en-US", {
-              month: "short",
-              day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-              timeZone: "UTC",
-            });
+          result.divergences.forEach(
+            (divergence: Divergence, index: number) => {
+              const startDate = new Date(
+                divergence.startPoint.timestamp
+              ).toLocaleString("en-US", {
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+                timeZone: "UTC",
+              });
+              const endDate = new Date(
+                divergence.endPoint.timestamp
+              ).toLocaleString("en-US", {
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+                timeZone: "UTC",
+              });
 
-            const typeEmoji = divergence.type.includes("bullish") ? "🟢" : "🔴";
-            const typeLabel = divergence.type.replace(/_/g, " ").split(" ").map(word =>
-              word.charAt(0).toUpperCase() + word.slice(1)
-            ).join(" ");
+              const typeEmoji = divergence.type.includes("bullish")
+                ? "🟢"
+                : "🔴";
+              const typeLabel = divergence.type
+                .replace(/_/g, " ")
+                .split(" ")
+                .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(" ");
 
-            formattedResult += `**${index + 1}. ${typeEmoji} ${typeLabel} Divergence**\n`;
-            formattedResult += `  - **Indicator:** ${divergence.indicator}\n`;
-            formattedResult += `  - **Period:** ${startDate} → ${endDate}\n`;
-            formattedResult += `  - **Price:** $${divergence.startPoint.price.toFixed(2)} → $${divergence.endPoint.price.toFixed(2)}\n`;
-            formattedResult += `  - **Indicator Value:** ${divergence.startPoint.indicatorValue.toFixed(2)} → ${divergence.endPoint.indicatorValue.toFixed(2)}\n`;
-            formattedResult += `  - **Strength:** ${divergence.strength.toFixed(1)}%\n`;
-            formattedResult += `  - **Confidence:** ${divergence.confidence.toFixed(0)}%\n`;
-            formattedResult += `  - **Analysis:** ${divergence.description}\n\n`;
-          });
+              formattedResult += `**${
+                index + 1
+              }. ${typeEmoji} ${typeLabel} Divergence**\n`;
+              formattedResult += `  - **Indicator:** ${divergence.indicator}\n`;
+              formattedResult += `  - **Period:** ${startDate} → ${endDate}\n`;
+              formattedResult += `  - **Price:** $${divergence.startPoint.price.toFixed(
+                2
+              )} → $${divergence.endPoint.price.toFixed(2)}\n`;
+              formattedResult += `  - **Indicator Value:** ${divergence.startPoint.indicatorValue.toFixed(
+                2
+              )} → ${divergence.endPoint.indicatorValue.toFixed(2)}\n`;
+              formattedResult += `  - **Strength:** ${divergence.strength.toFixed(
+                1
+              )}%\n`;
+              formattedResult += `  - **Confidence:** ${divergence.confidence.toFixed(
+                0
+              )}%\n`;
+              formattedResult += `  - **Analysis:** ${divergence.description}\n\n`;
+            }
+          );
 
           // Don't show action required to user - AI should handle it automatically
           // The suggestedVisualization field in the result will trigger automatic visualization
