@@ -5,7 +5,11 @@
  * Uploads schemas from firestore-data/indicators/ to the /indicators collection
  *
  * Uses Firebase Admin SDK to bypass security rules
- * Run with: node scripts/upload-indicator-schemas.cjs
+ *
+ * Usage:
+ *   Production: node scripts/upload-indicator-schemas.cjs
+ *   Emulator:   node scripts/upload-indicator-schemas.cjs --emulator
+ *   Or set:     USE_EMULATOR=true node scripts/upload-indicator-schemas.cjs
  */
 
 const { readdir, readFile } = require("fs/promises");
@@ -13,11 +17,16 @@ const { join } = require("path");
 const admin = require("firebase-admin");
 const { readFileSync } = require("fs");
 
+// Check if we should use emulator
+const useEmulator =
+  process.argv.includes("--emulator") ||
+  process.env.USE_EMULATOR === "true" ||
+  process.env.FIRESTORE_EMULATOR_HOST;
+
 // Initialize Firebase Admin with service account
 if (admin.apps.length === 0) {
   const serviceAccountPath =
     process.env.GOOGLE_APPLICATION_CREDENTIALS || "./serviceAccountKey.json";
-  console.log(`Using service account: ${serviceAccountPath}`);
 
   const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, "utf-8"));
 
@@ -32,6 +41,19 @@ if (admin.apps.length === 0) {
 }
 
 const db = admin.firestore();
+
+// Connect to emulator if requested
+if (useEmulator) {
+  const emulatorHost = process.env.FIRESTORE_EMULATOR_HOST || "localhost:8090";
+  const [host, port] = emulatorHost.split(":");
+  db.settings({
+    host: `${host}:${port}`,
+    ssl: false,
+  });
+  console.log(`🔧 Connected to Firestore Emulator at ${emulatorHost}`);
+} else {
+  console.log(`☁️  Connected to Production Firestore`);
+}
 
 async function uploadIndicatorSchemas() {
   console.log("📊 Uploading Indicator Schemas to Firestore");

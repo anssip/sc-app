@@ -29,13 +29,7 @@ export class IndicatorDataLoader {
   async loadIndicatorData(
     config: IndicatorLoadConfig
   ): Promise<CandleWithIndicators[]> {
-    const {
-      symbol,
-      granularity,
-      startDate,
-      endDate,
-      evaluators = [],
-    } = config;
+    const { symbol, granularity, startDate, endDate, evaluators = [] } = config;
 
     try {
       // Convert dates to timestamps (milliseconds)
@@ -47,7 +41,7 @@ export class IndicatorDataLoader {
       console.log(`  Granularity: ${granularity}`);
       console.log(`  Start: ${startDate.toISOString()}`);
       console.log(`  End: ${endDate.toISOString()}`);
-      console.log(`  Evaluators: ${evaluators.join(", ")}`);
+      console.log(`  Evaluators: ${evaluators.map((e) => e.id).join(", ")}`);
 
       // Use MarketAPI which handles batching automatically
       const candles: PriceCandle[] = await marketAPI.fetchPriceData(

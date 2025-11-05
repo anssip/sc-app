@@ -256,6 +256,7 @@ export class MarketAPI {
         (endTime - startTime) / this.getIntervalMilliseconds(interval)
       )}`
     );
+    console.log(`• Evaluators:`, evaluators);
     console.log(
       `• Full URL: ${this.API_BASE_URL}/history?${params.toString()}`
     );

@@ -42,11 +42,12 @@ export interface CandleWithIndicators extends Candle {
 
 /**
  * Moving Average indicator values
+ * Uses schema-defined field names (ma_fast, ma_slow) from Firestore
  */
 export interface MovingAverageValues {
-  ma50?: number;
-  ma200?: number;
-  [key: string]: number | undefined; // Support for any MA period
+  ma_fast?: number;
+  ma_slow?: number;
+  [key: string]: number | undefined; // Support for any other fields
 }
 
 /**

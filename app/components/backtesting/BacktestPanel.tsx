@@ -7,6 +7,7 @@ import {
 } from "./StrategySelector";
 import { DynamicEvaluatorForm } from "./DynamicEvaluatorForm";
 import { schemaService } from "~/services/indicators/schemaService";
+import { useIndicatorSchemas } from "~/hooks/useIndicatorSchemas";
 import type { Granularity, EvaluatorConfig } from "~/types/trading";
 import type { BacktestConfig } from "~/hooks/useBacktesting";
 
@@ -47,6 +48,13 @@ export function BacktestPanel({
   hasResults,
   onViewResults,
 }: Props) {
+  // Load indicator schemas from Firestore
+  const {
+    schemas,
+    loading: schemasLoading,
+    error: schemasError,
+  } = useIndicatorSchemas();
+
   // Form state
   const [strategyType, setStrategyType] = useState<StrategyType>("sma");
   const [strategyConfig, setStrategyConfig] = useState<any>({
@@ -70,6 +78,9 @@ export function BacktestPanel({
     []
   );
 
+  // Track if configs have been initialized to prevent resetting
+  const [configsInitialized, setConfigsInitialized] = useState(false);
+
   // Form validation
   const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -83,6 +94,11 @@ export function BacktestPanel({
     }
   }, [strategyType, symbol, strategyConfig]);
 
+  // Reset config initialization when strategy type changes
+  useEffect(() => {
+    setConfigsInitialized(false);
+  }, [strategyType]);
+
   // Load schemas for required indicators
   const indicatorSchemas = useMemo(() => {
     return requiredIndicators
@@ -90,18 +106,81 @@ export function BacktestPanel({
       .filter((schema) => schema !== null);
   }, [requiredIndicators]);
 
-  // Initialize evaluator configs when strategy changes
+  // Initialize evaluator configs when strategy changes or schemas load
+  // Only initialize once or when strategy type changes
   useEffect(() => {
-    // Create default evaluator configs for required indicators
-    const defaultConfigs: EvaluatorConfig[] = requiredIndicators.map((id) => ({
-      id,
-      params: schemaService.getDefaultParams(id),
-    }));
-    setEvaluatorConfigs(defaultConfigs);
-  }, [requiredIndicators]);
+    // Wait for schemas to be loaded before initializing configs
+    if (schemasLoading || !schemaService.isLoaded()) {
+      return;
+    }
+
+    // Only initialize if not yet initialized, or if strategy type changed
+    // This prevents resetting values when switching between views
+    if (!configsInitialized || evaluatorConfigs.length === 0) {
+      // Create default evaluator configs for required indicators
+      const defaultConfigs: EvaluatorConfig[] = requiredIndicators.map(
+        (id) => ({
+          id,
+          params: schemaService.getDefaultParams(id),
+        })
+      );
+      setEvaluatorConfigs(defaultConfigs);
+      setConfigsInitialized(true);
+    }
+  }, [
+    requiredIndicators,
+    schemasLoading,
+    configsInitialized,
+    evaluatorConfigs.length,
+  ]);
+
+  // Sync strategy config with indicator evaluator configs
+  // This ensures the strategy uses the same parameters as the indicators
+  useEffect(() => {
+    if (evaluatorConfigs.length === 0 || !configsInitialized) return;
+
+    if (strategyType === "sma") {
+      const maConfig = evaluatorConfigs.find((c) => c.id === "moving-averages");
+      if (maConfig?.params) {
+        const { fastPeriod, slowPeriod } = maConfig.params;
+        // Only update if values actually changed to prevent infinite loops
+        setStrategyConfig((prev: any) => {
+          if (
+            prev.fastPeriod !== fastPeriod ||
+            prev.slowPeriod !== slowPeriod
+          ) {
+            return {
+              ...prev,
+              fastPeriod,
+              slowPeriod,
+            };
+          }
+          return prev;
+        });
+      }
+    } else if (strategyType === "rsi") {
+      const rsiConfig = evaluatorConfigs.find((c) => c.id === "rsi");
+      if (rsiConfig?.params) {
+        const { period } = rsiConfig.params;
+        // Only update if value actually changed to prevent infinite loops
+        setStrategyConfig((prev: any) => {
+          if (prev.period !== period) {
+            return {
+              ...prev,
+              period,
+            };
+          }
+          return prev;
+        });
+      }
+    }
+  }, [evaluatorConfigs, strategyType, configsInitialized]);
 
   // Update indicator params
-  const updateIndicatorParams = (indicatorId: string, params: Record<string, any>) => {
+  const updateIndicatorParams = (
+    indicatorId: string,
+    params: Record<string, any>
+  ) => {
     setEvaluatorConfigs((prev) =>
       prev.map((config) =>
         config.id === indicatorId ? { ...config, params } : config
@@ -243,11 +322,16 @@ export function BacktestPanel({
               {indicatorSchemas.map((schema) => {
                 const config = evaluatorConfigs.find((c) => c.id === schema.id);
                 return (
-                  <div key={schema.id} className="bg-gray-900 rounded border border-gray-800 p-3">
+                  <div
+                    key={schema.id}
+                    className="bg-gray-900 rounded border border-gray-800 p-3"
+                  >
                     <DynamicEvaluatorForm
                       schema={schema}
                       values={config?.params || {}}
-                      onChange={(params) => updateIndicatorParams(schema.id, params)}
+                      onChange={(params) =>
+                        updateIndicatorParams(schema.id, params)
+                      }
                     />
                   </div>
                 );
@@ -336,7 +420,9 @@ export function BacktestPanel({
           <div>
             <div className="flex justify-between text-xs text-gray-400 mb-2">
               <span>
-                {isLoading ? "Loading historical data..." : "Running backtest..."}
+                {isLoading
+                  ? "Loading historical data..."
+                  : "Running backtest..."}
               </span>
               <span>{progress.toFixed(1)}%</span>
             </div>
@@ -355,10 +441,20 @@ export function BacktestPanel({
         {!isRunning ? (
           <button
             onClick={handleRun}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 rounded-lg text-white font-medium transition-colors"
+            disabled={schemasLoading || !!schemasError}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg text-white font-medium transition-colors"
           >
-            <Play className="h-4 w-4" />
-            Run Backtest
+            {schemasLoading ? (
+              <>
+                <Loader className="h-4 w-4 animate-spin" />
+                Loading Indicators...
+              </>
+            ) : (
+              <>
+                <Play className="h-4 w-4" />
+                Run Backtest
+              </>
+            )}
           </button>
         ) : (
           <button
@@ -368,6 +464,13 @@ export function BacktestPanel({
             <X className="h-4 w-4" />
             Cancel
           </button>
+        )}
+
+        {/* Schema Loading Error */}
+        {schemasError && (
+          <div className="mt-2 p-2 bg-red-900/20 border border-red-900/50 rounded text-xs text-red-400">
+            Failed to load indicator schemas: {schemasError.message}
+          </div>
         )}
       </div>
     </div>

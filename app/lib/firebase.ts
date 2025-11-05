@@ -52,10 +52,10 @@ if (typeof window !== "undefined" && import.meta.env.DEV) {
       connectAuthEmulator(auth, "http://localhost:9099", {
         disableWarnings: true,
       });
-      } catch (error) {
+    } catch (error) {
       // Silently ignore if already connected
       if (!error?.message?.includes("already")) {
-        }
+      }
     }
   }
 
@@ -64,10 +64,10 @@ if (typeof window !== "undefined" && import.meta.env.DEV) {
     try {
       // Connect to Firestore emulator
       connectFirestoreEmulator(db, "localhost", 8090);
-      } catch (error) {
+    } catch (error) {
       // Silently ignore if already connected
       if (!error?.message?.includes("already")) {
-        }
+      }
     }
   }
 }
@@ -75,10 +75,8 @@ if (typeof window !== "undefined" && import.meta.env.DEV) {
 // Set auth persistence AFTER emulator connection
 if (typeof window !== "undefined") {
   setPersistence(auth, browserLocalPersistence)
-    .then(() => {
-      })
-    .catch((error) => {
-      });
+    .then(() => {})
+    .catch((error) => {});
 }
 
 export { auth, db, firebaseConfig };

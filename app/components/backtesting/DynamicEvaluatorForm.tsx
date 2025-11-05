@@ -21,17 +21,17 @@ export function DynamicEvaluatorForm({
   };
 
   return (
-    <div className="evaluator-form bg-white rounded-lg p-4 border border-gray-200">
-      <div className="evaluator-header mb-4 flex items-center justify-between">
+    <div className="evaluator-form">
+      <div className="evaluator-header mb-3 flex items-center justify-between">
         <div>
-          <h4 className="text-lg font-semibold">{schema.name}</h4>
-          <span className="inline-block px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded-full">
+          <h4 className="text-sm font-medium text-white">{schema.name}</h4>
+          <span className="inline-block px-2 py-0.5 text-xs font-medium text-blue-400 bg-blue-900/30 rounded mt-1">
             {schema.category}
           </span>
         </div>
       </div>
 
-      <p className="description text-sm text-gray-600 mb-4">
+      <p className="description text-xs text-gray-400 mb-3">
         {schema.description}
       </p>
 

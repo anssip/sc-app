@@ -30,7 +30,8 @@ const STRATEGIES: StrategyOption[] = [
   {
     type: "sma",
     name: "SMA Crossover",
-    description: "Moving average crossover strategy (Golden Cross / Death Cross)",
+    description:
+      "Moving average crossover strategy (Golden Cross / Death Cross)",
     defaultConfig: {
       fastPeriod: 50,
       slowPeriod: 200,
@@ -111,7 +112,9 @@ export function StrategySelector({
                     value={strategy}
                     className={({ active }) =>
                       `relative cursor-pointer select-none py-2 pl-10 pr-4 ${
-                        active ? "bg-primary text-white" : "text-gray-300 bg-gray-900"
+                        active
+                          ? "bg-primary text-white"
+                          : "text-gray-300 bg-gray-900"
                       }`
                     }
                   >
@@ -157,6 +160,7 @@ export function StrategySelector({
 
 /**
  * SMA strategy configuration form
+ * Only strategy-specific parameters (not indicator parameters)
  */
 function SMAConfigForm({
   config,
@@ -166,34 +170,8 @@ function SMAConfigForm({
   onChange: (key: string, value: any) => void;
 }) {
   return (
-    <div className="space-y-3 rounded-lg bg-primary-lighter p-4">
-      <h4 className="text-sm font-medium text-white">Strategy Configuration</h4>
-
-      <div>
-        <label className="block text-xs text-gray-400 mb-1">
-          Fast Period (e.g., 50)
-        </label>
-        <input
-          type="number"
-          value={config.fastPeriod}
-          onChange={(e) => onChange("fastPeriod", parseInt(e.target.value))}
-          min="2"
-          className="w-full px-3 py-2 bg-gray-900 rounded text-sm text-white border border-gray-800 focus:border-accent-primary focus:outline-none"
-        />
-      </div>
-
-      <div>
-        <label className="block text-xs text-gray-400 mb-1">
-          Slow Period (e.g., 200)
-        </label>
-        <input
-          type="number"
-          value={config.slowPeriod}
-          onChange={(e) => onChange("slowPeriod", parseInt(e.target.value))}
-          min="2"
-          className="w-full px-3 py-2 bg-gray-900 rounded text-sm text-white border border-gray-800 focus:border-accent-primary focus:outline-none"
-        />
-      </div>
+    <div className="space-y-3 rounded-lg bg-gray-900 border border-gray-800 p-3">
+      <h4 className="text-xs font-medium text-gray-300">Strategy Settings</h4>
 
       <div>
         <label className="block text-xs text-gray-400 mb-1">
@@ -205,8 +183,11 @@ function SMAConfigForm({
           onChange={(e) => onChange("quantity", parseFloat(e.target.value))}
           min="0.001"
           step="0.001"
-          className="w-full px-3 py-2 bg-gray-900 rounded text-sm text-white border border-gray-800 focus:border-accent-primary focus:outline-none"
+          className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-accent-primary focus:border-transparent"
         />
+        <small className="block mt-1 text-xs text-gray-500">
+          Amount to buy/sell per trade
+        </small>
       </div>
     </div>
   );
@@ -214,6 +195,7 @@ function SMAConfigForm({
 
 /**
  * RSI strategy configuration form
+ * Only strategy-specific parameters (not indicator parameters)
  */
 function RSIConfigForm({
   config,
@@ -223,26 +205,13 @@ function RSIConfigForm({
   onChange: (key: string, value: any) => void;
 }) {
   return (
-    <div className="space-y-3 rounded-lg bg-primary-lighter p-4">
-      <h4 className="text-sm font-medium text-white">Strategy Configuration</h4>
-
-      <div>
-        <label className="block text-xs text-gray-400 mb-1">
-          RSI Period (default: 14)
-        </label>
-        <input
-          type="number"
-          value={config.period || 14}
-          onChange={(e) => onChange("period", parseInt(e.target.value))}
-          min="2"
-          className="w-full px-3 py-2 bg-gray-900 rounded text-sm text-white border border-gray-800 focus:border-accent-primary focus:outline-none"
-        />
-      </div>
+    <div className="space-y-3 rounded-lg bg-gray-900 border border-gray-800 p-3">
+      <h4 className="text-xs font-medium text-gray-300">Strategy Settings</h4>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs text-gray-400 mb-1">
-            Oversold Level
+            Oversold Level (%)
           </label>
           <input
             type="number"
@@ -252,13 +221,16 @@ function RSIConfigForm({
             }
             min="0"
             max="100"
-            className="w-full px-3 py-2 bg-gray-900 rounded text-sm text-white border border-gray-800 focus:border-accent-primary focus:outline-none"
+            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-accent-primary focus:border-transparent"
           />
+          <small className="block mt-1 text-xs text-gray-500">
+            Buy when RSI crosses above
+          </small>
         </div>
 
         <div>
           <label className="block text-xs text-gray-400 mb-1">
-            Overbought Level
+            Overbought Level (%)
           </label>
           <input
             type="number"
@@ -268,8 +240,11 @@ function RSIConfigForm({
             }
             min="0"
             max="100"
-            className="w-full px-3 py-2 bg-gray-900 rounded text-sm text-white border border-gray-800 focus:border-accent-primary focus:outline-none"
+            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-accent-primary focus:border-transparent"
           />
+          <small className="block mt-1 text-xs text-gray-500">
+            Sell when RSI crosses below
+          </small>
         </div>
       </div>
 
@@ -283,59 +258,70 @@ function RSIConfigForm({
           onChange={(e) => onChange("quantity", parseFloat(e.target.value))}
           min="0.001"
           step="0.001"
-          className="w-full px-3 py-2 bg-gray-900 rounded text-sm text-white border border-gray-800 focus:border-accent-primary focus:outline-none"
+          className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-accent-primary focus:border-transparent"
         />
+        <small className="block mt-1 text-xs text-gray-500">
+          Amount to buy/sell per trade
+        </small>
       </div>
 
       <div className="space-y-2">
-        <label className="flex items-center text-xs text-gray-300">
+        <label className="flex items-center text-xs text-gray-300 cursor-pointer">
           <input
             type="checkbox"
             checked={config.useStopLoss || false}
             onChange={(e) => onChange("useStopLoss", e.target.checked)}
-            className="mr-2"
+            className="w-4 h-4 text-accent-primary bg-gray-800 border-gray-700 rounded focus:ring-accent-primary focus:ring-offset-gray-900 mr-2"
           />
           Use Stop Loss
         </label>
 
         {config.useStopLoss && (
-          <input
-            type="number"
-            value={config.stopLossPercent || 2}
-            onChange={(e) =>
-              onChange("stopLossPercent", parseFloat(e.target.value))
-            }
-            min="0.1"
-            step="0.1"
-            placeholder="Stop Loss %"
-            className="w-full px-3 py-2 bg-gray-900 rounded text-sm text-white border border-gray-800 focus:border-accent-primary focus:outline-none"
-          />
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">
+              Stop Loss (%)
+            </label>
+            <input
+              type="number"
+              value={config.stopLossPercent || 2}
+              onChange={(e) =>
+                onChange("stopLossPercent", parseFloat(e.target.value))
+              }
+              min="0.1"
+              step="0.1"
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-accent-primary focus:border-transparent"
+            />
+          </div>
         )}
       </div>
 
       <div className="space-y-2">
-        <label className="flex items-center text-xs text-gray-300">
+        <label className="flex items-center text-xs text-gray-300 cursor-pointer">
           <input
             type="checkbox"
             checked={config.useTakeProfit || false}
             onChange={(e) => onChange("useTakeProfit", e.target.checked)}
-            className="mr-2"
+            className="w-4 h-4 text-accent-primary bg-gray-800 border-gray-700 rounded focus:ring-accent-primary focus:ring-offset-gray-900 mr-2"
           />
           Use Take Profit
         </label>
 
         {config.useTakeProfit && (
-          <input
-            type="number"
-            value={config.takeProfitPercent || 5}
-            onChange={(e) =>
-              onChange("takeProfitPercent", parseFloat(e.target.value))
-            }
-            min="0.1"
-            step="0.1"
-            placeholder="Take Profit %"
-            className="w-full px-3 py-2 bg-gray-900 rounded text-sm text-white border border-gray-800 focus:border-accent-primary focus:outline-none"
-          />
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">
+              Take Profit (%)
+            </label>
+            <input
+              type="number"
+              value={config.takeProfitPercent || 5}
+              onChange={(e) =>
+                onChange("takeProfitPercent", parseFloat(e.target.value))
+              }
+              min="0.1"
+              step="0.1"
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white text-sm focus:outline-none focus:ring-2 focus:ring-accent-primary focus:border-transparent"
+            />
+          </div>
         )}
       </div>
     </div>

@@ -50,6 +50,13 @@ export class SMAStrategy extends BaseStrategy {
     if (this.fastPeriod < 2 || this.slowPeriod < 2) {
       throw new Error("MA periods must be at least 2");
     }
+
+    console.log("=== SMA Strategy Initialized ===");
+    console.log(`Symbol: ${symbol}`);
+    console.log(`Fast Period: ${this.fastPeriod}`);
+    console.log(`Slow Period: ${this.slowPeriod}`);
+    console.log(`Quantity: ${this.quantity}`);
+    console.log("================================");
   }
 
   /**
@@ -67,8 +74,9 @@ export class SMAStrategy extends BaseStrategy {
     // Get moving averages from candle
     const maValues = getMovingAverages(candle);
 
-    const fastMA = maValues[`ma${this.fastPeriod}`];
-    const slowMA = maValues[`ma${this.slowPeriod}`];
+    // The API returns 'ma_fast' and 'ma_slow' as defined in the Firestore schema
+    const fastMA = maValues.ma_fast;
+    const slowMA = maValues.ma_slow;
 
     // Need both MAs to be available
     if (fastMA === undefined || slowMA === undefined) {
@@ -76,7 +84,10 @@ export class SMAStrategy extends BaseStrategy {
     }
 
     // Need previous values for crossover detection
-    if (this.previousFastMA === undefined || this.previousSlowMA === undefined) {
+    if (
+      this.previousFastMA === undefined ||
+      this.previousSlowMA === undefined
+    ) {
       this.previousFastMA = fastMA;
       this.previousSlowMA = slowMA;
       return null;
@@ -93,6 +104,19 @@ export class SMAStrategy extends BaseStrategy {
         this.previousSlowMA
       )
     ) {
+      console.log(`\n🟢 GOLDEN CROSS DETECTED!`);
+      console.log(`  Timestamp: ${new Date(candle.timestamp).toISOString()}`);
+      console.log(`  Price: $${candle.close.toFixed(2)}`);
+      console.log(`  Fast MA crossed above Slow MA`);
+      console.log(
+        `  Previous: Fast($${this.previousFastMA.toFixed(
+          2
+        )}) < Slow($${this.previousSlowMA.toFixed(2)})`
+      );
+      console.log(
+        `  Current:  Fast($${fastMA.toFixed(2)}) > Slow($${slowMA.toFixed(2)})`
+      );
+
       if (!this.inPosition) {
         signal = {
           side: "buy",
@@ -100,6 +124,14 @@ export class SMAStrategy extends BaseStrategy {
           quantity: this.quantity,
         };
         this.inPosition = true;
+
+        console.log(
+          `  → 📈 Generating BUY signal for ${
+            this.quantity
+          } units at $${candle.close.toFixed(2)}`
+        );
+      } else {
+        console.log(`  → Already in position, no signal generated`);
       }
     }
     // Detect death cross (bearish): fast MA crosses below slow MA
@@ -111,6 +143,19 @@ export class SMAStrategy extends BaseStrategy {
         this.previousSlowMA
       )
     ) {
+      console.log(`\n🔴 DEATH CROSS DETECTED!`);
+      console.log(`  Timestamp: ${new Date(candle.timestamp).toISOString()}`);
+      console.log(`  Price: $${candle.close.toFixed(2)}`);
+      console.log(`  Fast MA crossed below Slow MA`);
+      console.log(
+        `  Previous: Fast($${this.previousFastMA.toFixed(
+          2
+        )}) > Slow($${this.previousSlowMA.toFixed(2)})`
+      );
+      console.log(
+        `  Current:  Fast($${fastMA.toFixed(2)}) < Slow($${slowMA.toFixed(2)})`
+      );
+
       if (this.inPosition) {
         signal = {
           side: "sell",
@@ -118,6 +163,14 @@ export class SMAStrategy extends BaseStrategy {
           quantity: this.quantity,
         };
         this.inPosition = false;
+
+        console.log(
+          `  → 📉 Generating SELL signal for ${
+            this.quantity
+          } units at $${candle.close.toFixed(2)}`
+        );
+      } else {
+        console.log(`  → Not in position, no signal generated`);
       }
     }
 

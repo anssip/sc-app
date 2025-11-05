@@ -17,18 +17,18 @@ export function BooleanInput({
   onChange,
 }: BooleanInputProps) {
   return (
-    <div className="form-group mb-4">
+    <div className="form-group mb-3">
       <label htmlFor={name} className="flex items-center cursor-pointer">
         <input
           id={name}
           type="checkbox"
           checked={value}
           onChange={(e) => onChange(e.target.checked)}
-          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+          className="w-4 h-4 text-accent-primary bg-gray-800 border-gray-700 rounded focus:ring-accent-primary focus:ring-offset-gray-900"
         />
-        <span className="ml-2 text-sm font-medium">
+        <span className="ml-2 text-xs font-medium text-gray-300">
           {parameter.label}
-          {parameter.required && <span className="text-red-500 ml-1">*</span>}
+          {parameter.required && <span className="text-red-400 ml-1">*</span>}
         </span>
       </label>
       {parameter.description && (
