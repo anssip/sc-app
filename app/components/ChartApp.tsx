@@ -611,40 +611,56 @@ export const ChartApp: React.FC<ChartAppProps> = ({
             <PanelGroup direction="horizontal" className="h-full">
               {/* Left: Backtest panel */}
               {showBacktest && (
-                <Panel id="backtest" order={1} className="flex-none" style={{ width: '260px', minWidth: '260px', maxWidth: '260px', willChange: 'width' }}>
-                  <div className="h-full bg-gray-950 overflow-hidden">
-                    {backtestResult && showBacktestResults ? (
-                      <BacktestResults
-                        result={backtestResult}
-                        onClose={handleToggleBacktest}
-                        onExport={handleBacktestExport}
-                        onVisualize={handleBacktestVisualize}
-                        onBack={() => setShowBacktestResults(false)}
-                      />
-                    ) : (
-                      <BacktestPanel
-                        symbol={
-                          currentLayout?.type === "chart"
-                            ? currentLayout.chart?.symbol || "BTC-USD"
-                            : "BTC-USD"
-                        }
-                        onRun={handleBacktestRun}
-                        onCancel={cancelBacktest}
-                        onClose={handleToggleBacktest}
-                        hasResults={!!backtestResult}
-                        onViewResults={() => setShowBacktestResults(true)}
-                        isRunning={backtestRunning}
-                        isLoading={backtestLoading}
-                        progress={backtestProgress}
-                        error={backtestError}
-                      />
-                    )}
-                  </div>
-                </Panel>
+                <>
+                  <Panel
+                    id="backtest"
+                    order={1}
+                    defaultSize={20}
+                    minSize={15}
+                    maxSize={35}
+                    style={{ willChange: "width" }}
+                  >
+                    <div className="h-full bg-gray-950 overflow-hidden">
+                      {backtestResult && showBacktestResults ? (
+                        <BacktestResults
+                          result={backtestResult}
+                          onClose={handleToggleBacktest}
+                          onExport={handleBacktestExport}
+                          onVisualize={handleBacktestVisualize}
+                          onBack={() => setShowBacktestResults(false)}
+                        />
+                      ) : (
+                        <BacktestPanel
+                          symbol={
+                            currentLayout?.type === "chart"
+                              ? currentLayout.chart?.symbol || "BTC-USD"
+                              : "BTC-USD"
+                          }
+                          onRun={handleBacktestRun}
+                          onCancel={cancelBacktest}
+                          onClose={handleToggleBacktest}
+                          hasResults={!!backtestResult}
+                          onViewResults={() => setShowBacktestResults(true)}
+                          isRunning={backtestRunning}
+                          isLoading={backtestLoading}
+                          progress={backtestProgress}
+                          error={backtestError}
+                        />
+                      )}
+                    </div>
+                  </Panel>
+                  <PanelResizeHandle className="w-2 bg-gray-800 hover:bg-blue-600 transition-colors cursor-col-resize relative z-10" />
+                </>
               )}
 
               {/* Middle: Chart panel */}
-              <Panel id="chart" order={2} defaultSize={50} minSize={30} style={{ willChange: 'width' }}>
+              <Panel
+                id="chart"
+                order={2}
+                defaultSize={50}
+                minSize={30}
+                style={{ willChange: "width" }}
+              >
                 <ChartPanel
                   layout={currentLayout}
                   layoutId={currentLayoutId || undefined}
@@ -658,7 +674,14 @@ export const ChartApp: React.FC<ChartAppProps> = ({
               {showAIChat && (
                 <>
                   <PanelResizeHandle className="w-2 bg-gray-800 hover:bg-blue-600 transition-colors cursor-col-resize relative z-10" />
-                  <Panel id="ai-chat" order={3} defaultSize={25} minSize={15} maxSize={40} style={{ willChange: 'width' }}>
+                  <Panel
+                    id="ai-chat"
+                    order={3}
+                    defaultSize={25}
+                    minSize={15}
+                    maxSize={40}
+                    style={{ willChange: "width" }}
+                  >
                     <div className="h-full overflow-hidden">
                       <AIChatPanel
                         onClose={handleToggleAIChat}
