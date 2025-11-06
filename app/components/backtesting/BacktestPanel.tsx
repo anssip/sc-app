@@ -31,6 +31,7 @@ interface Props {
   onClose: () => void;
   hasResults: boolean;
   onViewResults: () => void;
+  style?: React.CSSProperties;
 }
 
 /**
@@ -47,6 +48,7 @@ export function BacktestPanel({
   onClose,
   hasResults,
   onViewResults,
+  style,
 }: Props) {
   // Load indicator schemas from Firestore
   const {
@@ -87,12 +89,24 @@ export function BacktestPanel({
   // Get required indicators from strategy
   const requiredIndicators = useMemo(() => {
     try {
-      const strategy = createStrategy(strategyType, symbol, strategyConfig);
+      // Use default config just to get required indicators - they don't depend on config values
+      const defaultConfig =
+        strategyType === "sma"
+          ? { fastPeriod: 50, slowPeriod: 200, quantity: 1 }
+          : {
+              period: 14,
+              oversoldLevel: 30,
+              overboughtLevel: 70,
+              quantity: 1,
+              useStopLoss: false,
+              useTakeProfit: false,
+            };
+      const strategy = createStrategy(strategyType, symbol, defaultConfig);
       return strategy.getRequiredIndicators();
     } catch (error) {
       return [];
     }
-  }, [strategyType, symbol, strategyConfig]);
+  }, [strategyType, symbol]);
 
   // Reset config initialization when strategy type changes
   useEffect(() => {
@@ -104,7 +118,7 @@ export function BacktestPanel({
     return requiredIndicators
       .map((id) => schemaService.getSchema(id))
       .filter((schema) => schema !== null);
-  }, [requiredIndicators]);
+  }, [requiredIndicators, schemasLoading]);
 
   // Initialize evaluator configs when strategy changes or schemas load
   // Only initialize once or when strategy type changes
@@ -114,9 +128,9 @@ export function BacktestPanel({
       return;
     }
 
-    // Only initialize if not yet initialized, or if strategy type changed
-    // This prevents resetting values when switching between views
-    if (!configsInitialized || evaluatorConfigs.length === 0) {
+    // Only initialize if not yet initialized for this strategy type
+    // This prevents resetting values when editing parameters
+    if (!configsInitialized && requiredIndicators.length > 0) {
       // Create default evaluator configs for required indicators
       const defaultConfigs: EvaluatorConfig[] = requiredIndicators.map(
         (id) => ({
@@ -131,7 +145,7 @@ export function BacktestPanel({
     requiredIndicators,
     schemasLoading,
     configsInitialized,
-    evaluatorConfigs.length,
+    requiredIndicators.length,
   ]);
 
   // Sync strategy config with indicator evaluator configs
@@ -261,7 +275,7 @@ export function BacktestPanel({
   };
 
   return (
-    <div className="flex flex-col h-full bg-gray-950 text-white">
+    <div className="flex flex-col h-full bg-gray-950 text-white" style={style}>
       {/* Header */}
       <div className="p-4 border-b border-gray-800">
         <div className="flex items-start justify-between">

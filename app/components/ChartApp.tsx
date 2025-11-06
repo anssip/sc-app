@@ -620,31 +620,37 @@ export const ChartApp: React.FC<ChartAppProps> = ({
                     maxSize={35}
                     style={{ willChange: "width" }}
                   >
-                    <div className="h-full bg-gray-950 overflow-hidden">
-                      {backtestResult && showBacktestResults ? (
+                    <div className="h-full bg-gray-950 overflow-hidden relative">
+                      <BacktestPanel
+                        key="backtest-config"
+                        symbol={
+                          currentLayout?.type === "chart"
+                            ? currentLayout.chart?.symbol || "BTC-USD"
+                            : "BTC-USD"
+                        }
+                        onRun={handleBacktestRun}
+                        onCancel={cancelBacktest}
+                        onClose={handleToggleBacktest}
+                        hasResults={!!backtestResult}
+                        onViewResults={() => setShowBacktestResults(true)}
+                        isRunning={backtestRunning}
+                        isLoading={backtestLoading}
+                        progress={backtestProgress}
+                        error={backtestError}
+                        style={{
+                          display:
+                            backtestResult && showBacktestResults
+                              ? "none"
+                              : "block",
+                        }}
+                      />
+                      {backtestResult && showBacktestResults && (
                         <BacktestResults
                           result={backtestResult}
                           onClose={handleToggleBacktest}
                           onExport={handleBacktestExport}
                           onVisualize={handleBacktestVisualize}
                           onBack={() => setShowBacktestResults(false)}
-                        />
-                      ) : (
-                        <BacktestPanel
-                          symbol={
-                            currentLayout?.type === "chart"
-                              ? currentLayout.chart?.symbol || "BTC-USD"
-                              : "BTC-USD"
-                          }
-                          onRun={handleBacktestRun}
-                          onCancel={cancelBacktest}
-                          onClose={handleToggleBacktest}
-                          hasResults={!!backtestResult}
-                          onViewResults={() => setShowBacktestResults(true)}
-                          isRunning={backtestRunning}
-                          isLoading={backtestLoading}
-                          progress={backtestProgress}
-                          error={backtestError}
                         />
                       )}
                     </div>
