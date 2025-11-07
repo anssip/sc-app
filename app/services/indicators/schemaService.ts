@@ -23,14 +23,26 @@ class IndicatorSchemaService {
 
     this.loading = (async () => {
       try {
+        console.log("[SchemaService] Loading schemas from Firestore...");
         const schemasRef = collection(db, "indicators");
         const snapshot = await getDocs(schemasRef);
 
+        console.log(
+          "[SchemaService] Got snapshot with",
+          snapshot.size,
+          "documents"
+        );
         this.schemas.clear();
         snapshot.forEach((doc) => {
           const schema = doc.data() as IndicatorSchema;
+          console.log(`[SchemaService] Loaded schema: ${doc.id}`, schema);
           this.schemas.set(doc.id, schema);
         });
+        console.log("[SchemaService] Total schemas loaded:", this.schemas.size);
+        console.log(
+          "[SchemaService] Schema IDs:",
+          Array.from(this.schemas.keys())
+        );
       } catch (error) {
         console.error("Failed to load indicator schemas:", error);
         throw error;
@@ -44,7 +56,14 @@ class IndicatorSchemaService {
    * Get a specific indicator schema by ID
    */
   getSchema(evaluatorId: string): IndicatorSchema | null {
-    return this.schemas.get(evaluatorId) || null;
+    const schema = this.schemas.get(evaluatorId);
+    if (!schema) {
+      console.warn(
+        `[SchemaService] Schema not found for: ${evaluatorId}. Available schemas:`,
+        Array.from(this.schemas.keys())
+      );
+    }
+    return schema || null;
   }
 
   /**
@@ -135,9 +154,7 @@ class IndicatorSchemaService {
     } else if (def.type === "select") {
       const validValues = def.options?.map((o) => o.value) || [];
       if (!validValues.includes(value)) {
-        errors.push(
-          `${def.label} must be one of: ${validValues.join(", ")}`
-        );
+        errors.push(`${def.label} must be one of: ${validValues.join(", ")}`);
       }
     }
   }
@@ -159,7 +176,10 @@ class IndicatorSchemaService {
     } catch (e) {
       // If evaluation fails, log but don't add error
       // This prevents breaking on malformed validation expressions
-      console.warn(`Failed to evaluate validation expression: ${expression}`, e);
+      console.warn(
+        `Failed to evaluate validation expression: ${expression}`,
+        e
+      );
     }
   }
 

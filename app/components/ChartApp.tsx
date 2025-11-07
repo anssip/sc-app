@@ -346,43 +346,90 @@ export const ChartApp: React.FC<ChartAppProps> = ({
 
     // Add trade markers to the chart
     backtestResult.trades.forEach((trade) => {
+      const entrySide = trade.side === "long" ? "buy" : "sell";
+      const exitSide = trade.side === "long" ? "sell" : "buy";
+      const pnlFormatted =
+        trade.pnl >= 0
+          ? `+$${trade.pnl.toFixed(2)}`
+          : `-$${Math.abs(trade.pnl).toFixed(2)}`;
+
       // Entry marker
       chartApi.addTradeMarker({
         timestamp: trade.entryTime,
         price: trade.entryPrice,
-        type: trade.side === "long" ? "buy" : "sell",
-        label: `Entry ${trade.side.toUpperCase()}`,
+        side: entrySide,
+        shape: "arrow",
+        size: "medium",
+        text: "Entry",
+        tooltip: {
+          title: `${entrySide === "buy" ? "Buy" : "Sell"} ${
+            chartApi.getSymbol?.() || backtestResult.symbol
+          }`,
+          details: [
+            `Qty: ${trade.quantity}`,
+            `Price: $${trade.entryPrice.toFixed(2)}`,
+            `Time: ${new Date(trade.entryTime).toLocaleString()}`,
+          ],
+        },
+        interactive: true,
       });
 
       // Exit marker
       chartApi.addTradeMarker({
         timestamp: trade.exitTime,
         price: trade.exitPrice,
-        type: trade.side === "long" ? "sell" : "buy",
-        label: `Exit ${trade.pnl >= 0 ? "+" : ""}${trade.pnl.toFixed(2)}`,
+        side: exitSide,
+        shape: "arrow",
+        size: "medium",
+        text: "Exit",
+        tooltip: {
+          title: `${exitSide === "buy" ? "Buy" : "Sell"} ${
+            chartApi.getSymbol?.() || backtestResult.symbol
+          }`,
+          details: [
+            `Qty: ${trade.quantity}`,
+            `Price: $${trade.exitPrice.toFixed(2)}`,
+            `PnL: ${pnlFormatted}`,
+            `Time: ${new Date(trade.exitTime).toLocaleString()}`,
+          ],
+        },
+        interactive: true,
       });
     });
-
+    console.log("showing equity curve", backtestResult.equityCurve);
     // Show equity curve as an indicator
     chartApi.showIndicator({
-      type: "custom",
-      name: "Equity Curve",
-      data: backtestResult.equityCurve,
-      config: {
-        color: "#3b82f6",
+      id: "equity-curve",
+      name: "Portfolio Equity",
+      display: "stack-bottom",
+      visible: true,
+      params: {
+        data: backtestResult.equityCurve,
+        lineColor: "#3b82f6",
         lineWidth: 2,
+        // showPeakLine: true,
+        fillArea: true,
+        areaColor: "#3b82f6",
+        areaOpacity: 0.3,
       },
     });
 
     // Show drawdown curve
     chartApi.showIndicator({
-      type: "custom",
-      name: "Drawdown",
-      data: backtestResult.drawdownCurve,
-      config: {
-        color: "#ef4444",
-        lineWidth: 2,
+      id: "drawdown",
+      name: "Drawdown %",
+      display: "stack-bottom",
+      visible: true,
+      params: {
+        data: backtestResult.drawdownCurve,
+        fillColor: "#ef4444",
+        fillOpacity: 0.3,
+        showZeroLine: true,
+        invertYAxis: true,
+        warnThreshold: -10,
       },
+      scale: "Percent",
+      className: "TradingIndicator",
     });
   }, [backtestResult, chartApi]);
 

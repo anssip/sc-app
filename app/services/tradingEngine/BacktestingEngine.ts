@@ -102,11 +102,44 @@ export class BacktestingEngine extends TradingEngine {
       );
     }
 
+    console.log("\n=== Starting Backtest ===");
+    console.log(`Strategy: ${strategy.name}`);
+    console.log(`Symbol: ${strategy.symbol}`);
+    console.log(`Total candles: ${candles.length}`);
+    console.log(
+      `Date range: ${new Date(
+        candles[0].timestamp
+      ).toISOString()} to ${new Date(
+        candles[candles.length - 1].timestamp
+      ).toISOString()}`
+    );
+
+    // Check first few candles for indicator data
+    console.log("\n=== Checking Indicator Data in Candles ===");
+    const sampleCandles = candles.slice(0, 3);
+    sampleCandles.forEach((candle, idx) => {
+      console.log(`\nCandle ${idx + 1}:`);
+      console.log(`  Timestamp: ${new Date(candle.timestamp).toISOString()}`);
+      console.log(`  Close: $${candle.close}`);
+      console.log(`  Evaluations:`, candle.evaluations?.length || 0);
+      if (candle.evaluations) {
+        candle.evaluations.forEach((ind) => {
+          console.log(`    - ${ind.id}: ${ind.values.length} values`);
+          ind.values.forEach((v) => {
+            console.log(`      ${v.name}: ${v.value}`);
+          });
+        });
+      }
+    });
+
     // Reset engine state
     this.reset();
 
     // Initialize strategy
     strategy.onStart?.(this.getAccount());
+
+    console.log("\n=== Processing Candles ===");
+    let signalCount = 0;
 
     // Process each candle
     for (let i = 0; i < candles.length; i++) {
@@ -118,6 +151,14 @@ export class BacktestingEngine extends TradingEngine {
       const signal = strategy.onCandle(candle);
 
       if (signal) {
+        signalCount++;
+        console.log(
+          `\n📊 Signal #${signalCount} at candle ${i + 1}/${candles.length}`
+        );
+        console.log(`  Type: ${signal.side.toUpperCase()}`);
+        console.log(`  Quantity: ${signal.quantity}`);
+        console.log(`  Price: $${signal.price || candle.close}`);
+
         // Create order from signal
         const order: Order = {
           id: this.generateOrderId(),
@@ -134,7 +175,10 @@ export class BacktestingEngine extends TradingEngine {
         const trade = await this.executeOrder(order, candle.timestamp);
 
         if (trade) {
+          console.log(`  ✅ Trade executed: ${trade.id}`);
           strategy.onTrade?.(trade);
+        } else {
+          console.log(`  ❌ Trade failed to execute`);
         }
       }
 
@@ -153,6 +197,10 @@ export class BacktestingEngine extends TradingEngine {
         });
       }
     }
+
+    console.log(`\n=== Backtest Complete ===`);
+    console.log(`Total signals generated: ${signalCount}`);
+    console.log(`Total trades executed: ${this.getTrades().length}`);
 
     // Close any remaining open positions at final price
     const finalCandle = candles[candles.length - 1];

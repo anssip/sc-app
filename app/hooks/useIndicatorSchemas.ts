@@ -12,21 +12,40 @@ export function useIndicatorSchemas() {
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
+    console.log("[useIndicatorSchemas] Hook initializing...");
+
     // If already loaded, use cached schemas
     if (schemaService.isLoaded()) {
-      setSchemas(schemaService.getAllSchemas());
+      const loadedSchemas = schemaService.getAllSchemas();
+      console.log(
+        "[useIndicatorSchemas] Using cached schemas:",
+        loadedSchemas.length
+      );
+      setSchemas(loadedSchemas);
       setLoading(false);
       return;
     }
+
+    console.log("[useIndicatorSchemas] Loading schemas from Firestore...");
 
     // Load schemas from Firestore
     schemaService
       .loadSchemas()
       .then(() => {
-        setSchemas(schemaService.getAllSchemas());
+        const loadedSchemas = schemaService.getAllSchemas();
+        console.log(
+          "[useIndicatorSchemas] Schemas loaded:",
+          loadedSchemas.length
+        );
+        console.log(
+          "[useIndicatorSchemas] Schema IDs:",
+          loadedSchemas.map((s) => s.id)
+        );
+        setSchemas(loadedSchemas);
         setLoading(false);
       })
       .catch((err) => {
+        console.error("[useIndicatorSchemas] Error loading schemas:", err);
         setError(err);
         setLoading(false);
       });

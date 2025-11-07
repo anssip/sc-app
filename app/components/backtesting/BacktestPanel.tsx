@@ -57,6 +57,18 @@ export function BacktestPanel({
     error: schemasError,
   } = useIndicatorSchemas();
 
+  // Debug: Log schemas loading state
+  useEffect(() => {
+    console.log("[BacktestPanel] Schemas hook state changed:");
+    console.log("  - loading:", schemasLoading);
+    console.log("  - schemas count:", schemas.length);
+    console.log("  - error:", schemasError);
+    console.log(
+      "  - schemas:",
+      schemas.map((s) => s.id)
+    );
+  }, [schemas, schemasLoading, schemasError]);
+
   // Form state
   const [strategyType, setStrategyType] = useState<StrategyType>("sma");
   const [strategyConfig, setStrategyConfig] = useState<any>({
@@ -102,8 +114,14 @@ export function BacktestPanel({
               useTakeProfit: false,
             };
       const strategy = createStrategy(strategyType, symbol, defaultConfig);
-      return strategy.getRequiredIndicators();
+      const indicators = strategy.getRequiredIndicators();
+      console.log("[BacktestPanel] Required indicators:", indicators);
+      return indicators;
     } catch (error) {
+      console.error(
+        "[BacktestPanel] Error getting required indicators:",
+        error
+      );
       return [];
     }
   }, [strategyType, symbol]);
@@ -115,35 +133,80 @@ export function BacktestPanel({
 
   // Load schemas for required indicators
   const indicatorSchemas = useMemo(() => {
-    return requiredIndicators
-      .map((id) => schemaService.getSchema(id))
-      .filter((schema) => schema !== null);
-  }, [requiredIndicators, schemasLoading]);
+    console.log("[BacktestPanel] Computing indicatorSchemas:");
+    console.log("  - requiredIndicators:", requiredIndicators);
+    console.log("  - schemasLoading:", schemasLoading);
+    console.log(
+      "  - available schemas from hook:",
+      schemas.map((s) => s.id)
+    );
+
+    // Use the schemas from the hook, not from schemaService directly
+    // Filter to only include required indicators
+    const filteredSchemas = schemas.filter((s) =>
+      requiredIndicators.includes(s.id)
+    );
+
+    console.log("  - filtered schemas count:", filteredSchemas.length);
+    console.log(
+      "  - filtered schemas:",
+      filteredSchemas.map((s) => s.id)
+    );
+
+    return filteredSchemas;
+  }, [requiredIndicators, schemas, schemasLoading]);
 
   // Initialize evaluator configs when strategy changes or schemas load
   // Only initialize once or when strategy type changes
   useEffect(() => {
-    // Wait for schemas to be loaded before initializing configs
-    if (schemasLoading || !schemaService.isLoaded()) {
+    console.log("[BacktestPanel] Init effect:");
+    console.log("  - schemasLoading:", schemasLoading);
+    console.log("  - schemas.length:", schemas.length);
+    console.log("  - configsInitialized:", configsInitialized);
+    console.log("  - requiredIndicators:", requiredIndicators);
+    console.log("  - indicatorSchemas.length:", indicatorSchemas.length);
+
+    // Wait for schemas to be loaded
+    if (schemasLoading || schemas.length === 0) {
+      console.log("[BacktestPanel] Waiting for schemas to load...");
       return;
     }
 
     // Only initialize if not yet initialized for this strategy type
     // This prevents resetting values when editing parameters
-    if (!configsInitialized && requiredIndicators.length > 0) {
+    if (
+      !configsInitialized &&
+      requiredIndicators.length > 0 &&
+      indicatorSchemas.length > 0
+    ) {
+      console.log("[BacktestPanel] Initializing evaluator configs...");
+
       // Create default evaluator configs for required indicators
-      const defaultConfigs: EvaluatorConfig[] = requiredIndicators.map(
-        (id) => ({
-          id,
-          params: schemaService.getDefaultParams(id),
-        })
+      const defaultConfigs: EvaluatorConfig[] = indicatorSchemas.map(
+        (schema) => {
+          const params: Record<string, any> = {};
+          Object.entries(schema.parameters).forEach(([key, def]) => {
+            params[key] = def.default;
+          });
+          console.log(
+            `[BacktestPanel] Default params for ${schema.id}:`,
+            params
+          );
+          return {
+            id: schema.id,
+            params,
+          };
+        }
       );
+      console.log("[BacktestPanel] Setting evaluator configs:", defaultConfigs);
       setEvaluatorConfigs(defaultConfigs);
       setConfigsInitialized(true);
     }
   }, [
     requiredIndicators,
     schemasLoading,
+    schemas,
+    indicatorSchemas,
     configsInitialized,
     requiredIndicators.length,
   ]);
@@ -327,7 +390,11 @@ export function BacktestPanel({
         />
 
         {/* Required Indicators Configuration */}
-        {indicatorSchemas.length > 0 && (
+        {console.log(
+          "[BacktestPanel] Rendering - indicatorSchemas.length:",
+          indicatorSchemas.length
+        )}
+        {indicatorSchemas.length > 0 ? (
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Required Indicators
@@ -335,6 +402,10 @@ export function BacktestPanel({
             <div className="space-y-3">
               {indicatorSchemas.map((schema) => {
                 const config = evaluatorConfigs.find((c) => c.id === schema.id);
+                console.log(
+                  `[BacktestPanel] Rendering schema ${schema.id} with config:`,
+                  config
+                );
                 return (
                   <div
                     key={schema.id}
@@ -352,7 +423,29 @@ export function BacktestPanel({
               })}
             </div>
           </div>
-        )}
+        ) : schemasError ? (
+          <div className="p-3 bg-red-900/30 border border-red-800 rounded text-sm text-red-200">
+            <strong>Error loading indicator schemas:</strong>
+            <br />
+            {schemasError.message}
+            <br />
+            <br />
+            Make sure Firebase emulators are running:
+            <br />
+            <code className="text-xs">firebase emulators:start</code>
+          </div>
+        ) : !schemasLoading && schemas.length === 0 ? (
+          <div className="p-3 bg-yellow-900/30 border border-yellow-800 rounded text-sm text-yellow-200">
+            <strong>No indicator schemas available.</strong>
+            <br />
+            This strategy requires indicators but none could be loaded.
+            <br />
+            <br />
+            Make sure Firebase emulators are running:
+            <br />
+            <code className="text-xs">firebase emulators:start</code>
+          </div>
+        ) : null}
 
         {/* Date Range */}
         <div>

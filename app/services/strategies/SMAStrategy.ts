@@ -78,6 +78,17 @@ export class SMAStrategy extends BaseStrategy {
     const fastMA = maValues.ma_fast;
     const slowMA = maValues.ma_slow;
 
+    // Debug logging for first few candles
+    if (!this.previousFastMA) {
+      console.log(`\n[SMAStrategy] First candle analysis:`);
+      console.log(`  Timestamp: ${new Date(candle.timestamp).toISOString()}`);
+      console.log(`  Has evaluations:`, !!candle.evaluations);
+      console.log(`  Evaluations count:`, candle.evaluations?.length || 0);
+      console.log(`  MA Values extracted:`, maValues);
+      console.log(`  fastMA (${this.fastPeriod}):`, fastMA);
+      console.log(`  slowMA (${this.slowPeriod}):`, slowMA);
+    }
+
     // Need both MAs to be available
     if (fastMA === undefined || slowMA === undefined) {
       return null;

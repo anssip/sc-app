@@ -22,7 +22,9 @@
     "firebase:login": "firebase login",
     "emulators:dev": "FIRESTORE_EMULATOR_HOST=localhost:8090 FUNCTIONS_EMULATOR_HOST=localhost:5001 firebase emulators:start --only functions,firestore,auth",
     "emulators:mcp": "cd functions && bun run build && cd .. && firebase emulators:start --only functions:mcpServer,firestore,auth --project spotcanvas-prod",
-    "add-emu-user": "node scripts/add-emulator-user.mjs"
+    "emulators:add-indicator-schemas": "node scripts/upload-indicator-schemas.cjs --emulator",
+    "emulators:add-user": "node scripts/add-emulator-user.mjs",
+    "emulators:populate": "bun run emulators:add-user && bun run emulators:add-indicator-schemas"
   },
   "dependencies": {
     "@anssip/rs-charts": "file:../rs-charts",
