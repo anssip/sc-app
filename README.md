@@ -14,17 +14,14 @@ All charting functionality is provided by the sc-charts module. This app interfa
 
 ## Backlog
 
-TODO next:
+ Custom indicators
 
-- [ ] Refactor trend lines stuff out of ChartContainer
-
-The initial features;
-
-1. Show a chart inside the application
-2. Split the view to show 2 charts side by side
-3. Split one view to show charts on top of each other
-4. Sign up & login
-5. Add a feature to allow users to save their chart layouts (should be autosave)
+ - Custom user-defined indicators
+ - Indicator marketplace/sharing
+ - Visual indicator builder
+ - Strategy templates with pre-configured indicators
+ - Performance optimization (indicator caching)
+ - Real-time indicator updates during live trading
 
 ## The charts module
 

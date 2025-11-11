@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { ChartPanel } from "./ChartPanel";
 import { AppToolbar } from "./AppToolbar";
 import { AIChatPanel } from "./AIChatPanel";
+import { BacktestPanel } from "./backtesting/BacktestPanel";
+import { BacktestResults } from "./backtesting/BacktestResults";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import {
   useRepository,
@@ -22,6 +24,9 @@ import {
 import { ActiveChartProvider } from "~/contexts/ActiveChartContext";
 import type { PanelLayout } from "./ChartPanel";
 import type { ChartConfig, SavedLayout } from "~/types";
+import { useBacktesting } from "~/hooks/useBacktesting";
+import { exportToCSV, exportToJSON } from "~/utils/backtestExport";
+import type { BacktestConfig } from "~/hooks/useBacktesting";
 
 type LayoutChangeType = "chart-data" | "structure" | "unknown";
 
@@ -85,10 +90,33 @@ export const ChartApp: React.FC<ChartAppProps> = ({
   const [migrationStatus, setMigrationStatus] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [showAIChat, setShowAIChat] = useState(false);
+  const [showBacktest, setShowBacktest] = useState(false);
   const [chartApi, setChartApi] = useState<any>(null);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastChangeTypeRef = useRef<LayoutChangeType>("unknown");
   const isChartDataUpdateRef = useRef(false);
+
+  // Backtesting hook
+  const {
+    isRunning: backtestRunning,
+    isLoading: backtestLoading,
+    progress: backtestProgress,
+    result: backtestResult,
+    error: backtestError,
+    runBacktest,
+    cancelBacktest,
+    resetBacktest,
+  } = useBacktesting();
+
+  // Track whether to show backtest results or configuration view
+  const [showBacktestResults, setShowBacktestResults] = useState(false);
+
+  // Automatically show results when backtest completes
+  useEffect(() => {
+    if (backtestResult && !backtestRunning) {
+      setShowBacktestResults(true);
+    }
+  }, [backtestResult, backtestRunning]);
 
   // Create default single chart layout for unsaved/new users
   // Users must create and save a layout to access multi-panel layouts
@@ -248,18 +276,18 @@ export const ChartApp: React.FC<ChartAppProps> = ({
     (layout: PanelLayout, changeType: LayoutChangeType = "unknown") => {
       setCurrentLayout(layout);
 
-      // Clear existing timeout
-      if (autoSaveTimeoutRef.current) {
-        clearTimeout(autoSaveTimeoutRef.current);
-      }
-
       // Only auto-save for structural changes (panel resizes, splits) and only for authenticated users
       // Chart data changes are handled by ChartContainer
       if (currentLayoutId && changeType === "structure" && user) {
+        // Clear existing timeout
+        if (autoSaveTimeoutRef.current) {
+          clearTimeout(autoSaveTimeoutRef.current);
+        }
+
+        // Debounce auto-save - wait 1.5 seconds after resize stops
         autoSaveTimeoutRef.current = setTimeout(() => {
           autoSaveLayout();
-        }, 1000); // Auto-save 1 second after resize stops
-      } else {
+        }, 1500);
       }
     },
     [currentLayoutId, autoSaveLayout, user]
@@ -280,6 +308,130 @@ export const ChartApp: React.FC<ChartAppProps> = ({
     } else {
     }
   }, [showAIChat, currentLayoutId, user, updateLayout]);
+
+  // Handle backtest panel toggle
+  const handleToggleBacktest = useCallback(() => {
+    setShowBacktest((prev) => !prev);
+    // Reset backtest when closing
+    if (showBacktest) {
+      resetBacktest();
+    }
+  }, [showBacktest, resetBacktest]);
+
+  // Handle backtest run
+  const handleBacktestRun = useCallback(
+    async (config: BacktestConfig) => {
+      await runBacktest(config);
+    },
+    [runBacktest]
+  );
+
+  // Handle backtest export
+  const handleBacktestExport = useCallback(
+    (format: "csv" | "json") => {
+      if (!backtestResult) return;
+
+      if (format === "csv") {
+        exportToCSV(backtestResult);
+      } else {
+        exportToJSON(backtestResult);
+      }
+    },
+    [backtestResult]
+  );
+
+  // Handle backtest visualization
+  const handleBacktestVisualize = useCallback(() => {
+    if (!backtestResult || !chartApi) return;
+
+    // Add trade markers to the chart
+    backtestResult.trades.forEach((trade) => {
+      const entrySide = trade.side === "long" ? "buy" : "sell";
+      const exitSide = trade.side === "long" ? "sell" : "buy";
+      const pnlFormatted =
+        trade.pnl >= 0
+          ? `+$${trade.pnl.toFixed(2)}`
+          : `-$${Math.abs(trade.pnl).toFixed(2)}`;
+
+      // Entry marker
+      chartApi.addTradeMarker({
+        timestamp: trade.entryTime,
+        price: trade.entryPrice,
+        side: entrySide,
+        shape: "arrow",
+        size: "medium",
+        text: "Entry",
+        tooltip: {
+          title: `${entrySide === "buy" ? "Buy" : "Sell"} ${
+            chartApi.getSymbol?.() || backtestResult.symbol
+          }`,
+          details: [
+            `Qty: ${trade.quantity}`,
+            `Price: $${trade.entryPrice.toFixed(2)}`,
+            `Time: ${new Date(trade.entryTime).toLocaleString()}`,
+          ],
+        },
+        interactive: true,
+      });
+
+      // Exit marker
+      chartApi.addTradeMarker({
+        timestamp: trade.exitTime,
+        price: trade.exitPrice,
+        side: exitSide,
+        shape: "arrow",
+        size: "medium",
+        text: "Exit",
+        tooltip: {
+          title: `${exitSide === "buy" ? "Buy" : "Sell"} ${
+            chartApi.getSymbol?.() || backtestResult.symbol
+          }`,
+          details: [
+            `Qty: ${trade.quantity}`,
+            `Price: $${trade.exitPrice.toFixed(2)}`,
+            `PnL: ${pnlFormatted}`,
+            `Time: ${new Date(trade.exitTime).toLocaleString()}`,
+          ],
+        },
+        interactive: true,
+      });
+    });
+    console.log("showing equity curve", backtestResult.equityCurve);
+    // Show equity curve as an indicator
+    chartApi.showIndicator({
+      id: "equity-curve",
+      name: "Portfolio Equity",
+      display: "stack-bottom",
+      visible: true,
+      params: {
+        data: backtestResult.equityCurve,
+        lineColor: "#3b82f6",
+        lineWidth: 2,
+        // showPeakLine: true,
+        fillArea: true,
+        areaColor: "#3b82f6",
+        areaOpacity: 0.3,
+      },
+    });
+
+    // Show drawdown curve
+    chartApi.showIndicator({
+      id: "drawdown",
+      name: "Drawdown %",
+      display: "stack-bottom",
+      visible: true,
+      params: {
+        data: backtestResult.drawdownCurve,
+        fillColor: "#ef4444",
+        fillOpacity: 0.3,
+        showZeroLine: true,
+        invertYAxis: true,
+        warnThreshold: -10,
+      },
+      scale: "Percent",
+      className: "TradingIndicator",
+    });
+  }, [backtestResult, chartApi]);
 
   // Handle layout selection from LayoutSelector
   const handleLayoutSelection = useCallback(
@@ -468,6 +620,8 @@ export const ChartApp: React.FC<ChartAppProps> = ({
           onPreviewExpire={() => window.location.reload()}
           showAIChat={showAIChat}
           onToggleAIChat={handleToggleAIChat}
+          showBacktest={showBacktest}
+          onToggleBacktest={handleToggleBacktest}
         />
 
         {/* Chart Panel with AI Chat */}
@@ -500,9 +654,66 @@ export const ChartApp: React.FC<ChartAppProps> = ({
               )}
             </div>
           ) : (
-            // Desktop layout: Resizable panels
+            // Desktop layout: Horizontal panels (left: backtest, middle: chart, right: AI chat)
             <PanelGroup direction="horizontal" className="h-full">
-              <Panel>
+              {/* Left: Backtest panel */}
+              {showBacktest && (
+                <>
+                  <Panel
+                    id="backtest"
+                    order={1}
+                    defaultSize={20}
+                    minSize={15}
+                    maxSize={35}
+                    style={{ willChange: "width" }}
+                  >
+                    <div className="h-full bg-gray-950 overflow-hidden relative">
+                      <BacktestPanel
+                        key="backtest-config"
+                        symbol={
+                          currentLayout?.type === "chart"
+                            ? currentLayout.chart?.symbol || "BTC-USD"
+                            : "BTC-USD"
+                        }
+                        onRun={handleBacktestRun}
+                        onCancel={cancelBacktest}
+                        onClose={handleToggleBacktest}
+                        hasResults={!!backtestResult}
+                        onViewResults={() => setShowBacktestResults(true)}
+                        isRunning={backtestRunning}
+                        isLoading={backtestLoading}
+                        progress={backtestProgress}
+                        error={backtestError}
+                        style={{
+                          display:
+                            backtestResult && showBacktestResults
+                              ? "none"
+                              : "block",
+                        }}
+                      />
+                      {backtestResult && showBacktestResults && (
+                        <BacktestResults
+                          result={backtestResult}
+                          onClose={handleToggleBacktest}
+                          onExport={handleBacktestExport}
+                          onVisualize={handleBacktestVisualize}
+                          onBack={() => setShowBacktestResults(false)}
+                        />
+                      )}
+                    </div>
+                  </Panel>
+                  <PanelResizeHandle className="w-2 bg-gray-800 hover:bg-blue-600 transition-colors cursor-col-resize relative z-10" />
+                </>
+              )}
+
+              {/* Middle: Chart panel */}
+              <Panel
+                id="chart"
+                order={2}
+                defaultSize={50}
+                minSize={30}
+                style={{ willChange: "width" }}
+              >
                 <ChartPanel
                   layout={currentLayout}
                   layoutId={currentLayoutId || undefined}
@@ -512,11 +723,18 @@ export const ChartApp: React.FC<ChartAppProps> = ({
                 />
               </Panel>
 
-              {/* Resize handle - Only on desktop when AI chat is open */}
+              {/* Right: AI Chat panel (rightmost) */}
               {showAIChat && (
                 <>
-                  <PanelResizeHandle className="w-1 bg-gray-800 hover:bg-gray-700 transition-colors" />
-                  <Panel defaultSize={25} minSize={15} maxSize={40}>
+                  <PanelResizeHandle className="w-2 bg-gray-800 hover:bg-blue-600 transition-colors cursor-col-resize relative z-10" />
+                  <Panel
+                    id="ai-chat"
+                    order={3}
+                    defaultSize={25}
+                    minSize={15}
+                    maxSize={40}
+                    style={{ willChange: "width" }}
+                  >
                     <div className="h-full overflow-hidden">
                       <AIChatPanel
                         onClose={handleToggleAIChat}

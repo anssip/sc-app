@@ -9,7 +9,6 @@ import {
   MessageCircle,
   Clock,
   Lightbulb,
-  Share2,
 } from "lucide-react";
 import { useAuth } from "../lib/auth-context";
 import { useMCPClient } from "../hooks/useMCPClient";
@@ -17,7 +16,6 @@ import { useChartCommands } from "../hooks/useChartCommands";
 import { useActiveChart } from "../contexts/ActiveChartContext";
 import { ChatExamplePrompts } from "./ChatExamplePrompts";
 import { ChatHistoryModal } from "./ChatHistoryModal";
-import { ShareModal } from "./ShareModal";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Menu, Transition } from "@headlessui/react";
@@ -225,7 +223,6 @@ export function AIChatPanel({
   const [isLoading, setIsLoading] = useState(false);
   const [recentSessions, setRecentSessions] = useState<ChatSession[]>([]);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [loadingSessions, setLoadingSessions] = useState(false);
   const [showExamplePrompts, setShowExamplePrompts] = useState(false);
   const [showPromptsSidebar, setShowPromptsSidebar] = useState(false);
@@ -509,17 +506,6 @@ export function AIChatPanel({
             )}
           </div>
           <div className="flex items-center gap-2">
-            {/* Share Button */}
-            <ToolbarButton
-              onClick={() => setIsShareModalOpen(true)}
-              title="Share to X (Twitter)"
-              variant="default"
-              active={false}
-              disabled={messages.length === 0 || !activeChartApi}
-            >
-              <Share2 className="w-3 h-3" />
-            </ToolbarButton>
-
             {/* New Chat Button */}
             <ToolbarButton
               onClick={() => {
@@ -853,14 +839,6 @@ export function AIChatPanel({
           sessions={recentSessions}
           currentSessionId={currentSessionId}
           loading={loadingSessions}
-        />
-
-        {/* Share Modal */}
-        <ShareModal
-          isOpen={isShareModalOpen}
-          onClose={() => setIsShareModalOpen(false)}
-          messages={messages}
-          chartApi={activeChartApi}
         />
       </div>
     </div>

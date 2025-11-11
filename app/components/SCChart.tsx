@@ -347,22 +347,42 @@ const SCChartInner = forwardRef<SCChartRef, SCChartProps>(
               if (existingIndex >= 0) {
                 // Update existing indicator
                 updatedIndicators = [...currentIndicators];
+                // Map rs-charts display types to our display types
+                const displayMap: Record<string, string> = {
+                  main: "Overlay",
+                  overlay: "Overlay",
+                  bottom: "Bottom",
+                  stackBottom: "StackBottom",
+                  "stack-bottom": "StackBottom",
+                };
+                const mappedDisplay =
+                  displayMap[event.indicator.display?.toLowerCase()] || "Bottom";
+
                 updatedIndicators[existingIndex] = {
                   ...updatedIndicators[existingIndex],
                   visible: true,
-                  display:
-                    event.indicator.display === "main" ? "Overlay" : "Bottom",
+                  display: mappedDisplay,
                   params: event.indicator.params || {},
                 };
               } else {
                 // Add new indicator
+                // Map rs-charts display types to our display types
+                const displayMap: Record<string, string> = {
+                  main: "Overlay",
+                  overlay: "Overlay",
+                  bottom: "Bottom",
+                  stackBottom: "StackBottom",
+                  "stack-bottom": "StackBottom",
+                };
+                const mappedDisplay =
+                  displayMap[event.indicator.display?.toLowerCase()] || "Bottom";
+
                 updatedIndicators = [
                   ...currentIndicators,
                   {
                     id: event.indicator.id,
                     name: event.indicator.name,
-                    display:
-                      event.indicator.display === "main" ? "Overlay" : "Bottom",
+                    display: mappedDisplay,
                     visible: true,
                     params: event.indicator.params || {},
                     scale:

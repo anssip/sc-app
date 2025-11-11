@@ -1,0 +1,40 @@
+{
+  "id": "adx",
+  "name": "Average Directional Index (ADX)",
+  "description": "Trend strength indicator measuring the strength of a trend regardless of direction",
+  "category": "trend",
+  "parameters": {
+    "period": {
+      "type": "number",
+      "label": "Period",
+      "description": "Lookback period for ADX calculation",
+      "default": 14,
+      "min": 2,
+      "max": 100,
+      "required": true
+    }
+  },
+  "outputs": [
+    {
+      "name": "adx",
+      "label": "ADX Value",
+      "type": "line",
+      "overlay": false
+    },
+    {
+      "name": "plus_di",
+      "label": "+DI",
+      "type": "line",
+      "overlay": false
+    },
+    {
+      "name": "minus_di",
+      "label": "-DI",
+      "type": "line",
+      "overlay": false
+    }
+  ],
+  "version": 1,
+  "tags": ["trend", "adx", "directional"],
+  "isPublic": true
+}

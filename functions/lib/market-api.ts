@@ -1,7 +1,14 @@
 /**
  * Market API client for fetching price data
  * Handles batching and rate limiting for the market.spotcanvas.com API
+ *
+ * This is a shared module used by both client and server code.
  */
+
+export interface EvaluatorConfig {
+  id: string;
+  params?: Record<string, any>;
+}
 
 export interface IndicatorValue {
   name: string;
@@ -13,6 +20,7 @@ export interface IndicatorValue {
 export interface Evaluation {
   id: string;
   name?: string;
+  params?: Record<string, any>;
   values: IndicatorValue[];
   plot_styles?: any;
 }
@@ -33,12 +41,21 @@ export interface TimeRange {
 }
 
 export class MarketAPI {
-  private readonly API_BASE_URL = "https://market.spotcanvas.com";
+  private readonly API_BASE_URL =
+    "https://market-evaluators-dev-346028322665.europe-west1.run.app";
   private readonly MAX_CANDLES_PER_REQUEST = 200;
 
   /**
    * Fetches price data for a given symbol and time range
    * Automatically handles batching for large time ranges
+   *
+   * @param symbol Trading symbol (e.g., "BTC-USD")
+   * @param interval Granularity (e.g., "ONE_HOUR", "ONE_DAY")
+   * @param startTime Start timestamp in milliseconds
+   * @param endTime End timestamp in milliseconds
+   * @param onProgress Optional progress callback
+   * @param evaluators Optional list of evaluator configurations with parameters
+   * @returns Array of price candles with optional indicator evaluations
    */
   async fetchPriceData(
     symbol: string,
@@ -46,7 +63,7 @@ export class MarketAPI {
     startTime: number,
     endTime: number,
     onProgress?: (message: string) => void,
-    evaluators?: string[]
+    evaluators?: EvaluatorConfig[]
   ): Promise<PriceCandle[]> {
     try {
       console.log("=== MarketAPI.fetchPriceData DEBUG ===");
@@ -205,7 +222,7 @@ export class MarketAPI {
     interval: string,
     startTime: number,
     endTime: number,
-    evaluators?: string[]
+    evaluators?: EvaluatorConfig[]
   ): Promise<PriceCandle[]> {
     // Build query parameters
     // Ensure timestamps are integers (no decimals)
@@ -216,8 +233,9 @@ export class MarketAPI {
     params.append("end_time", Math.floor(endTime).toString());
 
     // Add evaluators if provided
+    // The Market API expects a JSON array of evaluator configurations
     if (evaluators && evaluators.length > 0) {
-      params.append("evaluators", evaluators.join(","));
+      params.append("evaluators", JSON.stringify(evaluators));
     }
 
     console.log("=== fetchSingleBatch DEBUG ===");
@@ -238,6 +256,7 @@ export class MarketAPI {
         (endTime - startTime) / this.getIntervalMilliseconds(interval)
       )}`
     );
+    console.log(`• Evaluators:`, evaluators);
     console.log(
       `• Full URL: ${this.API_BASE_URL}/history?${params.toString()}`
     );

@@ -400,8 +400,8 @@ The "get_support_resistance_levels" should also make the chart show the indicato
 # Levels visualization
 
 Enhance the support/resistance levels line drawing according to docs/FRONTEND_VISUAL_GUIDE.md which describes how
-the levels returned by market API /levels endpoing should be visualized. This app has a AI Assistance that has a
-tool that uses the /levels endpoint and then draws lines to the chart based on the returned data.
+  the levels returned by market API /levels endpoing should be visualized. This app has a AI Assistance that has a
+  tool that uses the /levels endpoint and then draws lines to the chart based on the returned data.
 
 # AI Usage tokens
 
@@ -467,17 +467,33 @@ Add a section that we don't offer trading advice. AI suggestions are just possib
 
 We made the chart/spotlight toggle in commit 4eba8fafbd5e1a7077ea67dbb8e38bb2e2e71ac1. This has the issue that in chat mode, the chart is not initialized at all and all commands targeted towards the chart are not rendered to it. The chart should be initialized properly in chat mode, also on mobile. Can you fix that? The chat UI could be semi transparent and with a background blur so that the drawing of trend lines etc. that are initiated by the chat can be seen live in the chat view.
 
-# Social sharing of chart analysis
+# Share ananlysis
 
-Make a shareable view of the chart screenshot + AI chat conversation. There is a screenshot function in rs-charts API that can be used to create a shareable image of the chart. See @docs/CHART_API_REFERENCE.md
+Make a shareable view of the chart screenshot + AI chat conversation. OR tweet a screenshot + chat in the conversation.
 
-Create a sharing feature that worksl ike this:
+# Paper trading and backtesting
 
-- take a screenshot of the chart using the API
-- create a modal dialog for sharing the screenshot and chat conversation
-- the dialog should show the screenshot image and all chats from the current conversation in @AIChatPanel.tsx
-- The user can select one of more of the chart messages to be shared
-- the dialog also has a multiline field that is tweeted as part of the image, the image and this text is the main tweet
-- all messages selected to be shared are posted as comments of the main image tweet
-- the messages need to be splitted in a way that they respect the maximum character limit of X
-- use the X tweet API for sharing
+Implement paper trading and backtesting features to simulate trading scenarios and analyze performance.
+
+# Use rs-charts price lines for support and resistance lines
+
+# Company ananlysis
+
+Using the company analyzer LangChain package
+
+# Price Lines for support/resistance tool
+
+I am trying to add trend lines to the chart using the AI chat. I can see that it adds "add_trend_line" commands to Firestore and those should then be added to the chart but this not happening now. Fix it to use Price Lines which are not in the API of rs-charts. It should use Price Lines instead of Trend Lines when drawing lines of support and resistance to the chart. See CHART_API_REFERENCE.md. [@useMCPClient.tsx](zed:///agent/file?path=%2FUsers%2Fanssi%2Fprojects%2Fspotcanvas%2Fsc-app%2Fapp%2Fhooks%2FuseMCPClient.tsx) [@openai-service.ts](zed:///agent/file?path=%2FUsers%2Fanssi%2Fprojects%2Fspotcanvas%2Fsc-app%2Ffunctions%2Flib%2Fopenai-service.ts)
+
+# Market evaluators enhancements
+
+I'd like to enhance the Market Evaluators (indicators) so that we have the parameter schemas stored in Firestore. The schemas should describe
+
+- Parameter names
+- Parameter types
+- Parameter default values
+- Parameter descriptions
+
+With this info, we can build the UI in the Backtesting tool, and indicator configuration tool, without hard-coding the indicator parameters and without hardwiring the UI to specific indicators and their parameters. The goal is to make a generic UI that can adapt to any indicator. Custom indicators are also in the roadmap – the users will be able to code their own indicators and use them in the Backtesting tool.
+
+What kind of changed do we need to be able to integrate these schemas in how we implement the indicators?

@@ -1,0 +1,52 @@
+{
+  "id": "stochastic",
+  "name": "Stochastic Oscillator",
+  "description": "Momentum indicator comparing closing price to price range over time",
+  "category": "momentum",
+  "parameters": {
+    "kPeriod": {
+      "type": "number",
+      "label": "%K Period",
+      "description": "Lookback period for %K calculation",
+      "default": 14,
+      "min": 2,
+      "max": 100,
+      "required": true
+    },
+    "dPeriod": {
+      "type": "number",
+      "label": "%D Period",
+      "description": "Smoothing period for %D (signal line)",
+      "default": 3,
+      "min": 2,
+      "max": 50,
+      "required": true
+    },
+    "smooth": {
+      "type": "number",
+      "label": "Smoothing",
+      "description": "Smoothing factor for %K",
+      "default": 3,
+      "min": 1,
+      "max": 10,
+      "required": true
+    }
+  },
+  "outputs": [
+    {
+      "name": "stoch_k",
+      "label": "%K Line",
+      "type": "line",
+      "overlay": false
+    },
+    {
+      "name": "stoch_d",
+      "label": "%D Line",
+      "type": "line",
+      "overlay": false
+    }
+  ],
+  "version": 1,
+  "tags": ["momentum", "stochastic", "oscillator"],
+  "isPublic": true
+}

@@ -1,0 +1,55 @@
+{
+  "id": "moving-averages",
+  "name": "Moving Averages",
+  "description": "Simple and Exponential Moving Averages for trend analysis",
+  "category": "trend",
+  "parameters": {
+    "fastPeriod": {
+      "type": "number",
+      "label": "Fast Period",
+      "description": "Shorter period for faster signals",
+      "default": 50,
+      "min": 2,
+      "max": 500,
+      "required": true
+    },
+    "slowPeriod": {
+      "type": "number",
+      "label": "Slow Period",
+      "description": "Longer period for trend confirmation",
+      "default": 200,
+      "min": 2,
+      "max": 500,
+      "required": true,
+      "validation": "slowPeriod > fastPeriod"
+    },
+    "type": {
+      "type": "select",
+      "label": "Type",
+      "description": "Moving average calculation method",
+      "default": "sma",
+      "options": [
+        { "value": "sma", "label": "Simple MA" },
+        { "value": "ema", "label": "Exponential MA" }
+      ],
+      "required": true
+    }
+  },
+  "outputs": [
+    {
+      "name": "ma_fast",
+      "label": "Fast MA",
+      "type": "line",
+      "overlay": true
+    },
+    {
+      "name": "ma_slow",
+      "label": "Slow MA",
+      "type": "line",
+      "overlay": true
+    }
+  ],
+  "version": 1,
+  "tags": ["trend", "moving-average", "overlay"],
+  "isPublic": true
+}

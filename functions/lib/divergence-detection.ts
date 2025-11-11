@@ -3,7 +3,7 @@
  * Detects price divergences with technical indicators (RSI, MACD, Volume, etc.)
  */
 
-import { PriceCandle } from "./market-api.js";
+import { type PriceCandle } from "./market-api.js";
 
 export interface Peak {
   timestamp: number;

@@ -1,0 +1,28 @@
+{
+  "id": "rsi",
+  "name": "Relative Strength Index (RSI)",
+  "description": "Momentum oscillator measuring speed and magnitude of price changes",
+  "category": "momentum",
+  "parameters": {
+    "period": {
+      "type": "number",
+      "label": "Period",
+      "description": "Lookback period for RSI calculation",
+      "default": 14,
+      "min": 2,
+      "max": 100,
+      "required": true
+    }
+  },
+  "outputs": [
+    {
+      "name": "rsi",
+      "label": "RSI Value",
+      "type": "line",
+      "overlay": false
+    }
+  ],
+  "version": 1,
+  "tags": ["momentum", "oscillator", "rsi"],
+  "isPublic": true
+}

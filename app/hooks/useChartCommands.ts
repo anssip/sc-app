@@ -205,8 +205,8 @@ async function executeChartCommand(
       }
 
       const lineId = api.addTrendLine({
-        startPoint: params.start,
-        endPoint: params.end,
+        startPoint: params.startPoint || params.start,
+        endPoint: params.endPoint || params.end,
         color: params.color || "#2962ff",
         lineWidth: params.lineWidth || 2,
         style: params.style || "solid",
@@ -223,6 +223,58 @@ async function executeChartCommand(
         animation: params.animation || undefined,
       });
       return { trendLineId: lineId };
+
+    case "add_price_line":
+      // Format label text with local timezone if lastTest is provided
+      let labelText = params.label?.text || undefined;
+      if (params.lastTest && labelText) {
+        const date = new Date(params.lastTest);
+        const localDateStr = date.toLocaleString(undefined, {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZoneName: "short",
+        });
+        labelText += ` | Last tested: ${localDateStr}`;
+      }
+
+      if (!api.addPriceLine) {
+        throw new Error("Chart API addPriceLine method not available");
+      }
+
+      const priceLineId = api.addPriceLine({
+        price: params.price,
+        color: params.color || "#6b7280",
+        lineStyle: params.style || "solid",
+        lineWidth: params.lineWidth || 2,
+        label: params.label
+          ? {
+              text: labelText || params.label.text,
+              position: params.label.position || "right",
+              backgroundColor: params.label.backgroundColor,
+              textColor: params.label.textColor || "#ffffff",
+              fontSize: params.label.fontSize || 11,
+            }
+          : undefined,
+        draggable: params.draggable || false,
+        extendLeft: params.extendLeft !== false,
+        extendRight: params.extendRight !== false,
+        showPriceLabel: params.showPriceLabel !== false,
+        interactive: true,
+        // Enhanced properties for support/resistance visualization
+        metadata: {
+          ...params.metadata,
+          levelType: params.levelType,
+          opacity: params.opacity,
+          markers: params.markers,
+          zIndex: params.zIndex,
+          animation: params.animation,
+        },
+        zIndex: params.zIndex || undefined,
+      });
+      return { priceLineId };
 
     case "remove_trend_line":
       api.removeTrendLine(params.id);
@@ -322,6 +374,11 @@ async function executeChartCommand(
       return { cleared: true };
 
     case "visualize_divergences":
+      console.log(
+        `[visualize_divergences] Starting visualization with ${
+          params.divergences?.length || 0
+        } divergences`
+      );
       if (!params.divergences || !Array.isArray(params.divergences)) {
         throw new Error(
           "Divergences array is required for visualize_divergences command"
@@ -335,10 +392,14 @@ async function executeChartCommand(
       const showLabels = params.showLabels !== false; // Default true
 
       const drawnLines: string[] = [];
+      console.log(
+        `[visualize_divergences] Config: drawOnPrice=${drawOnPrice}, bullishColor=${bullishColor}, bearishColor=${bearishColor}`
+      );
 
       for (const divergence of params.divergences) {
         // Determine color based on divergence type
-        const isBullish = divergence.type === "bullish" || divergence.type === "hidden_bullish";
+        const isBullish =
+          divergence.type === "bullish" || divergence.type === "hidden_bullish";
         const color = isBullish ? bullishColor : bearishColor;
 
         // Determine line style (dashed for hidden divergences)
@@ -352,7 +413,9 @@ async function executeChartCommand(
         // Create label for the trend line
         let label = "";
         if (showLabels) {
-          const typeLabel = divergence.type?.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase());
+          const typeLabel = divergence.type
+            ?.replace(/_/g, " ")
+            .replace(/\b\w/g, (l: string) => l.toUpperCase());
           label = `${typeLabel} ${divergence.indicator?.toUpperCase()} Divergence`;
           if (divergence.confidence) {
             label += ` (${Math.round(divergence.confidence)}% confidence)`;
@@ -361,14 +424,24 @@ async function executeChartCommand(
 
         // Draw trend line on price chart
         if (drawOnPrice && divergence.startPoint && divergence.endPoint) {
+          console.log(
+            `[visualize_divergences] Drawing trend line for ${divergence.type} divergence:`,
+            {
+              start: divergence.startPoint,
+              end: divergence.endPoint,
+              color,
+              style,
+              lineWidth,
+            }
+          );
           const priceLineId = api.addTrendLine({
             startPoint: {
               timestamp: divergence.startPoint.timestamp,
-              price: divergence.startPoint.price
+              price: divergence.startPoint.price,
             },
             endPoint: {
               timestamp: divergence.endPoint.timestamp,
-              price: divergence.endPoint.price
+              price: divergence.endPoint.price,
             },
             color: color,
             lineWidth: lineWidth,
@@ -376,10 +449,15 @@ async function executeChartCommand(
             extendLeft: false,
             extendRight: false,
             name: label || `${divergence.type} divergence`,
-            description: divergence.description || `${divergence.indicator} divergence detected`,
+            description:
+              divergence.description ||
+              `${divergence.indicator} divergence detected`,
             selected: false,
-            opacity: isHidden ? 0.7 : 1
+            opacity: isHidden ? 0.7 : 1,
           });
+          console.log(
+            `[visualize_divergences] Trend line created with ID: ${priceLineId}`
+          );
           drawnLines.push(priceLineId);
         }
 
@@ -392,7 +470,7 @@ async function executeChartCommand(
       return {
         visualized: params.divergences.length,
         linesDrawn: drawnLines.length,
-        lineIds: drawnLines
+        lineIds: drawnLines,
       };
 
     default:

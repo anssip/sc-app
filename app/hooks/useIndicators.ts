@@ -63,7 +63,7 @@ export const useIndicators = (firestore?: Firestore): UseIndicatorsReturn => {
         {
           id: "rsi",
           name: "RSI",
-          display: "Bottom",
+          display: "StackBottom",
           visible: false,
           params: { period: 14 },
           scale: "Value",
@@ -72,7 +72,7 @@ export const useIndicators = (firestore?: Firestore): UseIndicatorsReturn => {
         {
           id: "macd",
           name: "MACD",
-          display: "Bottom",
+          display: "StackBottom",
           visible: false,
           params: { fast: 12, slow: 26, signal: 9 },
           scale: "Value",
@@ -117,7 +117,7 @@ export const useIndicators = (firestore?: Firestore): UseIndicatorsReturn => {
         {
           id: "stochastic",
           name: "Stochastic",
-          display: "Bottom",
+          display: "StackBottom",
           visible: false,
           params: { kPeriod: 14, dPeriod: 3, smooth: 3 },
           scale: "Value",

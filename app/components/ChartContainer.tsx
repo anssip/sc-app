@@ -317,9 +317,12 @@ const ChartContainerInner: React.FC<ChartContainerProps> = ({
       symbol: config.symbol,
       granularity: config.granularity,
       indicators: config.indicators || [],
-      trendLines: trendLines, // Include loaded trend lines
+      // TEMPORARY FIX: Don't pass trend lines in initialState
+      // They will be added after chart loads via the useEffect
+      // trendLines: trendLines,
     }),
-    [config.symbol, config.granularity, config.indicators, trendLines]
+    [config.symbol, config.granularity, config.indicators]
+    // Removed trendLines from dependencies
   );
 
   // Dummy handlers for split functionality (to be implemented later)

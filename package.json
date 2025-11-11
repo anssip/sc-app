@@ -22,10 +22,12 @@
     "firebase:login": "firebase login",
     "emulators:dev": "FIRESTORE_EMULATOR_HOST=localhost:8090 FUNCTIONS_EMULATOR_HOST=localhost:5001 firebase emulators:start --only functions,firestore,auth",
     "emulators:mcp": "cd functions && bun run build && cd .. && firebase emulators:start --only functions:mcpServer,firestore,auth --project spotcanvas-prod",
-    "add-emu-user": "node scripts/add-emulator-user.mjs"
+    "emulators:add-indicator-schemas": "node scripts/upload-indicator-schemas.cjs --emulator",
+    "emulators:add-user": "node scripts/add-emulator-user.mjs",
+    "emulators:populate": "bun run emulators:add-user && bun run emulators:add-indicator-schemas"
   },
   "dependencies": {
-    "@anssip/rs-charts": "1.2.44",
+    "@anssip/rs-charts": "file:../rs-charts",
     "@headlessui/react": "^2.2.4",
     "@remix-run/node": "^2.16.8",
     "@remix-run/react": "^2.16.8",
@@ -34,6 +36,7 @@
     "@stripe/stripe-js": "^7.7.0",
     "@use-gesture/vanilla": "^10.3.1",
     "dotenv": "^17.2.2",
+    "esbuild": "^0.25.11",
     "firebase": "^11.8.1",
     "gray-matter": "^4.0.3",
     "isbot": "^4.1.0",
@@ -69,7 +72,7 @@
     "sharp": "^0.34.3",
     "tailwindcss": "^3.4.4",
     "typescript": "^5.1.6",
-    "vite": "^6.0.0",
+    "vite": "^7.1.12",
     "vite-tsconfig-paths": "^4.2.1"
   },
   "engines": {

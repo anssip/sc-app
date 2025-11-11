@@ -556,7 +556,8 @@ async function processWithLLM({
               // Determine the price based on priceType
               if (args.priceType === "current") {
                 // Fetch the current price
-                const API_BASE_URL = "https://market.spotcanvas.com";
+                const API_BASE_URL =
+                  "https://market-evaluators-dev-346028322665.europe-west1.run.app";
                 const now = Date.now();
                 const oneHourAgo = now - 60 * 60 * 1000;
 
@@ -648,16 +649,9 @@ async function processWithLLM({
                 throw new Error(`Invalid priceType: ${args.priceType}`);
               }
 
-              // Create the horizontal line arguments
-              const horizontalLineArgs = {
-                start: {
-                  timestamp: chartContext.timeRange.start,
-                  price: targetPrice,
-                },
-                end: {
-                  timestamp: chartContext.timeRange.end,
-                  price: targetPrice,
-                },
+              // Create the horizontal price line arguments
+              const priceLineArgs = {
+                price: targetPrice,
                 color: args.color || "#2962ff",
                 lineWidth: args.lineWidth || 2,
                 style: args.style || "solid",
@@ -665,22 +659,30 @@ async function processWithLLM({
                   args.extendLeft !== undefined ? args.extendLeft : true,
                 extendRight:
                   args.extendRight !== undefined ? args.extendRight : true,
-                name: lineName,
+                label: {
+                  text: lineName,
+                  position: "left" as const,
+                  backgroundColor: (args.color || "#2962ff") + "66", // 40% opacity (66 in hex)
+                  textColor: "#ffffff",
+                  fontSize: 11,
+                },
+                showPriceLabel: true,
+                draggable: false,
                 levelType: "horizontal",
                 opacity: args.opacity || 0.8,
               };
 
-              // Create the add_trend_line command
-              const trendLineToolCall = {
+              // Create the add_price_line command
+              const priceLineToolCall = {
                 ...toolCall,
                 function: {
-                  name: "add_trend_line",
-                  arguments: JSON.stringify(horizontalLineArgs),
+                  name: "add_price_line",
+                  arguments: JSON.stringify(priceLineArgs),
                 },
               };
 
-              // Execute the trend line command
-              await onToolCall(trendLineToolCall);
+              // Execute the price line command
+              await onToolCall(priceLineToolCall);
 
               // Send confirmation
               const confirmationMessage = chartTools.getConfirmationMessage(
@@ -897,16 +899,9 @@ async function processWithLLM({
                   lineStyle = "dashed";
                 }
 
-                // Create a horizontal line at the support price
+                // Create a horizontal price line at the support price
                 const supportLineArgs = {
-                  start: {
-                    timestamp: args.startTime,
-                    price: support.price,
-                  },
-                  end: {
-                    timestamp: args.endTime,
-                    price: support.price,
-                  },
+                  price: support.price,
 
                   // Enhanced visual properties based on level type
                   color: colors[levelType].support,
@@ -914,6 +909,23 @@ async function processWithLLM({
                     levelType === "spike" ? 4 : levelType === "swing" ? 3 : 1.5,
                   style: lineStyle,
                   opacity: 0.5 + (adjustedConfidence / 100) * 0.5,
+
+                  // Label configuration
+                  label: {
+                    text: `${
+                      levelType === "spike"
+                        ? "⚡ Spike"
+                        : levelType === "swing"
+                        ? "◆ Swing"
+                        : "— Horizontal"
+                    } ${granularityLabel}: Support $${support.price.toFixed(
+                      2
+                    )}`,
+                    position: "left" as const,
+                    backgroundColor: colors[levelType].support + "66", // 40% opacity (66 in hex)
+                    textColor: "#ffffff",
+                    fontSize: 11,
+                  },
 
                   // New properties for advanced visualization
                   levelType: levelType,
@@ -953,40 +965,43 @@ async function processWithLLM({
                         }
                       : undefined,
 
-                  // Existing properties
+                  // Price line specific properties
+                  draggable: false,
                   extendLeft: true,
                   extendRight: true,
-                  name: `${
-                    levelType === "spike"
-                      ? "⚡ Spike"
-                      : levelType === "swing"
-                      ? "◆ Swing"
-                      : "— Horizontal"
-                  } ${granularityLabel}: Support $${support.price.toFixed(2)}`,
-                  description:
-                    support.description ||
-                    `${
-                      levelType === "spike"
-                        ? "Spike Level (Extreme Reversal)"
-                        : levelType === "swing"
-                        ? "Swing Level"
-                        : "Horizontal Level"
-                    } | Confidence: ${adjustedConfidence.toFixed(0)}%${
-                      adjustedConfidence !== support.confidence
-                        ? ` (adjusted from ${support.confidence.toFixed(
-                            0
-                          )}% by indicators)`
-                        : ""
-                    } | Tests: ${support.tests}`,
+                  showPriceLabel: true,
+
+                  // Store metadata
+                  metadata: {
+                    description:
+                      support.description ||
+                      `${
+                        levelType === "spike"
+                          ? "Spike Level (Extreme Reversal)"
+                          : levelType === "swing"
+                          ? "Swing Level"
+                          : "Horizontal Level"
+                      } | Confidence: ${adjustedConfidence.toFixed(0)}%${
+                        adjustedConfidence !== support.confidence
+                          ? ` (adjusted from ${support.confidence.toFixed(
+                              0
+                            )}% by indicators)`
+                          : ""
+                      } | Tests: ${support.tests}`,
+                    levelType: levelType,
+                    confidence: adjustedConfidence,
+                    tests: support.tests,
+                  },
+
                   // Add lastTest field for browser to convert to local timezone
                   lastTest: support.lastTest || undefined,
                 };
 
-                // Create the add_trend_line command
+                // Create the add_price_line command
                 const supportLineToolCall = {
                   ...toolCall,
                   function: {
-                    name: "add_trend_line",
+                    name: "add_price_line",
                     arguments: JSON.stringify(supportLineArgs),
                   },
                 };
@@ -1071,16 +1086,9 @@ async function processWithLLM({
                   lineStyle = "dashed";
                 }
 
-                // Create a horizontal line at the resistance price
+                // Create a horizontal price line at the resistance price
                 const resistanceLineArgs = {
-                  start: {
-                    timestamp: args.startTime,
-                    price: resistance.price,
-                  },
-                  end: {
-                    timestamp: args.endTime,
-                    price: resistance.price,
-                  },
+                  price: resistance.price,
 
                   // Enhanced visual properties based on level type
                   color: colors[levelType].resistance,
@@ -1088,6 +1096,23 @@ async function processWithLLM({
                     levelType === "spike" ? 4 : levelType === "swing" ? 3 : 1.5,
                   style: lineStyle,
                   opacity: 0.5 + (adjustedConfidence / 100) * 0.5,
+
+                  // Label configuration
+                  label: {
+                    text: `${
+                      levelType === "spike"
+                        ? "⚡ Spike"
+                        : levelType === "swing"
+                        ? "◆ Swing"
+                        : "— Horizontal"
+                    } ${granularityLabel}: Resistance $${resistance.price.toFixed(
+                      2
+                    )}`,
+                    position: "left" as const,
+                    backgroundColor: colors[levelType].resistance + "66", // 40% opacity (66 in hex)
+                    textColor: "#ffffff",
+                    fontSize: 11,
+                  },
 
                   // New properties for advanced visualization
                   levelType: levelType,
@@ -1127,42 +1152,43 @@ async function processWithLLM({
                         }
                       : undefined,
 
-                  // Existing properties
+                  // Price line specific properties
+                  draggable: false,
                   extendLeft: true,
                   extendRight: true,
-                  name: `${
-                    levelType === "spike"
-                      ? "⚡ Spike"
-                      : levelType === "swing"
-                      ? "◆ Swing"
-                      : "— Horizontal"
-                  } ${granularityLabel}: Resistance $${resistance.price.toFixed(
-                    2
-                  )}`,
-                  description:
-                    resistance.description ||
-                    `${
-                      levelType === "spike"
-                        ? "Spike Level (Extreme Reversal)"
-                        : levelType === "swing"
-                        ? "Swing Level"
-                        : "Horizontal Level"
-                    } | Confidence: ${adjustedConfidence.toFixed(0)}%${
-                      adjustedConfidence !== resistance.confidence
-                        ? ` (adjusted from ${resistance.confidence.toFixed(
-                            0
-                          )}% by indicators)`
-                        : ""
-                    } | Tests: ${resistance.tests}`,
+                  showPriceLabel: true,
+
+                  // Store metadata
+                  metadata: {
+                    description:
+                      resistance.description ||
+                      `${
+                        levelType === "spike"
+                          ? "Spike Level (Extreme Reversal)"
+                          : levelType === "swing"
+                          ? "Swing Level"
+                          : "Horizontal Level"
+                      } | Confidence: ${adjustedConfidence.toFixed(0)}%${
+                        adjustedConfidence !== resistance.confidence
+                          ? ` (adjusted from ${resistance.confidence.toFixed(
+                              0
+                            )}% by indicators)`
+                          : ""
+                      } | Tests: ${resistance.tests}`,
+                    levelType: levelType,
+                    confidence: adjustedConfidence,
+                    tests: resistance.tests,
+                  },
+
                   // Add lastTest field for browser to convert to local timezone
                   lastTest: resistance.lastTest || undefined,
                 };
 
-                // Create the add_trend_line command
+                // Create the add_price_line command
                 const resistanceLineToolCall = {
                   ...toolCall,
                   function: {
-                    name: "add_trend_line",
+                    name: "add_price_line",
                     arguments: JSON.stringify(resistanceLineArgs),
                   },
                 };
